@@ -107,7 +107,7 @@ public class Metro_NetworkCreator {
 		// Create a New Metro Vehicle
 		String vehicleTypeName = "metro";  double vehicleLength = 50;  double maxVelocity = 80/3.6;	 int vehicleSeats = 100; int vehicleStandingRoom = 100;
 		VehicleType metroVehicleType = Metro_TransitScheduleImpl.createNewVehicleType(vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom);
-		metroScenario.getVehicles().addVehicleType(metroVehicleType);
+		metroScenario.getTransitVehicles().addVehicleType(metroVehicleType);
 		
 		// Generate TransitLines and Schedules on NetworkRoutes --> Add to Transit Schedule
 		int nTransitLines = initialMetroRoutes.size();
@@ -123,7 +123,7 @@ public class Metro_NetworkCreator {
 			
 			// Build TransitRoute from stops and NetworkRoute --> and add departures
 				double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 15*60;  int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
-				String vehicleFileLocation = "zurich_1pm/Metro/Input/Generated_PT_Files/vehicles.xml";
+				String vehicleFileLocation = "zurich_1pm/Metro/Input/Generated_PT_Files/Vehicles.xml";
 			TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create("TransitRoute_LineNr"+lineNr, TransitRoute.class ), metroNetworkRoute, stopArray, defaultPtMode);
 			transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(metroScenario, metroSchedule, transitRoute, nDepartures, tFirstDep, depSpacing, metroVehicleType, vehicleFileLocation); // Add (nDepartures) departures to TransitRoute
 						
@@ -142,7 +142,7 @@ public class Metro_NetworkCreator {
 				
 		Network mergedNework = Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(separateRoutesNetwork, originalNetwork, Sets.newHashSet("pt"), "zurich_1pm/Metro/Input/Generated_Networks/MergedNetwork.xml");
 		TransitSchedule mergedTransitSchedule = Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(metroSchedule, originalTransitSchedule, "zurich_1pm/Metro/Input/Generated_PT_Files/MergedSchedule.xml");
-		Vehicles mergedVehicles = Metro_TransitScheduleImpl.mergeAndWriteVehicles(metroScenario.getVehicles(), originalScenario.getVehicles(), "zurich_1pm/Metro/Input/Generated_PT_Files/MergedVehicles.xml");
+		Vehicles mergedVehicles = Metro_TransitScheduleImpl.mergeAndWriteVehicles(metroScenario.getTransitVehicles(), originalScenario.getTransitVehicles(), "zurich_1pm/Metro/Input/Generated_PT_Files/MergedVehicles.xml");
 		
 		// --------------------------------------------------------------------------------------------------------------
 		

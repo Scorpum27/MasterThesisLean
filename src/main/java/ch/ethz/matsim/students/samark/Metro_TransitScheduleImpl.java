@@ -34,8 +34,8 @@ public class Metro_TransitScheduleImpl {
 	
 	public static VehicleType createNewVehicleType(String vehicleTypeName, double length, double maxVelocity, int seats, int standingRoom) {
 		Scenario scenario = ScenarioUtils.createScenario(ConfigUtils.createConfig());
-		Vehicles vehicles = scenario.getVehicles();
-		VehiclesFactory vehiclesFactory = vehicles.getFactory();
+		Vehicles transitVehicles = scenario.getTransitVehicles();
+		VehiclesFactory vehiclesFactory = transitVehicles.getFactory();
 		VehicleType vehicleType = vehiclesFactory.createVehicleType(Id.create(vehicleTypeName, VehicleType.class));
 		vehicleType.setLength(length);
 		vehicleType.setMaximumVelocity(maxVelocity);
@@ -43,7 +43,7 @@ public class Metro_TransitScheduleImpl {
 		vehicleCapacity.setSeats(seats);
 		vehicleCapacity.setStandingRoom(standingRoom);
 		vehicleType.setCapacity(vehicleCapacity);
-		vehicles.addVehicleType(vehicleType);
+		transitVehicles.addVehicleType(vehicleType);
 		System.out.println("New vehicle type is: "+vehicleType.getId().toString());
 		return vehicleType;
 	}
@@ -85,16 +85,16 @@ public class Metro_TransitScheduleImpl {
 		for (int d=0; d<nDepartures; d++) {
 			depTimeOffset = d*15*60;
 			Departure departure = transitSchedule.getFactory().createDeparture(Id.create(transitRoute.getId().toString()+"_Departure_"+d+"_"+(firstDepTime+depTimeOffset), Departure.class), firstDepTime+depTimeOffset); // TODO specify departureX with better name
-			Vehicle vehicle = scenario.getVehicles().getFactory().createVehicle(Id.createVehicleId(transitRoute.getId().toString()+"_"+vehicleType.getId().toString()+"_"+d), vehicleType);
+			Vehicle vehicle = scenario.getTransitVehicles().getFactory().createVehicle(Id.createVehicleId(transitRoute.getId().toString()+"_"+vehicleType.getId().toString()+"_"+d), vehicleType);
 			// System.out.println(scenario.getVehicles().getVehicles().containsKey(vehicle.getId()));
-			if (scenario.getVehicles().getVehicles().containsKey(vehicle.getId())) {
-				scenario.getVehicles().removeVehicle(vehicle.getId());
+			if (scenario.getTransitVehicles().getVehicles().containsKey(vehicle.getId())) {
+				scenario.getTransitVehicles().removeVehicle(vehicle.getId());
 			}
-			scenario.getVehicles().addVehicle(vehicle);
+			scenario.getTransitVehicles().addVehicle(vehicle);
 			departure.setVehicleId(vehicle.getId());
 			transitRoute.addDeparture(departure);
 		}
-		VehicleWriterV1 vehicleWriter = new VehicleWriterV1(scenario.getVehicles());
+		VehicleWriterV1 vehicleWriter = new VehicleWriterV1(scenario.getTransitVehicles());
 		vehicleWriter.writeFile(vehicleFileLocation);
 		
 		return transitRoute;
@@ -156,31 +156,31 @@ public class Metro_TransitScheduleImpl {
 		return null;
 	}
 	
-	public static Vehicles mergeAndWriteVehicles(Vehicles vehicles1, Vehicles vehicles2, String fileName) {
+	public static Vehicles mergeAndWriteVehicles(Vehicles transitVehicles1, Vehicles transitVehicles2, String fileName) {
 		Config defaultConfig = ConfigUtils.createConfig();
 		Scenario defaultScenario = ScenarioUtils.createScenario(defaultConfig);
-		Vehicles mergedVehicles = defaultScenario.getVehicles();
+		Vehicles mergedTransitVehicles = defaultScenario.getTransitVehicles();
 		
 		// Add all VehicleTypes
-		for (VehicleType vehicleType : vehicles1.getVehicleTypes().values()) {
-			mergedVehicles.addVehicleType(vehicleType);
+		for (VehicleType transitVehicleType : transitVehicles1.getVehicleTypes().values()) {
+			mergedTransitVehicles.addVehicleType(transitVehicleType);
 		}
-		for (VehicleType vehicleType : vehicles2.getVehicleTypes().values()) {
-			mergedVehicles.addVehicleType(vehicleType);
+		for (VehicleType transitVehicleType : transitVehicles2.getVehicleTypes().values()) {
+			mergedTransitVehicles.addVehicleType(transitVehicleType);
 		}
 		
 		// Add all Vehicles
-		for (Vehicle vehicle : vehicles1.getVehicles().values()) {
-			mergedVehicles.addVehicle(vehicle);
+		for (Vehicle transitVehicle : transitVehicles1.getVehicles().values()) {
+			mergedTransitVehicles.addVehicle(transitVehicle);
 		}
-		for (Vehicle vehicle : vehicles2.getVehicles().values()) {
-			mergedVehicles.addVehicle(vehicle);
+		for (Vehicle transitVehicle : transitVehicles2.getVehicles().values()) {
+			mergedTransitVehicles.addVehicle(transitVehicle);
 		}
 
-		VehicleWriterV1 vehicleWriterV1 = new VehicleWriterV1(mergedVehicles);
+		VehicleWriterV1 vehicleWriterV1 = new VehicleWriterV1(mergedTransitVehicles);
 		vehicleWriterV1.writeFile(fileName);
 
-		return mergedVehicles;
+		return mergedTransitVehicles;
 	}
 	
 }

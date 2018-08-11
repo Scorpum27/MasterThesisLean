@@ -16,7 +16,7 @@ public class Run_MetroScenario {
 	public static void main(String[] args) {
 				
 		Config metroConfig = Metro_ConfigModifier.modifyFromFile("zurich_1pm/zurich_config.xml");
-		metroConfig.getModules().get("controler").addParam("lastIteration", "100");
+		metroConfig.getModules().get("controler").addParam("lastIteration", "10");
 		Scenario metroScenario = ScenarioUtils.createScenario(metroConfig);
 		metroScenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class,
 				new DefaultEnrichedTransitRouteFactory());
