@@ -29,7 +29,6 @@ public class VC_ScenarioImpl {
 	
 	public Population createNewDemand(Scenario scenario, Network network, double networkSize, int nNewPeople, String populationPrefix) {
 
-
 		Population population = scenario.getPopulation();
 		PopulationFactory populationFactory = population.getFactory();
 		
@@ -76,7 +75,7 @@ public class VC_ScenarioImpl {
 			double workRandom = new Random().nextDouble();
 			if(workRandom < 0.9) {
 				// System.out.println("in work loop");
-				double minDistanceToWork = 0;
+				double minDistanceToWork = networkSize/4;
 				double maxDistanceToWork = networkSize;
 				Link workLink = DijkstraOwn_I.makeSureExists(confinedLinkGenerator(newPerson, network, networkSize, homeCoord, minDistanceToWork, maxDistanceToWork), lastLink, network);	
 				Coord workCoord = linkToRandomCoord(workLink);
@@ -138,6 +137,7 @@ public class VC_ScenarioImpl {
 			routeLinkIds.add(toLink.getId());			
 			NetworkRoute networkRoute = RouteUtils.createNetworkRoute(routeLinkIds, network);
 			leg.setRoute(networkRoute);
+			leg.setTravelTime(25*60);
 			plan.addLeg(leg);
 	}
 	
@@ -211,7 +211,7 @@ public class VC_ScenarioImpl {
 		homeActivity.setLinkId(homeLink.getId());
 		Random r = new Random();
 		if(activityName != "homeFinal") {
-			homeActivity.setEndTime(minHomeStay+r.nextDouble()*leaveTimeFrame);		// homeActivity.setEndTime(6.0*60*60+r.nextInt(2*60*60));			
+			homeActivity.setEndTime(minHomeStay+r.nextDouble()*leaveTimeFrame);		// homeActivity.setEndTime(6.0*60*60+r.nextInt(2*60*60));
 		}
 		plan.addActivity(homeActivity);	
 	}

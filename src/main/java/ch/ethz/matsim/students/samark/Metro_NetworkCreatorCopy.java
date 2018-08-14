@@ -8,9 +8,11 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
+import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.population.routes.NetworkRoute;
+import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
@@ -26,7 +28,7 @@ import com.google.common.collect.Sets;
 import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRoute;
 import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRouteFactory;
 
-public class Metro_NetworkCreator {
+public class Metro_NetworkCreatorCopy {
 
 	public static void run() {
 		// TODO METRO Network
@@ -95,13 +97,82 @@ public class Metro_NetworkCreator {
 		double minTerminalDistance = 2.80 * metroCityRadius;
 		//ArrayList<NetworkRoute> initialMetroRoutes = Metro_NetworkImpl.createInitialRoutes(metroNetwork,
 		//		links_MetroTerminalCandidates, nRoutes, minTerminalDistance, "zurich_1pm/Metro/Input/Generated_Networks/5_zurich_network_MetroInitialRoutes.xml");
+		
 		double xOffset = 1733436; 	// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; X_MATSim= 2683476;
 		double yOffset = -4748525;	// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; Y_MATSim= 1246811;
-		ArrayList<NetworkRoute> initialMetroRoutes = OD_ProcessorImpl.createInitialRoutes(metroNetwork,
-					nRoutes, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, zurich_NetworkCenterCoord, 
-					"zurich_1pm/Metro/Input/Data/OD_Input/DemandPT2013.csv", "zurich_1pm/Metro/Input/Data/OD_Input/OD_EssentialData_open.csv", xOffset, yOffset);	
-					// CAUTION: Make sure .csv is separated by semi-colon because location names also include commas sometimes and lead to failure!!
+		ArrayList<NetworkRoute> initialMetroRoutes = OD_ProcessorImpl.createInitialRoutes(originalNetwork,
+					links_mostFrequentInRadiusMainFacilitiesSet, nRoutes, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, zurich_NetworkCenterCoord, 
+					"zurich_1pm/Metro/Input/Generated_Networks/5_zurich_network_MetroInitialRoutes.xml",
+					"zurich_1pm/Metro/Input/Data/OD_Input/DemandPT2013.csv",										
+					"zurich_1pm/Metro/Input/Data/OD_Input/OD_EssentialData_open.csv", xOffset, yOffset);	// CAUTION: Make sure .csv is separated by semi-colon because location names also include commas sometimes and lead to failure!!
 		Network separateRoutesNetwork = Metro_NetworkImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork, Sets.newHashSet("pt"), "zurich_1pm/Metro/Input/Generated_Networks/5_zurich_network_MetroInitialRoutes.xml");
+		
+		Network newMetroNetwork = 
+		Map<Id<Link>, CustomLinkAttributes> metroCandidateLinks, int nRoutes, double minRadius, double maxRadius, Coord cityCenterCoord,
+		String fileName, String csvFileODValues, String csvFileODLocations, double xOffset, double yOffset) {
+	// TODO Auto-generated method stub
+	
+	ArrayList<NetworkRoute> networkRouteArray = new ArrayList<NetworkRoute>();
+			
+	Node[][] OD_Terminals = findODPairs(newMetroNetwork, csvFileODValues, csvFileODLocations, minRadius, maxRadius, cityCenterCoord, 
+			metroCandidateLinks, nRoutes, xOffset, yOffset);
+	
+	int n = 0;
+	OuterNetworkRouteLoop:
+	while (networkRouteArray.size() < nRoutes) {
+		Id<Node> terminalNode1 = OD_Terminals[n][0].getId();
+		Id<Node> terminalNode2 = OD_Terminals[n][1].getId();			
+		
+		// Find Djikstra --> nodeList
+		ArrayList<Node> nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(newMetroNetwork, terminalNode1, terminalNode2);
+		if (nodeList == null) {
+				System.out.println("Oops, no shortest path available. Trying to create next networkRoute. Please lower minTerminalDistance"
+						+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
+				continue OuterNetworkRouteLoop;
+		}
+		List<Id<Link>> linkList = Metro_NetworkImpl.nodeListToNetworkLinkList(newMetroNetwork, nodeList);
+		NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, newMetroNetwork);
+		networkRouteArray.add(networkRoute);
+		System.out.println("The new networkRoute is: [Length="+(networkRoute.getLinkIds().size()+2)+"] - " + networkRoute.toString());
+		n++;
+	}
+	
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
+		
 		
 		
 		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

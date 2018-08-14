@@ -15,6 +15,8 @@ public class Metro_ConfigModifier {
 		modConfig.getModules().get("transit").addParam("transitScheduleFile","Metro/Input/Generated_PT_Files/MergedSchedule.xml");
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Metro/Input/Generated_PT_Files/MergedVehicles.xml");
 
+		
+		
 		ConfigWriter configWriter = new ConfigWriter(modConfig);
 		configWriter.write("zurich_1pm/Metro/Input/Generated_Config/zurich_config_metro_justForLookup.xml");
 		

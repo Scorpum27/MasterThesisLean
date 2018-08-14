@@ -65,7 +65,7 @@ public class Metro_TransitScheduleImpl {
 			transitStopFacility.setLinkId(linkID);
 			stopCount++;
 			if(stopCount>1) {
-				accumulatedDrivingTime += lastLink.getLength()/(maxVehicleSpeed/3);
+				accumulatedDrivingTime += lastLink.getLength()/(maxVehicleSpeed);
 			}
 			double arrivalDelay = (stopCount-1)*stopTime + accumulatedDrivingTime;
 			double departureDelay = (stopCount)*stopTime + accumulatedDrivingTime;		// same as arrivalDelay + 1*stopTime
@@ -106,7 +106,9 @@ public class Metro_TransitScheduleImpl {
 		Metro_NetworkImpl.copyNetworkToNetwork(routesNetwork, mergedNetwork);
 		Metro_NetworkImpl.copyNetworkToNetwork(originalNetwork, mergedNetwork);
 		
-		for (Node node : routesNetwork.getNodes().values()) {
+		// Add this part to connect new network to old network. this is NOT NECESSARY as the agents will "telewalk" to the metro nodes of the new network.
+		// This would have to be added for new car links given the fact, that only walking is teleported and cars could not reach the new links.
+		/*for (Node node : routesNetwork.getNodes().values()) {
 			Id<Link> originalRefLinkId = Metro_NetworkImpl.orginalLinkFromMetroNode(node.getId());
 			Link originalRefLink = originalNetwork.getLinks().get(originalRefLinkId);
 			Link connectingLinkToToNode = originalNetwork.getFactory().createLink(Id.createLinkId("Connector_newNode"+node.getId().toString()+"_originalNode"+originalRefLink.getToNode().getId().toString()), mergedNetwork.getNodes().get(node.getId()), mergedNetwork.getNodes().get(originalRefLink.getToNode().getId())); 
@@ -121,7 +123,7 @@ public class Metro_TransitScheduleImpl {
 			mergedNetwork.addLink(connectingLinkToFromNode);
 			mergedNetwork.addLink(connectingLinkFromToNode);
 			mergedNetwork.addLink(connectingLinkFromFromNode);
-		}
+		}*/
 		
 		NetworkWriter initialRoutesNetworkWriter = new NetworkWriter(mergedNetwork);
 		initialRoutesNetworkWriter.write(fileName);

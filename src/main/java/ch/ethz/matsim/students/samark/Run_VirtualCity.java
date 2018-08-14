@@ -26,20 +26,34 @@ import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRo
 import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRouteFactory;
 
 
+/* %%% COMMENTS %%%
+ * - network is so small that walking was always preferred to pt because pt was set to very slow speed
+ * 		--> two solutions: (1) convert to another coordinate system where every link has length 100.0 instead of 1.0 or (2) change walk speed to a 100th of before i.e. 0.008333
+ * - Strange population file person name output comes from VC_PublicTransportImpl.java: Vehicle vehicle = scenario.getVehicles().getFactory().createVehicle(Id.createVehicleId(transitRoute.getId().toString()+"_"+vehicleType.getId().toString()+"_"+d), vehicleType);
+ */
+
 public class Run_VirtualCity {
 
 
 	static public void main(String[] args) {
 		
+		final int XMax = 50;													// set network size in West-to-East
+		final int YMax = 50;													// set network size in South-to-North	
+		int removalPercentage = 20;
+		int nTransitLines = 50;
+		int nNewPeople = 30;
+
 		// Create an entirely new scenario here [ = Network + Population/Demand + TransitSchedule/Infrastructure]
-		createCompleteScenario();
+		createCompleteScenario(XMax, YMax, removalPercentage, nTransitLines, nNewPeople);
 	
 		// Configure and run MATSim
-		String networkName = "Network_50x50_20PercentLean.xml";
-		String populationName = "Plans10.xml";
+		String networkName = "Network_"+Integer.toString(XMax)+"x"+Integer.toString(YMax)+"_"+Integer.toString(removalPercentage)+"PercentLean.xml";
+		int lastIteration = 10;
+		String populationName = "Plans"+Integer.toString(nNewPeople)+".xml";
 		String scheduleName = "Schedule.xml";
 		String vehiclesName = "Vehicles.xml";
-		Config modConfig = VC_ConfigModifier.modifyConfig(ConfigUtils.createConfig(), networkName, populationName, 
+		String initialConfig = "zurich_1pm/zurich_config_modScores.xml";
+		Config modConfig = VC_ConfigModifier.modifyConfig(ConfigUtils.loadConfig(initialConfig), lastIteration, networkName, populationName, 
 				scheduleName, vehiclesName);  
 		Scenario scenario = ScenarioUtils.createScenario(modConfig);
 		ScenarioUtils.loadScenario(scenario);															// do I have to load scenario here due to having set the new route factory or would I have to load anyways
@@ -48,22 +62,19 @@ public class Run_VirtualCity {
 	}
 
 	
-	public static void createCompleteScenario(){
+	public static void createCompleteScenario(int XMax, int YMax, int removalPercentage, int nTransitLines,	int nNewPeople){
 		// load & create configuration and scenario
 				Config config = ConfigUtils.createConfig();								// in this case it is empty files and structures
-				Scenario scenario = ScenarioUtils.createScenario(config);
+				Scenario scenario = ScenarioUtils.loadScenario(config);
 				scenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class,
 						new DefaultEnrichedTransitRouteFactory());						// why do we need this again?
 				Network network = scenario.getNetwork();								// NetworkFactory netFac = network.getFactory();
 
-			// load, create & process network	
-				final int XMax = 50;													// set network size in West-to-East
-				final int YMax = 50;													// set network size in South-to-North		
+			// load, create & process network		
 				network = VC_NetworkImpl.fill(XMax, YMax, network);						// Fill up network with nodes between XMax and YMax to make a perfect node grid - These nodes can be used as potential stop locations in a perfect and uniform network.
 				VC_NetworkImpl.writeToFile(XMax, YMax, network);
 				
 			// make a thinner and more realistic network by removing a percentage of nodes and its connecting links
-				int removalPercentage = 20;
 				boolean writeToFile = true;																			// if we want to keep 
 				Network networkThin = VC_NetworkImpl.thin(network, XMax, YMax, removalPercentage, writeToFile);		// make new static method in networkFiller		
 				// TODO create loading function here to load a specific network that can be compared over several runs	
@@ -73,19 +84,20 @@ public class Run_VirtualCity {
 				TransitScheduleFactory transitScheduleFactory = transitSchedule.getFactory();
 
 			// make a new vehicleType
-				String vehicleTypeName = "MagicalBus";
+				String vehicleTypeName = "magicalBusType";
 				double vehicleLength = 15;
 				double maxVelocity = 100/3.6;
 				int vehicleSeats = 15;
 				int vehicleStandingRoom = 15;
-				VC_PublicTransportImpl.createNewVehicleType(scenario, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom);
-
+				VehicleType magicalBus = VC_PublicTransportImpl.createNewVehicleType(scenario, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom);
+				scenario.getTransitVehicles().addVehicleType(magicalBus);
+				
 			// Make (nTransitLines) new TransitLines from random networkRoutes in given network 
 			// TODO make a method for entire loop: 
 			// TODO newNetworkWithTransitSchedule(Scenario scenario, int nTransitLines, int outerFramePercentage, int minSpacingPercentage,
 			//										String defaultPtMode, boolean blocksLane, double stopTime, double vehicleSpeed, int nDepartures, double firstDepTime, double departureSpacing)	
 				
-				int nTransitLines = 5;
+
 				for(int lineNr=0; lineNr<nTransitLines; lineNr++) {		
 				
 					// RandomNetworkRouteGenerator
@@ -100,8 +112,8 @@ public class Run_VirtualCity {
 					// Create an array of stops along new networkRoute on the center of each of its individual links
 						String defaultPtMode = "bus";
 						boolean blocksLane = false;
-						double stopTime = 30.0; 					// stop duration for vehicle in [seconds]
-						double vehicleSpeed = 2.0/60; 				// 120 unit_link_lengths/hour = 2 unit_link_lengths/minute = 2/60 unit_link_lengths/second
+						double stopTime = 1.0; 					// stop duration for vehicle in [seconds]
+						double vehicleSpeed = 100/3.6; 				// 120 unit_link_lengths/hour = 2 unit_link_lengths/minute = 2/60 unit_link_lengths/second
 					List<TransitRouteStop> stopArray = VC_PublicTransportImpl.networkRouteStopsAllLinks(
 							transitSchedule, networkThin, networkRoute, defaultPtMode, stopTime, vehicleSpeed, blocksLane);
 					
@@ -109,7 +121,6 @@ public class Run_VirtualCity {
 						int nDepartures = 10;
 						double firstDepTime = 6.0*60*60;
 						double departureSpacing = 15*60;
-						VehicleType magicalBus = scenario.getVehicles().getVehicleTypes().get(Id.create(vehicleTypeName, VehicleType.class));
 						String vehicleFileLocation = "zurich_1pm/VirtualCity/Input/Generated_PT_Files/Vehicles.xml";
 					TransitRoute transitRoute = transitScheduleFactory.createTransitRoute(Id.create("transitRoute_"+lineNr, TransitRoute.class ), networkRoute, stopArray, defaultPtMode);
 					transitRoute = VC_PublicTransportImpl.addDeparturesAndVehiclesToTransitRoute(scenario, transitSchedule, transitRoute, nDepartures, firstDepTime, departureSpacing, magicalBus, vehicleFileLocation); // Add (nDepartures) departures to TransitRoute
@@ -131,9 +142,8 @@ public class Run_VirtualCity {
 			// create population by means of population factory
 				Population population = scenario.getPopulation();
 				
-				int nNewPeople = 10;
 				double networkSize = Math.sqrt(XMax*XMax+YMax*YMax);
-				String populationPrefix = "HundredTestPop";
+				String populationPrefix = "Pop";
 				
 				VC_ScenarioImpl demandCreator = new VC_ScenarioImpl();
 				System.out.println("networkSize is: "+networkSize);

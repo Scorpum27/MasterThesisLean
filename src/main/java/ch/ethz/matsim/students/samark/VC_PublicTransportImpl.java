@@ -57,25 +57,25 @@ public class VC_PublicTransportImpl {
 		double depTimeOffset = 0;
 		for (int d=0; d<nDepartures; d++) {
 			depTimeOffset = d*15*60;
-			Departure departure = transitSchedule.getFactory().createDeparture(Id.create(transitRoute.getId().toString()+"_Departure_"+d+"_"+(firstDepTime+depTimeOffset), Departure.class), firstDepTime+depTimeOffset); // TODO specify departureX with better name
+			Departure departure = transitSchedule.getFactory().createDeparture(Id.create(transitRoute.getId().toString()+"_Departure_"+d+"_"+(firstDepTime+depTimeOffset), Departure.class), firstDepTime+depTimeOffset);
 			Vehicle vehicle = scenario.getVehicles().getFactory().createVehicle(Id.createVehicleId(transitRoute.getId().toString()+"_"+vehicleType.getId().toString()+"_"+d), vehicleType);
-			// System.out.println(scenario.getVehicles().getVehicles().containsKey(vehicle.getId()));
-			if (scenario.getVehicles().getVehicles().containsKey(vehicle.getId())) {
-				scenario.getVehicles().removeVehicle(vehicle.getId());
+			// System.out.println(scenario.getTransitVehicles().getVehicles().containsKey(vehicle.getId()));
+			if (scenario.getTransitVehicles().getVehicles().containsKey(vehicle.getId())) {
+				scenario.getTransitVehicles().removeVehicle(vehicle.getId());
 			}
-			scenario.getVehicles().addVehicle(vehicle);
+			scenario.getTransitVehicles().addVehicle(vehicle);
 			departure.setVehicleId(vehicle.getId());
 			transitRoute.addDeparture(departure);
 		}
-		VehicleWriterV1 vehicleWriter = new VehicleWriterV1(scenario.getVehicles());
+		VehicleWriterV1 vehicleWriter = new VehicleWriterV1(scenario.getTransitVehicles());
 		vehicleWriter.writeFile(vehicleFileLocation);
 		
 		return transitRoute;
 	}
 	
-	public static void createNewVehicleType(Scenario scenario, String vehicleTypeName, double length, double maxVelocity, int seats, int standingRoom) {
-		Vehicles vehicles = scenario.getVehicles();
-		VehiclesFactory vehiclesFactory = vehicles.getFactory();
+	public static VehicleType createNewVehicleType(Scenario scenario, String vehicleTypeName, double length, double maxVelocity, int seats, int standingRoom) {
+		Vehicles transitVehicles = scenario.getTransitVehicles();
+		VehiclesFactory vehiclesFactory = transitVehicles.getFactory();
 		VehicleType vehicleType = vehiclesFactory.createVehicleType(Id.create(vehicleTypeName, VehicleType.class));
 		vehicleType.setLength(length);
 		vehicleType.setMaximumVelocity(maxVelocity);
@@ -83,8 +83,8 @@ public class VC_PublicTransportImpl {
 		vehicleCapacity.setSeats(seats);
 		vehicleCapacity.setStandingRoom(standingRoom);
 		vehicleType.setCapacity(vehicleCapacity);
-		vehicles.addVehicleType(vehicleType);
-		// System.out.println("New vehicle type is: "+vehicleType.getId().toString());
+		System.out.println("New vehicle type is: "+vehicleType.getId().toString());
+		return vehicleType;
 	}
 	
 	public static ArrayList<Id<Link>> networkRouteToLinkIdList(NetworkRoute networkRoute){
