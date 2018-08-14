@@ -36,26 +36,8 @@ public class OD_ProcessorImpl {
 			int nRoutes, double minRadius, double maxRadius, Coord cityCenterCoord,
 			String csvFileODValues, String csvFileODLocations, double xOffset, double yOffset) {
 		
-		// String[] odCodesColumns;
-		// int odLocationsNumber;
 		List<String[]> odLocations = new ArrayList<String[]>();
 		List<String[]> odValues = new ArrayList<String[]>();
-		
-		/*BufferedReader reader0 = null;
-		try {
-		    reader0 = new BufferedReader(new FileReader(new File(csvFileODValues)));
-		    // String line = reader0.readLine();
-		    // odCodesColumns = line.split(";");								// CAUTION: It may also be split by comma "," !!
-		    //odLocationsNumber = Integer.parseInt(odCodesColumns[0]);
-		} catch (IOException e) {
-		    e.printStackTrace();
-		} finally {
-		    try {
-		        reader0.close();
-		    } catch (IOException e) {
-		        e.printStackTrace();
-		    }
-		}*/
 		
 		BufferedReader reader1 = null;
 		try {
@@ -73,9 +55,7 @@ public class OD_ProcessorImpl {
 		        e.printStackTrace();
 		    }
 		}
-		
-		
-		
+				
 		BufferedReader reader2 = null;
 		try {
 		    reader2 = new BufferedReader(new FileReader(new File(csvFileODValues)));
@@ -100,36 +80,23 @@ public class OD_ProcessorImpl {
 			storedLocationCodes.add(odLocations.get(row)[0]);
 		}
 		
-		System.out.println("size of storedLocs is: "+storedLocationCodes.size());
-		System.out.println("odValues size: "+odValues.size());
-		System.out.println("odValues length: "+odValues.get(0).length);
-		int counter = 1;
-
-
 		for (int row = odValues.size()-1; row>0; row--) {					// delete row if the node to be removed is found in the left column=origins
 			String[] line = odValues.get(row);
 			if(storedLocationCodes.contains(line[0])==false) {
-				System.out.println("Removing row with zone code: "+line[0]);
-				System.out.println("Remove counter: "+counter);
-				counter++;
 				odValues.remove(row);
 			}
 		}
 		for (int col = 1; col<odValues.get(0).length; col++) {			// delete column if the node to be removed is found in the top row=destinations
 			if (storedLocationCodes.contains(odValues.get(0)[col])==false) {
-				System.out.println("Setting to zero zone code: "+odValues.get(0)[col]);
-				System.out.println("Remove counter: "+counter);
-				counter++;
 				for (int r=1; r<odValues.size(); r++) {
 					odValues.get(r)[col] = "0";
 				}
-				// break;
 			}
 		}
 		
-		System.out.println("counted removals: "+counter);
-		System.out.println("odValues size: "+odValues.size());
-		System.out.println("odValues size: "+odValues.size());
+		//System.out.println("counted removals: "+counter);
+		//System.out.println("odValues size: "+odValues.size());
+		//System.out.println("odValues size: "+odValues.size());
 
 		double x;
 		double y;
@@ -154,14 +121,12 @@ public class OD_ProcessorImpl {
 				for (int row = odValues.size()-1; row>0; row--) {					// delete row if the node to be removed is found in the left column=origins
 					String[] line = odValues.get(row);
 					if(line[0].contains(removeCode)) {
-						//System.out.println("Removing row with zone code: "+line[0]);
 						odValues.remove(row);
 						break;	// remove this break if an origin could appear twice in OD left column!
 					}
 				}
 				for (int col = 1; col<odValues.get(0).length; col++) {			// delete column if the node to be removed is found in the top row=destinations
 					if (odValues.get(0)[col].contains(removeCode)) {
-						//System.out.println("Removing column with zone code: "+odValues.get(0)[col]);
 						for (int r=1; r<odValues.size(); r++) {
 							odValues.get(r)[col] = "0";
 						}
@@ -169,22 +134,7 @@ public class OD_ProcessorImpl {
 					}
 				}
 			}
-		}
-		
-		
-		
-		/*for (String[] line : odValues) {
-			System.out.println("odValueName: "+line[0]);
-			System.out.println("odValueName: "+line[1]);
-			System.out.println("odValueName: "+line[2]);
-			System.out.println("odValueName: "+line[3]);
-			System.out.println("odValueName: "+line[4]);
-			System.out.println("odValueName: "+line[5]);
-			
-		}*/
-		System.out.println("Remaining origin zones: "+odValues.size());
-
-		// at this point odValues only contain the origins and destinations within the specified metro bounds
+		}	// at this point odValues only contain the origins and destinations within the specified metro bounds
 		
 		Map<NetworkRoute, Double> odRoutes = new HashMap<NetworkRoute, Double>();
 		// initialize Map:
@@ -219,8 +169,8 @@ public class OD_ProcessorImpl {
 					NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, metroNetwork);
 					odRoutes.remove(minSelectedODroute);
 					odRoutes.put(networkRoute, thisValue);
-					System.out.println("Old min was: "+minSelectedODvalue+" ... This value is "+thisValue+" ... "
-							+ "from Zone "+odValues.get(row)[0]+" to Zone "+odValues.get(0)[col]);
+					//System.out.println("Old min was: "+minSelectedODvalue+" ... This value is "+thisValue+" ... "
+					//		+ "from Zone "+odValues.get(row)[0]+" to Zone "+odValues.get(0)[col]);
 				}
 			}
 		}
@@ -253,8 +203,6 @@ public class OD_ProcessorImpl {
 				closestNode = metroNode;
 			}
 		}
-		System.out.println("Closest node is: "+closestNode.getId().toString());
-		System.out.println("Closest distance is: "+closestDistance);
 		return closestNode;
 	}
 
@@ -278,16 +226,8 @@ public class OD_ProcessorImpl {
 	public static Coord zoneToCoord(String zone, List<String[]> odLocations) {
 		Coord coord = new Coord(Double.MAX_VALUE, Double.MAX_VALUE);
 		for (String[] line : odLocations) {
-			System.out.println("This line's zone is: "+line[0]);
-			//System.out.println("This odLocation line is: "+line[0].toString());
-			//System.out.println("This odLocation line is: "+line[1].toString());
-			//System.out.println("This odLocation line is: "+line[2].toString());
-			//System.out.println("This odLocation line is: "+line[3].toString());
-			//System.out.println("zone is: "+zone);
-			//if (zone.toString() == line[0].toString()) {
 			if(Objects.equals(zone, line[0])) {
 				coord = new Coord(Double.parseDouble(line[2]), Double.parseDouble(line[3]));
-				System.out.println("Good zone found with coords: "+coord.toString());
 				break;
 			}
 		}
@@ -295,7 +235,6 @@ public class OD_ProcessorImpl {
 			System.out.println("zone is: "+zone);
 			System.out.println("CAUTION: No center coordinates have been found for this zone!   ... Returning MAX_DOUBLE_VALUE ...");
 		}
-		System.out.println("Coords are: "+coord.toString());
 		return coord;
 	}
 
