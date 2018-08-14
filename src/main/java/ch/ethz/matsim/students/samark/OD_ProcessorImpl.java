@@ -32,8 +32,9 @@ public class OD_ProcessorImpl {
 	// search for nRoutes highest values and store as list of Coords[][]!
 	// Convert coords to closest nodes!
 	
-	public static Node[][] findODPairs(Network metroNetwork, String csvFileODValues, String csvFileODLocations, 
-			double minRadius, double maxRadius, Coord cityCenterCoord, int nRoutes, double xOffset, double yOffset){
+	public static ArrayList<NetworkRoute> createInitialRoutes(Network metroNetwork,
+			int nRoutes, double minRadius, double maxRadius, Coord cityCenterCoord,
+			String csvFileODValues, String csvFileODLocations, double xOffset, double yOffset) {
 		
 		// String[] odCodesColumns;
 		// int odLocationsNumber;
@@ -170,6 +171,8 @@ public class OD_ProcessorImpl {
 			}
 		}
 		
+		
+		
 		/*for (String[] line : odValues) {
 			System.out.println("odValueName: "+line[0]);
 			System.out.println("odValueName: "+line[1]);
@@ -183,14 +186,12 @@ public class OD_ProcessorImpl {
 
 		// at this point odValues only contain the origins and destinations within the specified metro bounds
 		
-		Map<String[], Double> odPairs = new HashMap<String[], Double>();
+		Map<NetworkRoute, Double> odRoutes = new HashMap<NetworkRoute, Double>();
 		// initialize Map:
 		for (int n=0; n<nRoutes; n++) {
-			odPairs.put(new String[]{"",""}, 0.0);
+			odRoutes.put(RouteUtils.createNetworkRoute( List.of(metroNetwork.getLinks().keySet().iterator().next()), metroNetwork), 0.0);
 		}
 
-		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-		
 		for (int row=1; row<odValues.size(); row++) {
 			for (int col=1; col<odValues.get(row).length; col++) {
 				if (row==col) {
@@ -200,42 +201,46 @@ public class OD_ProcessorImpl {
 				if (thisValue < 0.1) {
 					continue;
 				}
-				String[] minSelectedODpair = findWeakestODpair(odPairs);
-				//System.out.println("Weakest (origin): "+minSelectedODpair[0]);
-				//System.out.println("Weakest (destination): "+minSelectedODpair[1]);
-				double minSelectedODvalue = odPairs.get(minSelectedODpair);
+				NetworkRoute minSelectedODroute = findWeakestODroute(odRoutes);
+				double minSelectedODvalue = odRoutes.get(minSelectedODroute);
 				if (thisValue > minSelectedODvalue) {
+					Coord originCoord = zoneToCoord(odValues.get(0)[col], odLocations);
+					Coord destinationCoord = zoneToCoord(odValues.get(row)[0], odLocations);
+					Node originNode = findClosestNode(originCoord, metroNetwork);
+					Node destinationNode = findClosestNode(destinationCoord, metroNetwork);
+					//
+					ArrayList<Node> nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(metroNetwork, originNode.getId(), destinationNode.getId());
+					if (nodeList == null) {
+							System.out.println("Oops, no shortest path available. Trying to create next networkRoute. Please lower minTerminalDistance"
+									+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
+							continue;
+					}
+					List<Id<Link>> linkList = Metro_NetworkImpl.nodeListToNetworkLinkList(metroNetwork, nodeList);
+					NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, metroNetwork);
+					odRoutes.remove(minSelectedODroute);
+					odRoutes.put(networkRoute, thisValue);
 					System.out.println("Old min was: "+minSelectedODvalue+" ... This value is "+thisValue+" ... "
 							+ "from Zone "+odValues.get(row)[0]+" to Zone "+odValues.get(0)[col]);
-					odPairs.remove(minSelectedODpair);
-					String[] newODpair= new String[] {odValues.get(row)[0], odValues.get(0)[col]};
-					odPairs.put(newODpair, thisValue);
 				}
 			}
 		}
 		
-		if (odPairs.size() != nRoutes) {
-			System.out.println("Fatal Error: nRoutes="+nRoutes+" || odPairs has size"+odPairs.size());
+		if (odRoutes.size() != nRoutes) {
+			System.out.println("Fatal Error: nRoutes="+nRoutes+" || odPairs has size"+odRoutes.size());
 		}
 		
-		
-		Node[][] OD_Terminals = new Node[nRoutes][2];
-		int t=0;
-		for (String[] terminalPair : odPairs.keySet()) {
-			System.out.println("Terminal pair zone1 (origin): "+terminalPair[0].toString());
-			System.out.println("Terminal pair zone2 (destination): "+terminalPair[1].toString());
-			Coord originCoord = zoneToCoord(terminalPair[0], odLocations);
-			Coord destinationCoord = zoneToCoord(terminalPair[1], odLocations);
-			OD_Terminals[t][0] = findClosestNode(originCoord, metroNetwork);
-			OD_Terminals[t][1] = findClosestNode(destinationCoord, metroNetwork);
-			t++;
+		//convert ODRoutes Map to a networkRoutes Array
+		ArrayList<NetworkRoute> networkRouteArray = new ArrayList<NetworkRoute>();
+		for (NetworkRoute thisRoute : odRoutes.keySet()) {
+			System.out.println("The new networkRoute is: [Length="+(thisRoute.getLinkIds().size()+2)+"] - " +thisRoute.toString());		
+			networkRouteArray.add(thisRoute);
 		}
 		
-		//convert OD pairs to closest metro candidate node (input = metro candidate nodes)
-		return OD_Terminals;
+		return networkRouteArray;
 	}
 	
-		
+	
+	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%   HELPER METHODS   %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	private static Node findClosestNode(Coord coordIn, Network metroNetwork) {
 		// System.out.println("CoordIn node is: "+coordIn.toString());
 		double closestDistance = Integer.MAX_VALUE;
@@ -254,23 +259,20 @@ public class OD_ProcessorImpl {
 	}
 
 
-	public static String[] findWeakestODpair(Map<String[], Double> odPairs) {
+	public static NetworkRoute findWeakestODroute(Map<NetworkRoute, Double> odRoutes) {
 		double min = Integer.MAX_VALUE;
-		String[] minODpair = new String[]{"",""};
-		for (String[] odPair : odPairs.keySet()) {
-			if (odPairs.get(odPair)<min) {
-				min = odPairs.get(odPair);
-				minODpair = odPair;
+		NetworkRoute minODroute = null;
+		for (NetworkRoute odRoute : odRoutes.keySet()) {
+			if (odRoutes.get(odRoute)<min) {
+				min = odRoutes.get(odRoute);
+				minODroute = odRoute;
 			}
 		}
-		if (minODpair == new String[]{"",""}) {
+		if (minODroute == null) {
 			System.out.println("CAUTION: No minimum been found for this map of pairs!   ... Returning null ...");
 			return null;
 		}
-		//System.out.println("Minimum value is: "+min);
-		//System.out.println("Minimum pair is: "+minODpair[0].toString());
-		//System.out.println("Minimum pair is: "+minODpair[1].toString());
-		return minODpair;
+		return minODroute;
 	}
 	
 	public static Coord zoneToCoord(String zone, List<String[]> odLocations) {
@@ -296,43 +298,5 @@ public class OD_ProcessorImpl {
 		System.out.println("Coords are: "+coord.toString());
 		return coord;
 	}
-	
-	
-	public static ArrayList<NetworkRoute> createInitialRoutes(Network metroNetwork,
-			int nRoutes, double minRadius, double maxRadius, Coord cityCenterCoord,
-			String csvFileODValues, String csvFileODLocations, double xOffset, double yOffset) {
-		// TODO Auto-generated method stub
-		
-		ArrayList<NetworkRoute> networkRouteArray = new ArrayList<NetworkRoute>();
-		
-		Node[][] OD_Terminals = findODPairs(metroNetwork, csvFileODValues, csvFileODLocations, minRadius, maxRadius, cityCenterCoord, 
-				nRoutes, xOffset, yOffset);
-		
-		int n = 0;
-		OuterNetworkRouteLoop:
-		while (networkRouteArray.size() < nRoutes) {
-			Id<Node> terminalNode1 = OD_Terminals[n][0].getId();
-			Id<Node> terminalNode2 = OD_Terminals[n][1].getId();		
-			
-			// Find Djikstra --> nodeList
-			ArrayList<Node> nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(metroNetwork, terminalNode1, terminalNode2);
-			if (nodeList == null) {
-					System.out.println("Oops, no shortest path available. Trying to create next networkRoute. Please lower minTerminalDistance"
-							+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
-					continue OuterNetworkRouteLoop;
-			}
-			List<Id<Link>> linkList = Metro_NetworkImpl.nodeListToNetworkLinkList(metroNetwork, nodeList);
-			NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, metroNetwork);
-			networkRouteArray.add(networkRoute);
-			System.out.println("The new networkRoute is: [Length="+(networkRoute.getLinkIds().size()+2)+"] - " + networkRoute.toString());
-			n++;
-		}
-		
-	return networkRouteArray;
-}
 
-	
-	
-	
-	
 }
