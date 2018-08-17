@@ -77,13 +77,13 @@ public class Metro_NetworkCreator {
 		
 		// Select all metro terminal candidates by setting bounds on their location (distance from city center)
 		double minTerminalRadiusFromCenter = metroCityRadius * 0.67; 	// default 0.67 // use this for both initial route generators 
-		double maxTerminalRadiusFromCenter = metroCityRadius * 2.00;	// default 1.67 // use this for both initial route generators
+		double maxTerminalRadiusFromCenter = metroCityRadius * 2.50;	// default 1.67 // use this for both initial route generators
 		Map<Id<Link>, CustomLinkAttributes> links_MetroTerminalCandidates = Metro_NetworkImpl.findLinksWithinBounds(links_mostFrequentInRadiusMainFacilitiesSet, 
 				originalNetwork, zurich_NetworkCenterCoord, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, "zurich_1pm/Metro/Input/Generated_Networks/3_zurich_network_MetroTerminalCandidate.xml"); // find most frequent links
 
 		
 		// Create a metro network from candidate links/stopFaiclities
-		double maxNewMetroLinkDistance = 0.80 * metroCityRadius; // default 0.80	// use this for both initial route generators 
+		double maxNewMetroLinkDistance = 0.70 * metroCityRadius; // default 0.80	// use this for both initial route generators 
 		Network metroNetwork = Metro_NetworkImpl.createMetroNetworkFromCandidates(
 				links_mostFrequentInRadiusMainFacilitiesSet, maxNewMetroLinkDistance, originalNetwork,
 				"zurich_1pm/Metro/Input/Generated_Networks/4_zurich_network_MetroNetwork.xml");
@@ -104,17 +104,17 @@ public class Metro_NetworkCreator {
 		if (useOdPairsForInitialRoutes==false) {								// %%% initial Routes random terminals within bounds and min distance apart %%%
 			double minTerminalDistance = 2.80 * metroCityRadius;
 			initialMetroRoutes = Metro_NetworkImpl.createInitialRoutes(metroNetwork,
-					links_MetroTerminalCandidates, nRoutes, minTerminalDistance, "zurich_1pm/Metro/Input/Generated_Networks/5_zurich_network_MetroInitialRoutes.xml");			
-			separateRoutesNetwork = Metro_NetworkImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork, Sets.newHashSet("pt"), "zurich_1pm/Metro/Input/Generated_Networks/5_zurich_network_MetroInitialRoutes_OD.xml");
+					links_MetroTerminalCandidates, nRoutes, minTerminalDistance);			
+			separateRoutesNetwork = Metro_NetworkImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork, Sets.newHashSet("pt"), "zurich_1pm/Metro/Input/Generated_Networks/5_zurich_network_MetroInitialRoutes_Random.xml");
 		}
 		if (useOdPairsForInitialRoutes==true) {									// %%% initial Routes OD_Pairs within bounds %%%		
 			double xOffset = 1733436; 	// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; X_MATSim= 2683476;
 			double yOffset = -4748525;	// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; Y_MATSim= 1246811;
 			initialMetroRoutes = OD_ProcessorImpl.createInitialRoutes(metroNetwork,
 					nRoutes, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, zurich_NetworkCenterCoord, 
-					"zurich_1pm/Metro/Input/Data/OD_Input/DemandPT2013.csv", "zurich_1pm/Metro/Input/Data/OD_Input/OD_EssentialData_open.csv", xOffset, yOffset);	
+					"zurich_1pm/Metro/Input/Data/OD_Input/Demand2013_PT.csv", "zurich_1pm/Metro/Input/Data/OD_Input/OD_ZoneCodesLocations.csv", xOffset, yOffset);	
 			// CAUTION: Make sure .csv is separated by semi-colon because location names also include commas sometimes and lead to failure!!			
-			separateRoutesNetwork = Metro_NetworkImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork, Sets.newHashSet("pt"), "zurich_1pm/Metro/Input/Generated_Networks/5_zurich_network_MetroInitialRoutes_Random.xml");
+			separateRoutesNetwork = Metro_NetworkImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork, Sets.newHashSet("pt"), "zurich_1pm/Metro/Input/Generated_Networks/5_zurich_network_MetroInitialRoutes_OD.xml");
 		}
 		
 		
@@ -137,12 +137,12 @@ public class Metro_NetworkCreator {
 			NetworkRoute metroNetworkRoute = initialMetroRoutes.get(lineNr-1);
 			
 			// Create an array of stops along new networkRoute on the center of each of its individual links
-				String defaultPtMode = "metro";  boolean blocksLane = false;  double stopTime = 30.0; /*stopDuration [s];*/  double maxVehicleSpeed = 200/3.6;  /*[m/s]*/
+				String defaultPtMode = "metro";  boolean blocksLane = false;  double stopTime = 30.0; /*stopDuration [s];*/  double maxVehicleSpeed = 600/3.6;  /*[m/s]*/
 				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
 					metroSchedule, metroNetwork, metroNetworkRoute, defaultPtMode, stopTime, maxVehicleSpeed, blocksLane);
 			
 			// Build TransitRoute from stops and NetworkRoute --> and add departures
-				double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 15*60;  int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
+				double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 10*60;  int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
 				String vehicleFileLocation = "zurich_1pm/Metro/Input/Generated_PT_Files/Vehicles.xml";
 			TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create("TransitRoute_LineNr"+lineNr, TransitRoute.class ), metroNetworkRoute, stopArray, defaultPtMode);
 			transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(metroScenario, metroSchedule, transitRoute, nDepartures, tFirstDep, depSpacing, metroVehicleType, vehicleFileLocation); // Add (nDepartures) departures to TransitRoute
@@ -159,8 +159,15 @@ public class Metro_NetworkCreator {
 		// Write TransitSchedule to corresponding file
 		TransitScheduleWriter tsw = new TransitScheduleWriter(metroSchedule);
 		tsw.writeFile("zurich_1pm/Metro/Input/Generated_PT_Files/MetroSchedule.xml");
-				
-		Network mergedNework = Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(separateRoutesNetwork, originalNetwork, Sets.newHashSet("pt"), "zurich_1pm/Metro/Input/Generated_Networks/MergedNetwork.xml");
+		
+		String mergedNetworkFileName = "";
+		if (useOdPairsForInitialRoutes==true) {
+			mergedNetworkFileName = "zurich_1pm/Metro/Input/Generated_Networks/MergedNetworkODInitialRoutes.xml";
+		}
+		else {
+			mergedNetworkFileName = "zurich_1pm/Metro/Input/Generated_Networks/MergedNetworkRandomInitialRoutes.xml";
+		}
+		Network mergedNework = Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(separateRoutesNetwork, originalNetwork, Sets.newHashSet("pt"), mergedNetworkFileName);
 		TransitSchedule mergedTransitSchedule = Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(metroSchedule, originalTransitSchedule, "zurich_1pm/Metro/Input/Generated_PT_Files/MergedSchedule.xml");
 		Vehicles mergedVehicles = Metro_TransitScheduleImpl.mergeAndWriteVehicles(metroScenario.getTransitVehicles(), originalScenario.getTransitVehicles(), "zurich_1pm/Metro/Input/Generated_PT_Files/MergedVehicles.xml");
 		
@@ -168,4 +175,6 @@ public class Metro_NetworkCreator {
 		
 	}
 
+	
+	
 }

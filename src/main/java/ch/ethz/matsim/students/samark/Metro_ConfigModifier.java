@@ -6,12 +6,12 @@ import org.matsim.core.config.ConfigWriter;
 
 public class Metro_ConfigModifier {
 
-	public static Config modifyFromFile(String configFile) {
+	public static Config modifyFromFile(String configFile, String NetworkFileName) {
 
 		Config modConfig = ConfigUtils.loadConfig(configFile);
 		modConfig.getModules().get("controler").addParam("outputDirectory", "zurich_1pm/Metro/Simulation_Output");
 		modConfig.getModules().get("controler").addParam("overwriteFiles", "overwriteExistingFiles");
-		modConfig.getModules().get("network").addParam("inputNetworkFile", "Metro/Input/Generated_Networks/MergedNetwork.xml");
+		modConfig.getModules().get("network").addParam("inputNetworkFile", NetworkFileName);
 		modConfig.getModules().get("transit").addParam("transitScheduleFile","Metro/Input/Generated_PT_Files/MergedSchedule.xml");
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Metro/Input/Generated_PT_Files/MergedVehicles.xml");
 
