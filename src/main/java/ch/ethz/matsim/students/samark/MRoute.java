@@ -13,15 +13,17 @@ public class MRoute {
 	List<Node> nodeList;
 	List<Link> linkList;
 	
+	// from eventsFile
 	String eventsFile;
+	int nPassengers;
+	double personKM;
+	// from transitScheduleFile
 	String transitScheduleFile;
 	double drivenKM;
 	double routeLength;
-	double undergroundPercentage;
-	int nPassengers;
-	double personKM;
 	double opsCost;
 	double constrCost;
+	double undergroundPercentage;	
 	
 	public MRoute(String name) {	
 		this.routeID = name;

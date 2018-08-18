@@ -9,6 +9,10 @@ public class MNetworkPop{
 		this.networkMap = new HashMap<String, MNetwork>();
 	}
 
+	public MNetworkPop(int size) {
+		this.networkMap = new HashMap<String, MNetwork>(size);
+	}
+	
 	Map<String, MNetwork> networkMap;
 	
 	public Map<String, MNetwork> getNetworks(){

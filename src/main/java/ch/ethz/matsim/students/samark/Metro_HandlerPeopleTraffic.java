@@ -5,12 +5,8 @@ import java.util.Map;
 
 import org.matsim.api.core.v01.events.PersonArrivalEvent;
 import org.matsim.api.core.v01.events.PersonDepartureEvent;
-import org.matsim.api.core.v01.events.PersonEntersVehicleEvent;
-import org.matsim.api.core.v01.events.PersonLeavesVehicleEvent;
 import org.matsim.api.core.v01.events.handler.PersonArrivalEventHandler;
 import org.matsim.api.core.v01.events.handler.PersonDepartureEventHandler;
-import org.matsim.api.core.v01.events.handler.PersonEntersVehicleEventHandler;
-import org.matsim.api.core.v01.events.handler.PersonLeavesVehicleEventHandler;
 
 // public class Metro_HandlerPeopleTraffic implements PersonEntersVehicleEventHandler, PersonLeavesVehicleEventHandler{
 public class Metro_HandlerPeopleTraffic implements PersonDepartureEventHandler, PersonArrivalEventHandler {
@@ -34,10 +30,10 @@ public class Metro_HandlerPeopleTraffic implements PersonDepartureEventHandler, 
 	@Override
 	public void handleEvent(PersonDepartureEvent event) {
 		if(event.getLinkId().toString().contains("Metro") && event.getLegMode().contains("pt")) {
-			System.out.println("Yes, link ID contains /Metro/! Adding one Boarding counter.");
+			//System.out.println("Yes, link ID contains /Metro/! Adding one Boarding counter.");
 			Double newCount = statsMap.get("metroBoardingNr") + 1;
 			statsMap.put("metroBoardingNr", newCount);
-			System.out.println("New Boarding count is: "+newCount);
+			//System.out.println("New Boarding count is: "+newCount);
 		}
 		
 	}
@@ -45,10 +41,10 @@ public class Metro_HandlerPeopleTraffic implements PersonDepartureEventHandler, 
 	@Override
 	public void handleEvent(PersonArrivalEvent event) {
 		if(event.getLinkId().toString().contains("Metro") && event.getLegMode().contains("pt")) {
-			System.out.println("Yes, link ID contains /Metro/! Adding one Disembarking counter.");
+			//System.out.println("Yes, link ID contains /Metro/! Adding one Disembarking counter.");
 			Double newCount = statsMap.get("metroDisembarkingNr") + 1;
 			statsMap.put("metroDisembarkingNr", newCount);
-			System.out.println("New Disembarking count is: "+newCount);
+			//System.out.println("New Disembarking count is: "+newCount);
 		}
 	}
 	

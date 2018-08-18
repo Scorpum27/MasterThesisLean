@@ -22,6 +22,18 @@ public class Metro_ProcessorImpl {
 		return metroLinkTrafficHandler.metroLinkTraffic;
 	}
 	
+	public static int handleMetroLineTraffic(int iterationToRead, String ptLine) {
+		Metro_HandlerGeneric metroGenericHandler = new Metro_HandlerGeneric(ptLine);
+
+		EventsManager eventsManager = EventsUtils.createEventsManager();		
+		eventsManager.addHandler(metroGenericHandler);
+		
+		MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
+		eventsReader.readFile("zurich_1pm/Metro/Simulation_Output/ITERS/it." + iterationToRead + "/" + iterationToRead + ".events.xml.gz");
+		return metroGenericHandler.counter;
+	}
+
+	
 	public static Map<String, Double> handleMetroPeopleTraffic(int iterationToRead){
 		Metro_HandlerPeopleTraffic metroPeopleTrafficHandler = new Metro_HandlerPeopleTraffic();
 

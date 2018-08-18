@@ -9,7 +9,7 @@ public class Metro_Processor {
 
 	public static void main(String[] args) {
 		
-		int iterationToRead = 100;
+		int iterationToRead = 10;
 		
 		Map<Id<Link>, Double> metroLinkTraffic = Metro_ProcessorImpl.handleMetroLinkTraffic(iterationToRead);
 		System.out.println("Metro Link Traffic is: "+metroLinkTraffic.toString());
@@ -18,6 +18,9 @@ public class Metro_Processor {
 		System.out.println("Nr of Boardings is: "+metroPeopleTraffic.get("metroBoardingNr"));
 		System.out.println("Nr of Disembarkments is: "+metroPeopleTraffic.get("metroDisembarkingNr"));
 		
+		String ptLine = "SBB_S";
+		int numberOfLineTransits = Metro_ProcessorImpl.handleMetroLineTraffic(iterationToRead, ptLine);
+		System.out.println("Nr of "+ptLine+" Line Transits is: "+numberOfLineTransits);
 	}
 
 }

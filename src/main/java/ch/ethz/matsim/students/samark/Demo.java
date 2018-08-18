@@ -1,16 +1,35 @@
 package ch.ethz.matsim.students.samark;
 
-import java.util.Set;
-import com.google.common.collect.Sets;
-
 public class Demo {
 	
 	public static void main(String[] args) {
+	
+	// MNetwor & MRoute Tests
+		// TEST: create a POPULATION as a map of networks
+		MNetworkPop population = new MNetworkPop(); // create a network
+		int nNetworks = 10;
+		int nRoutesPerNetwork = 5;
+		for (int n = 1; n <= nNetworks; n++) {
+			MNetwork newNetwork = new MNetwork("Network" + Integer.toString(n));
+			for (int r = 1; r <= nRoutesPerNetwork; r++) {
+				MRoute newRoute = new MRoute("Route" + Integer.toString(r));
+				newNetwork.addNetworkRoute(newRoute);
+			}
+			population.addNetwork(newNetwork);
+		}
+
+		// TEST: Test if initialized correctly
+		for (MNetwork m : population.getNetworks().values()) {
+			System.out.println(m.networkID + " contains routes:");
+			for (MRoute r : m.getNetworkRoutes().values()) {
+				System.out.println(r.routeID);
+			}
+		}
 		
 	// %%%%% Random %%%%%
 		
-		Set<String> sett = Sets.newHashSet("a", "b"," c");
-		System.out.println(sett.toString());
+		/*Set<String> sett = Sets.newHashSet("a", "b"," c");
+		System.out.println(sett.toString());*/
 			
 	// %%%%% Network Converter Tester %%%%%	
 		

@@ -32,6 +32,7 @@ import org.matsim.pt.transitSchedule.api.TransitSchedule;
 
 public class Metro_NetworkImpl {
 
+	// done
 	public static Map<Id<Link>, CustomLinkAttributes> createCustomLinkMap(Network network, String fileName) {
 		Map<Id<Link>, CustomLinkAttributes> customLinkMap = new HashMap<Id<Link>, CustomLinkAttributes>(
 				network.getLinks().size());
@@ -48,6 +49,7 @@ public class Metro_NetworkImpl {
 
 		return customLinkMap;
 	}
+	
 
 	public static Map<Id<Link>, CustomLinkAttributes> findLinksAboveThreshold(Network network, double threshold,
 			Map<Id<Link>, CustomLinkAttributes> customLinkMapIn, String fileName) { // output is a map with all links
@@ -313,6 +315,7 @@ public class Metro_NetworkImpl {
 		return customMapCopy;
 	}
 
+	// XXX DONE
 	// REMEMBER: New nodes are named "MetroNodeLinkRef_"+linkID.toString()
 	public static ArrayList<NetworkRoute> createInitialRoutes(Network newMetroNetwork,
 			Map<Id<Link>, CustomLinkAttributes> links_MetroTerminalCandidates, int nRoutes, double minTerminalDistance) {

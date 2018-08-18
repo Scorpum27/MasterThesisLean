@@ -16,11 +16,13 @@ public class NetworkPerformanceHandler implements PersonDepartureEventHandler, P
 		this.mNetwork = mNetwork;
 	}
 	
-// public class Metro_HandlerPeopleTraffic implements PersonEntersVehicleEventHandler, PersonLeavesVehicleEventHandler{
-// public class Metro_HandlerPeopleTraffic implements PersonDepartureEventHandler, PersonArrivalEventHandler {
-
+	// public class Metro_HandlerPeopleTraffic implements PersonEntersVehicleEventHandler, PersonLeavesVehicleEventHandler{
+	// public class Metro_HandlerPeopleTraffic implements PersonDepartureEventHandler, PersonArrivalEventHandler {
+	// Map<String, Double> statsMap = new HashMap<String, Double>();
 	
-	Map<String, Double> statsMap = new HashMap<String, Double>();
+	
+	// Write directly to line
+	
 	
 	public NetworkPerformanceHandler() {
 		statsMap.put("metroBoardingNr", 0.0);

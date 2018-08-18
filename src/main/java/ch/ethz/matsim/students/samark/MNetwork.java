@@ -1,6 +1,7 @@
 package ch.ethz.matsim.students.samark;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.matsim.api.core.v01.network.Network;
@@ -16,14 +17,21 @@ public class MNetwork {
 	Network network;
 	Map<String, MRoute> routeMap;
 	
-	double averageScore;
-	double stdScoreDeviation;
+	// from events
 	double personKM;
 	double personKMdirect;
+	int nPassengers;
+	// from transitSchedule
 	double drivenKM;
 	double opsCost;
 	double constrCost;
+	// from evolution loop
 	int evolutionGeneration;
+	// from individual routes
+	double averageScore;
+	double stdScoreDeviation;
+	double totalTravelTime;
+	
 	
 	public void addNetworkRoute(MRoute newRoute) {
 		// consider changing name of route to: newRoute.routeID = (this.networkID+newRoute.routeID);
@@ -32,6 +40,13 @@ public class MNetwork {
 	
 	public Map<String, MRoute> getNetworkRoutes(){
 		return this.routeMap;
+	}
+
+	public void addRoutes(List<MRoute> routesList) {
+		for (MRoute route : routesList) {
+			this.routeMap.put(route.routeID, route);
+		}
+		
 	}
 	
 }
