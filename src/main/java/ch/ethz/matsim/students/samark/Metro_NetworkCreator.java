@@ -56,7 +56,7 @@ public class Metro_NetworkCreator {
 
 		
 		// Select all metro candidate links by setting bounds on their location (distance from city center)
-		double minMetroRadiusFromCenter = metroCityRadius * 0.00; // set default = 0.00 to not restrict metro network in city center
+		double minMetroRadiusFromCenter = metroCityRadius * 0.67; // set default = 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * 2.50; // set default = 2.50 for reasonable results // use this for both initial route generators 
 		Map<Id<Link>, CustomLinkAttributes> links_withinRadius = Metro_NetworkImpl.findLinksWithinBounds(
 				processedLinkMap, originalNetwork, zurich_NetworkCenterCoord, minMetroRadiusFromCenter,
@@ -65,7 +65,7 @@ public class Metro_NetworkCreator {
 
 		
 		// Find most frequent links from input links
-		int nMostFrequentLinks = 300;	// default 100 for reasonable results
+		int nMostFrequentLinks = 150;	// default 100 for reasonable results
 		Map<Id<Link>, CustomLinkAttributes> links_mostFrequentInRadius = 
 				Metro_NetworkImpl.findMostFrequentLinks(nMostFrequentLinks, links_withinRadius, originalNetwork, null);
 
@@ -77,13 +77,13 @@ public class Metro_NetworkCreator {
 		
 		// Select all metro terminal candidates by setting bounds on their location (distance from city center)
 		double minTerminalRadiusFromCenter = metroCityRadius * 0.67; 	// default 0.67 // use this for both initial route generators 
-		double maxTerminalRadiusFromCenter = metroCityRadius * 1.67;	// default 1.67 // use this for both initial route generators
+		double maxTerminalRadiusFromCenter = metroCityRadius * 2.50;	// default 1.67 // use this for both initial route generators
 		Map<Id<Link>, CustomLinkAttributes> links_MetroTerminalCandidates = Metro_NetworkImpl.findLinksWithinBounds(links_mostFrequentInRadiusMainFacilitiesSet, 
 				originalNetwork, zurich_NetworkCenterCoord, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, "zurich_1pm/Metro/Input/Generated_Networks/3_zurich_network_MetroTerminalCandidate.xml"); // find most frequent links
 
 		
 		// Create a metro network from candidate links/stopFaiclities
-		double maxNewMetroLinkDistance = 0.80 * metroCityRadius; // default 0.80	// use this for both initial route generators 
+		double maxNewMetroLinkDistance = 0.70 * metroCityRadius; // default 0.80	// use this for both initial route generators 
 		Network metroNetwork = Metro_NetworkImpl.createMetroNetworkFromCandidates(
 				links_mostFrequentInRadiusMainFacilitiesSet, maxNewMetroLinkDistance, originalNetwork,
 				"zurich_1pm/Metro/Input/Generated_Networks/4_zurich_network_MetroNetwork.xml");

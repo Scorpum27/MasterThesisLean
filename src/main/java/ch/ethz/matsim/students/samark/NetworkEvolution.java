@@ -7,6 +7,7 @@ import org.matsim.api.core.v01.Coord;
 /* TODO
  * small todo's in code
  * Make transitSchedule for both ways so that same vehicles are used (reverse)
+ * OD initial routes: Make requirement that one terminal is certain distance from network center so that we get longer routes into city!
  */
 
 public class NetworkEvolution {
@@ -44,22 +45,23 @@ public class NetworkEvolution {
 		int populationSize = 2;														// how many networks should be developed in parallel
 		int routesPerNetwork = 8;													// how many initial routes should be placed in every network
 		String initialRouteType = "Random";												// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
+																					// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		int iterationToReadOriginalNetwork = 100;									// TODO simulate originalNetwork up to 1000(?) This is the iteration for the simulation output of the original network
 																					// TODO maybe include additional strategy option here for how to make routes e.g. createNetworkRoutes(Strategy, initialRouteType, ...)
 		// %% Parameters for NetworkRoutes %%
-		Coord zurich_NetworkCenterCoord = new Coord(2683099.3305, 1247442.9076);	// default Coord(2683099.3305, 1247442.9076);
+		Coord zurich_NetworkCenterCoord = new Coord(2683000.00, 1247700.00);		// default Coord(2683099.3305, 1247442.9076);
 		double xOffset = 1733436; 													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; X_MATSim= 2683476;
 		double yOffset = -4748525;													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; Y_MATSim= 1246811;
-		double metroCityRadius = 1564; //1500.00;											// old 1600.00
+		double metroCityRadius = 2500; 												// old 1600.00
 		double minMetroRadiusFactor = 0.00;											// default 0.00
-		double maxMetroRadiusFactor = 2.50;	//1.20;											// give some flexibility by increasing from default 1.00 to 1.20
+		double maxMetroRadiusFactor = 1.20;											// give some flexibility by increasing from default 1.00 to 1.20
 		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// set default = 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
-		int nMostFrequentLinks = 300;	//(int) maxMetroRadiusFactor*250;					// empirical formula - default 300
-		double maxNewMetroLinkDistance = 0.80*metroCityRadius;	//(2/3)*metroCityRadius;						// default 0.80*metroCityRadius
-		double minTerminalRadiusFromCenter = 0.67*metroCityRadius; //0.00*(1/2)*metroCityRadius;				 	// default 0.67 // use this for both initial route generators 
-		double maxTerminalRadiusFromCenter = 1.67*metroCityRadius;	//maxMetroRadiusFromCenter;				// default = maxMetroRadiusFromCenter
-		double minTerminalDistance = (2/3)*maxMetroRadiusFromCenter;					// no default yet
+		int nMostFrequentLinks = 150;												// empirical formula - default 300
+		double maxNewMetroLinkDistance = 0.40*metroCityRadius;						// default 0.80*metroCityRadius
+		double minTerminalRadiusFromCenter = 0.30*metroCityRadius; 					// CAUTION: 0.00*metroCityRadius; // For OD-Pairs  [0.30*metroCityRadius for RandomRoutes]
+		double maxTerminalRadiusFromCenter = maxMetroRadiusFromCenter;				// default = maxMetroRadiusFromCenter
+		double minTerminalDistance = 0.70*maxMetroRadiusFromCenter;					// no default yet
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
 		String vehicleTypeName = "metro";  double maxVehicleSpeed = 100/3.6 /*[m/s]*/;
