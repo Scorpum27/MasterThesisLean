@@ -5,6 +5,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.matsim.api.core.v01.network.Network;
+import org.matsim.pt.transitSchedule.api.TransitSchedule;
+import org.matsim.vehicles.Vehicles;
 
 public class MNetwork {
 
@@ -16,6 +18,8 @@ public class MNetwork {
 	String networkID;
 	Network network;
 	Map<String, MRoute> routeMap;
+	TransitSchedule transitSchedule;
+	Vehicles vehicles;
 	
 	// from events
 	double personKM;

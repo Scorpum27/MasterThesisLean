@@ -298,8 +298,10 @@ public class Metro_NetworkImpl {
 			}
 
 		}
+		System.out.println("It read this line here...!");
 
 		if (fileName != null) {
+			System.out.println("Creating a new network now!");
 			NetworkWriter networkWriter = new NetworkWriter(newNetwork);
 			networkWriter.write(fileName);
 		}

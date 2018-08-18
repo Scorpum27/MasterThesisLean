@@ -1,12 +1,20 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.File;
+
 public class Demo {
 	
 	public static void main(String[] args) {
 	
-	// MNetwor & MRoute Tests
+	// %%%%% Make Directory %%%%
+		// how to make a new directory (it will not overwrite directory/folder if it already exists :))
+		String mNetworkPath = "zurich_1pm/Evolution/Population/"+"Network2";
+		new File(mNetworkPath).mkdirs();
+		
+	// %%%%% MNetwor & MRoute Tests %%%%%
+		
 		// TEST: create a POPULATION as a map of networks
-		MNetworkPop population = new MNetworkPop(); // create a network
+		/*MNetworkPop population = new MNetworkPop(); // create a network
 		int nNetworks = 10;
 		int nRoutesPerNetwork = 5;
 		for (int n = 1; n <= nNetworks; n++) {
@@ -24,7 +32,7 @@ public class Demo {
 			for (MRoute r : m.getNetworkRoutes().values()) {
 				System.out.println(r.routeID);
 			}
-		}
+		}*/
 		
 	// %%%%% Random %%%%%
 		
