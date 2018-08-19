@@ -2,31 +2,37 @@ package ch.ethz.matsim.students.samark;
 
 import java.util.List;
 
+import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.population.routes.NetworkRoute;
+import org.matsim.pt.transitSchedule.api.TransitLine;
 
 public class MRoute {
 
 	String routeID;
 	NetworkRoute networkRoute;
-	List<Node> nodeList;
-	List<Link> linkList;
+	List<Id<Node>> nodeList;
+	List<Id<Link>> linkList;
+	TransitLine transitLine;
+	double routeLength;
 	
 	// from eventsFile
 	String eventsFile;
 	int nPassengers;
 	double personKM;
+	
 	// from transitScheduleFile
+	int nDepartures;
 	String transitScheduleFile;
 	double drivenKM;
-	double routeLength;
 	double opsCost;
 	double constrCost;
 	double undergroundPercentage;	
 	
 	public MRoute(String name) {	
 		this.routeID = name;
+		this.undergroundPercentage = 0.0;
 	}
 	
 	
@@ -45,18 +51,18 @@ public class MRoute {
 		this.networkRoute = networkRoute;
 	}
 	
-	public List<Node> getNodeList() {
+	public List<Id<Node>> getNodeList() {
 		return this.nodeList;
 	}
-	public void setNodeList(List<Node> nodeList) {
-		this.nodeList = nodeList;
+	public void setNodeList(List<Id<Node>> list) {
+		this.nodeList = list;
 	}
 	
-	public List<Link> getLinkList() {
+	public List<Id<Link>> getLinkList() {
 		return this.getLinkList();
 	}
-	public void setLinkList(List<Link> linkList) {
-		this.linkList = linkList;
+	public void setLinkList(List<Id<Link>> list) {
+		this.linkList = list;
 	}
 	
 	public String getTransitScheduleFile() {
@@ -108,6 +114,13 @@ public class MRoute {
 		this.routeLength = routeLength;
 	}
 
+	public TransitLine getTransitLine() {
+		return this.transitLine;
+	}
+	
+	public void setTransitLine(TransitLine transitLine) {
+		this.transitLine = transitLine;
+	}
 	
 }
 

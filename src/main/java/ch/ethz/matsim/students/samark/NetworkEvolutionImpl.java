@@ -47,7 +47,8 @@ public class NetworkEvolutionImpl {
 			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter,
 			double minTerminalDistance, double xOffset, double yOffset,String vehicleTypeName, double vehicleLength, double maxVelocity,
 			int vehicleSeats, int vehicleStandingRoom,String defaultPtMode, boolean blocksLane, double stopTime, double maxVehicleSpeed,
-			double tFirstDep, double tLastDep, double depSpacing, int nDepartures ) {
+			double tFirstDep, double tLastDep, double depSpacing, int nDepartures,
+			double metroOpsCostPerKM, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground ) {
 
 		MNetwork mNetwork = new MNetwork(thisNewNetworkName);
 		String mNetworkPath = "zurich_1pm/Evolution/Population/"+thisNewNetworkName;
@@ -152,10 +153,22 @@ public class NetworkEvolutionImpl {
 			// Build TransitLine from TrasitRoute
 			TransitLine transitLine = metroScheduleFactory.createTransitLine(Id.create("TransitLine_Nr"+lineNr, TransitLine.class));
 			transitLine.addRoute(transitRoute);
-					
+			
 			// Add new line to schedule
 			metroSchedule.addTransitLine(transitLine);			
 		
+			mRoute.setTransitLine(transitLine);
+			mRoute.setLinkList(NetworkRoute2LinkIdList(metroNetworkRoute));
+			mRoute.setNodeList(NetworkRoute2NodeIdList(metroNetworkRoute, metroNetwork));
+			mRoute.setRouteLength(NetworkRoute2TotalLength(metroNetworkRoute, metroNetwork));
+			mRoute.nDepartures = nDepartures;
+			mRoute.setDrivenKM(mRoute.routeLength*mRoute.nDepartures);
+			mRoute.constrCost = mRoute.routeLength*(metroConstructionCostPerKmOverground*0.01*(100-mRoute.undergroundPercentage)+metroConstructionCostPerKmUnderground*0.01*mRoute.undergroundPercentage);
+			mRoute.opsCost = mRoute.routeLength*(metroOpsCostPerKM*0.01*(100-mRoute.undergroundPercentage)+2*metroOpsCostPerKM*0.01*mRoute.undergroundPercentage);
+			mRoute.transitScheduleFile = mNetworkPath+"/MetroSchedule.xml";
+			mRoute.setEventsFile( "zurich_1pm/Zurich_1pm_SimulationOutput/ITERS/it." + iterationToReadOriginalNetwork +
+					"/" + iterationToReadOriginalNetwork + ".events.xml.gz");
+			
 		}	// end of TransitLine creator loop
 
 		// Write TransitSchedule to corresponding file
@@ -719,8 +732,39 @@ public class NetworkEvolutionImpl {
 				facilitiesWriter.write("zurich_1pm/Metro/Input/Generated_PT_Files/newFacilities.xml");
 			}*/
 		
-	}		
+			
+			
+// %%%%%%%%%%%%% Route & Line Processors %%%%%%%%%%%%%%%%%%%%%
+			public static double NetworkRoute2TotalLength(NetworkRoute networkRoute, Network thisNetwork) {
+				double totalLength = 0.00;
+				for (Id<Link> linkID : networkRoute.getLinkIds()) {
+					totalLength += thisNetwork.getLinks().get(linkID).getLength();
+				}
+				return totalLength;
+			}
+			
+			public static List<Id<Link>> NetworkRoute2LinkIdList(NetworkRoute networkRoute){
+				List<Id<Link>> linkList = new ArrayList<Id<Link>>(networkRoute.getLinkIds().size()+2);
+				linkList.add(networkRoute.getStartLinkId());
+				linkList.addAll(networkRoute.getLinkIds());
+				linkList.add(networkRoute.getEndLinkId());
+				return linkList;
+			}
+			
+			public static List<Id<Node>> NetworkRoute2NodeIdList(NetworkRoute networkRoute, Network thisNetwork){
+				List<Id<Link>> linkList = NetworkRoute2LinkIdList(networkRoute);
+				List<Id<Node>> nodeList = new ArrayList<Id<Node>>();
+				for (Id<Link> linkID : linkList) {
+					nodeList.add(thisNetwork.getLinks().get(linkID).getFromNode().getId());
+				}
+				nodeList.add(thisNetwork.getLinks().get(linkList.get(linkList.size()-1)).getToNode().getId());
+				return nodeList;
+			}
+			
 		
+			
+	}		
+	
 
 // TODO Method to run event handler NetworkPerformanceHandler(String EventsFilePath, int iteration, String NetworkID)	
 // %%%%%%%%%%%%%%%%%%%%%% END HELPER METHODS STATIC %%%%%%%%%%%%%%%%%%%%%%%%%%%%
