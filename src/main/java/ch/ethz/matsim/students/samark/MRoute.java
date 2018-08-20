@@ -19,7 +19,7 @@ public class MRoute {
 	
 	// from eventsFile
 	String eventsFile;
-	int nPassengers;
+	int nBoardings;
 	double personKM;
 	
 	// from transitScheduleFile
@@ -100,11 +100,11 @@ public class MRoute {
 		this.undergroundPercentage = UGPercentage;
 	}
 	
-	public Integer getPassengerNr() {
-		return this.nPassengers;
+	public Integer getBoardingNr() {
+		return this.nBoardings;
 	}
-	public void setPassengerNr(int nPassengers) {
-		this.nPassengers = nPassengers;
+	public void setBoardingNr(int nPassengers) {
+		this.nBoardings = nPassengers;
 	}
 	
 	public Double getRouteLength() {

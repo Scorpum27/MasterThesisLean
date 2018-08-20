@@ -37,11 +37,11 @@ public class Run_VirtualCity {
 
 	static public void main(String[] args) {
 		
-		final int XMax = 50;													// set network size in West-to-East
-		final int YMax = 50;													// set network size in South-to-North	
-		int removalPercentage = 20;
-		int nTransitLines = 50;
-		int nNewPeople = 30;
+		final int XMax = 30;													// set network size in West-to-East
+		final int YMax = 30;													// set network size in South-to-North	
+		int removalPercentage = 30;
+		int nTransitLines = 10;
+		int nNewPeople = 20;
 
 		// Create an entirely new scenario here [ = Network + Population/Demand + TransitSchedule/Infrastructure]
 		createCompleteScenario(XMax, YMax, removalPercentage, nTransitLines, nNewPeople);

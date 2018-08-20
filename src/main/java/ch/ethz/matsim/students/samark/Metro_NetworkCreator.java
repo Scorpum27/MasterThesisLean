@@ -56,7 +56,7 @@ public class Metro_NetworkCreator {
 
 		
 		// Select all metro candidate links by setting bounds on their location (distance from city center)
-		double minMetroRadiusFromCenter = metroCityRadius * 0.67; // set default = 0.00 to not restrict metro network in city center
+		double minMetroRadiusFromCenter = metroCityRadius * 0.00; // set default = 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * 2.50; // set default = 2.50 for reasonable results // use this for both initial route generators 
 		Map<Id<Link>, CustomLinkAttributes> links_withinRadius = Metro_NetworkImpl.findLinksWithinBounds(
 				processedLinkMap, originalNetwork, zurich_NetworkCenterCoord, minMetroRadiusFromCenter,
@@ -98,11 +98,11 @@ public class Metro_NetworkCreator {
 
 		
 		int nRoutes = 30;
-		boolean useOdPairsForInitialRoutes = false;
+		boolean useOdPairsForInitialRoutes = true;
 		ArrayList<NetworkRoute> initialMetroRoutes = null;
 		Network separateRoutesNetwork = null;
 		if (useOdPairsForInitialRoutes==false) {								// %%% initial Routes random terminals within bounds and min distance apart %%%
-			double minTerminalDistance = 8.00 * metroCityRadius;
+			double minTerminalDistance = 2.50 * metroCityRadius;
 			initialMetroRoutes = Metro_NetworkImpl.createInitialRoutes(metroNetwork,
 					links_MetroTerminalCandidates, nRoutes, minTerminalDistance);			
 			separateRoutesNetwork = Metro_NetworkImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork, Sets.newHashSet("pt"), "zurich_1pm/Metro/Input/Generated_Networks/5_zurich_network_MetroInitialRoutes_Random.xml");
@@ -137,12 +137,12 @@ public class Metro_NetworkCreator {
 			NetworkRoute metroNetworkRoute = initialMetroRoutes.get(lineNr-1);
 			
 			// Create an array of stops along new networkRoute on the center of each of its individual links
-				String defaultPtMode = "metro";  boolean blocksLane = false;  double stopTime = 30.0; /*stopDuration [s];*/  double maxVehicleSpeed = 600/3.6;  /*[m/s]*/
+				String defaultPtMode = "metro";  boolean blocksLane = false;  double stopTime = 30.0; /*stopDuration [s];*/  double maxVehicleSpeed = 100/3.6;  /*[m/s]*/
 				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
 					metroSchedule, metroNetwork, metroNetworkRoute, defaultPtMode, stopTime, maxVehicleSpeed, blocksLane);
 			
 			// Build TransitRoute from stops and NetworkRoute --> and add departures
-				double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 1.0*60;  int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
+				double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 5.0*60;  int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
 				String vehicleFileLocation = "zurich_1pm/Metro/Input/Generated_PT_Files/Vehicles.xml";
 			TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create("TransitRoute_LineNr"+lineNr, TransitRoute.class ), metroNetworkRoute, stopArray, defaultPtMode);
 			transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(metroScenario, metroSchedule, transitRoute, nDepartures, tFirstDep, depSpacing, metroVehicleType, vehicleFileLocation); // Add (nDepartures) departures to TransitRoute

@@ -1,39 +1,32 @@
 package ch.ethz.matsim.students.samark;
 
-import java.io.File;
+import java.util.Map;
+
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.api.core.v01.population.Population;
+import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.config.ConfigWriter;
-import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
-import org.matsim.core.controler.Controler;
-import org.matsim.core.population.algorithms.TripsToLegsAlgorithm;
-import org.matsim.core.router.MainModeIdentifierImpl;
-import org.matsim.core.router.StageActivityTypesImpl;
+import org.matsim.core.events.EventsUtils;
+import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.pt.PtConstants;
 
-import ch.ethz.matsim.baseline_scenario.BaselineModule;
-import ch.ethz.matsim.baseline_scenario.config.CommandLine;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
-import ch.ethz.matsim.baseline_scenario.traffic.BaselineTrafficModule;
-import ch.ethz.matsim.baseline_scenario.transit.BaselineTransitModule;
-import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRoute;
-import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRouteFactory;
-import ch.ethz.matsim.baseline_scenario.zurich.ZurichModule;
-import ch.ethz.matsim.papers.mode_choice_paper.CustomModeChoiceModule;
-import ch.ethz.matsim.papers.mode_choice_paper.utils.LongPlanFilter;
 
 /* TODO
- * Small todo's in code
+ * Make event handler for overall network performance: Overall travel time and travel distance!
+ * Make proper IDs to get objects
  * Make transitSchedule for both ways so that same vehicles are used (reverse)
+ * Small todo's in code
  * OD initial routes: Make requirement that one terminal is certain distance from network center so that we get longer routes into city!
  * Make a GeographyProcessor that calculates the OG/UG percentage from given regions
+ * mNetwork.mPersonKMdirect = beelinedistances
+ * include disutility of a transfer... or is that already included?
  */
 
 public class NetworkEvolution {
@@ -67,9 +60,9 @@ public class NetworkEvolution {
 	
 	// - Initiate N=16 networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 3;														// how many networks should be developed in parallel
-		int routesPerNetwork = 6;													// how many initial routes should be placed in every network
-		String initialRouteType = "Random";										// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
+		int populationSize = 2;														// how many networks should be developed in parallel
+		int routesPerNetwork = 30;													// how many initial routes should be placed in every network
+		String initialRouteType = "OD";												// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 																					// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		int iterationToReadOriginalNetwork = 100;									// TODO simulate originalNetwork up to 1000(?) This is the iteration for the simulation output of the original network
 																					// TODO maybe include additional strategy option here for how to make routes e.g. createNetworkRoutes(Strategy, initialRouteType, ...)
@@ -84,7 +77,7 @@ public class NetworkEvolution {
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
 		int nMostFrequentLinks = 150;												// empirical formula - default 300
 		double maxNewMetroLinkDistance = 0.40*metroCityRadius;						// default 0.80*metroCityRadius
-		double minTerminalRadiusFromCenter = 0.30*metroCityRadius; 					// CAUTION: 0.00*metroCityRadius; // For OD-Pairs  [0.30*metroCityRadius for RandomRoutes]
+		double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// CAUTION: 0.00*metroCityRadius; // For OD-Pairs  [0.30*metroCityRadius for RandomRoutes]
 		double maxTerminalRadiusFromCenter = maxMetroRadiusFromCenter;				// default = maxMetroRadiusFromCenter
 		double minTerminalDistance = 0.70*maxMetroRadiusFromCenter;					// no default yet
 		
@@ -109,20 +102,107 @@ public class NetworkEvolution {
 			networkPopulation.addNetwork(mNetwork);
 		}
 		
+		
 	// EVOLUTIONARY PROCESS
+
 		// SIMULATION LOOP:
 		
+		int lastIteration = 3;
 		for (MNetwork mNetwork : networkPopulation.getNetworks().values()) {
-			
 			String initialConfig = "zurich_1pm/zurich_config.xml";
-			int lastIteration = 3;
 			NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration);
-			
 		} // End Network Simulation Loop 
 		
-		// - For each network
-		// - Simulate network in MATSim with plans
-		// - Process events in NetworkPerformanceHandler and save to corresponding network of population
+
+		// - EVENTS PROCESSING:
+		
+		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
+			String networkName = mNetwork.networkID;
+			
+			// read and handle events
+			String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
+			MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
+			EventsManager eventsManager = EventsUtils.createEventsManager();
+			eventsManager.addHandler(mPassengerHandler);
+			MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
+			eventsReader.readFile(eventsFile);
+			
+			// read out travel stats and display important indicators to console
+			Map<String, Map<Double, String>> personStats = mPassengerHandler.personStats;				// Map<PersonID, Map<BoardingTime, RouteName>>
+			Map<String, Double> transitPersonKM = mPassengerHandler.transitPersonKM;					// Map<RouteName, TotalPersonKM>
+			Map<String, Integer> routeBoardingCounter = mPassengerHandler.routeBoardingCounter;			// Map<RouteName, nBoardingsOnThatRoute>
+			int nPassengers = personStats.size(); 														// total number of persons who use the metro
+			System.out.println("Number of Metro Users = "+nPassengers);
+			int nTotalBoardings = 0;
+			for (int i : routeBoardingCounter.values()) {
+				nTotalBoardings += i;
+			}
+			System.out.println("Total Metro Boardings = "+nTotalBoardings);
+			double totalPersonKM = 0.0;
+			for (Double d : transitPersonKM.values()) {
+				totalPersonKM += d;
+			}
+			System.out.println("Total Metro PersonKM = "+Double.toString(totalPersonKM));
+
+			// fill in performance indicators and scores in MRoutes
+			for (String routeId : mNetwork.routeMap.keySet()) {
+				MRoute mRoute = mNetwork.routeMap.get(routeId);
+				mRoute.personKM = transitPersonKM.get(routeId);
+				mRoute.nBoardings = routeBoardingCounter.get(routeId);
+				mNetwork.routeMap.put(routeId, mRoute);
+			}
+			
+			// fill in performance indicators and scores in MNetworks
+			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
+			mNetwork.personKM = totalPersonKM;
+			mNetwork.nPassengers = nPassengers;
+			
+			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";			
+			Config emptyConfig = ConfigUtils.createConfig();
+			emptyConfig.getModules().get("network").addParam("inputPlansFile", finalPlansFile);
+			Scenario emptyScenario = ScenarioUtils.createScenario(emptyConfig);
+			Population finalPlansPopulation = emptyScenario.getPopulation();
+			Double[] travelTimeBins = new Double[90+1];
+			for (Person person : finalPlansPopulation.getPersons().values()) {
+				double personTravelTime = 0.0;
+				Plan plan = person.getSelectedPlan();
+				for (PlanElement element : plan.getPlanElements()) {
+						if (element instanceof Leg) {
+							System.out.println(element.getAttributes().getAttribute("travTime").getClass().getName());
+							String[] HourMinSec = element.getAttributes().getAttribute("travTime").toString().split(":");
+							personTravelTime += (1/60)*(Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]));
+						}
+				}
+				if (personTravelTime>=90) {
+					travelTimeBins[90]++;
+				}
+				else {
+					travelTimeBins[(int) Math.ceil(personTravelTime)]++;
+				}
+			}
+			double totalTravelTime = 0.0;
+			int travels = 0;
+			for (int i=0; i<travelTimeBins.length; i++) {
+				totalTravelTime += i*travelTimeBins[i];
+				travels += travelTimeBins[i];
+			}
+			mNetwork.totalTravelTime = totalTravelTime;
+			mNetwork.averageTravelTime = totalTravelTime/travels;
+			double standardDeviation = 0.0;
+			for (int i=0; i<travelTimeBins.length; i++) {
+				for (int j=0; j<travelTimeBins[i]; j++) {
+					standardDeviation += Math.pow(i-mNetwork.averageTravelTime, 2);
+				}
+			}
+			mNetwork.stdDeviationTravelTime = standardDeviation;
+			
+		}		// END of NETWORK Loop
+		
+		// TEST
+		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
+			System.out.println(mNetwork.networkID+" AverageTavelTime = "+mNetwork.averageTravelTime+"   (StandardDeviation="+mNetwork.stdDeviationTravelTime+")");
+			System.out.println(mNetwork.networkID+" TotalTravelTime = "+mNetwork.totalTravelTime);
+		}
 		// - Maybe hand over score to a separate score map for sorting scores		
 
 		

@@ -1,17 +1,22 @@
 package ch.ethz.matsim.students.samark;
 
 import java.io.File;
+import java.util.Map;
 
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.api.core.v01.population.Population;
+import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.ConfigWriter;
 import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
 import org.matsim.core.controler.Controler;
+import org.matsim.core.events.EventsUtils;
+import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.population.algorithms.TripsToLegsAlgorithm;
 import org.matsim.core.router.MainModeIdentifierImpl;
 import org.matsim.core.router.StageActivityTypesImpl;
@@ -120,5 +125,99 @@ public class NetworkEvolutionRunSim {
 		controler.run();
 		
 	}
+
+	
+	public static void runEventsProcessing(MNetworkPop networkPopulation, int lastIteration) {
+		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
+			String networkName = mNetwork.networkID;
+			
+			// read and handle events
+			String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
+			MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
+			EventsManager eventsManager = EventsUtils.createEventsManager();
+			eventsManager.addHandler(mPassengerHandler);
+			MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
+			eventsReader.readFile(eventsFile);
+			
+			// read out travel stats and display important indicators to console
+			Map<String, Map<Double, String>> personStats = mPassengerHandler.personStats;				// Map<PersonID, Map<BoardingTime, RouteName>>
+			Map<String, Double> transitPersonKM = mPassengerHandler.transitPersonKM;					// Map<RouteName, TotalPersonKM>
+			Map<String, Integer> routeBoardingCounter = mPassengerHandler.routeBoardingCounter;			// Map<RouteName, nBoardingsOnThatRoute>
+			int nPassengers = personStats.size(); 														// total number of persons who use the metro
+			System.out.println("Number of Metro Users = "+nPassengers);
+			int nTotalBoardings = 0;
+			for (int i : routeBoardingCounter.values()) {
+				nTotalBoardings += i;
+			}
+			System.out.println("Total Metro Boardings = "+nTotalBoardings);
+			double totalPersonKM = 0.0;
+			for (Double d : transitPersonKM.values()) {
+				totalPersonKM += d;
+			}
+			System.out.println("Total Metro PersonKM = "+Double.toString(totalPersonKM));
+
+			// fill in performance indicators and scores in MRoutes
+			for (String routeId : mNetwork.routeMap.keySet()) {
+				MRoute mRoute = mNetwork.routeMap.get(routeId);
+				mRoute.personKM = transitPersonKM.get(routeId);
+				mRoute.nBoardings = routeBoardingCounter.get(routeId);
+				mNetwork.routeMap.put(routeId, mRoute);
+			}
+			
+			// fill in performance indicators and scores in MNetworks
+			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
+			mNetwork.personKM = totalPersonKM;
+			mNetwork.nPassengers = nPassengers;
+			
+			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";			
+			Config emptyConfig = ConfigUtils.createConfig();
+			emptyConfig.getModules().get("network").addParam("inputPlansFile", finalPlansFile);
+			Scenario emptyScenario = ScenarioUtils.createScenario(emptyConfig);
+			Population finalPlansPopulation = emptyScenario.getPopulation();
+			Double[] travelTimeBins = new Double[90+1];
+			for (Person person : finalPlansPopulation.getPersons().values()) {
+				double personTravelTime = 0.0;
+				Plan plan = person.getSelectedPlan();
+				for (PlanElement element : plan.getPlanElements()) {
+						if (element instanceof Leg) {
+							System.out.println(element.getAttributes().getAttribute("travTime").getClass().getName());
+							String[] HourMinSec = element.getAttributes().getAttribute("travTime").toString().split(":");
+							personTravelTime += (1/60)*(Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]));
+						}
+				}
+				if (personTravelTime>=90) {
+					travelTimeBins[90]++;
+				}
+				else {
+					travelTimeBins[(int) Math.ceil(personTravelTime)]++;
+				}
+			}
+			double totalTravelTime = 0.0;
+			int travels = 0;
+			for (int i=0; i<travelTimeBins.length; i++) {
+				totalTravelTime += i*travelTimeBins[i];
+				travels += travelTimeBins[i];
+			}
+			mNetwork.totalTravelTime = totalTravelTime;
+			mNetwork.averageTravelTime = totalTravelTime/travels;
+			double standardDeviation = 0.0;
+			for (int i=0; i<travelTimeBins.length; i++) {
+				for (int j=0; j<travelTimeBins[i]; j++) {
+					standardDeviation += Math.pow(i-mNetwork.averageTravelTime, 2);
+				}
+			}
+			mNetwork.stdDeviationTravelTime = standardDeviation;
+			
+		}		// END of NETWORK Loop
+		
+		// TEST
+		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
+			System.out.println(mNetwork.networkID+" AverageTavelTime = "+mNetwork.averageTravelTime+"   (StandardDeviation="+mNetwork.stdDeviationTravelTime+")");
+			System.out.println(mNetwork.networkID+" TotalTravelTime = "+mNetwork.totalTravelTime);
+		}
+		// - Maybe hand over score to a separate score map for sorting scores
+	}
 	
 }
+
+

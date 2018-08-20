@@ -31,9 +31,8 @@ public class MNetwork {
 	double constrCost;
 	// from evolution loop
 	int evolutionGeneration;
-	// from individual routes
-	double averageScore;
-	double stdScoreDeviation;
+	double averageTravelTime;
+	double stdDeviationTravelTime;
 	double totalTravelTime;
 	
 	
