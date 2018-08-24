@@ -1,17 +1,76 @@
 package ch.ethz.matsim.students.samark;
 
-import java.io.File;
+import java.io.IOException;
+
+import org.matsim.api.core.v01.network.Network;
+import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.scenario.ScenarioUtils;
+
+import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.StaxDriver;
+
 
 public class Demo {
 	
-	public static void main(String[] args) {
-	
-	// %%%%% Make Directory %%%%
-		// how to make a new directory (it will not overwrite directory/folder if it already exists :))
-		String mNetworkPath = "zurich_1pm/Evolution/Population/"+"Network2";
-		new File(mNetworkPath).mkdirs();
+	public static void main(String[] args) throws IOException {
 		
-	// %%%%% MNetwor & MRoute Tests %%%%%
+		// %%%%%%%%%%%%%%%%%%%% XMLWriter %%%%%%%%%%%%%%%%%%%%
+		
+		XStream xstream = new XStream(new StaxDriver());
+		xstream.alias("mnetwork", MNetwork.class);	
+		MNetwork mnetwork1 = new MNetwork("mnetwork1");
+		MNetwork mnetwork2 = new MNetwork("mnetwork2");
+		Network network = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
+		network.setName("It worked!!!");
+		mnetwork1.network = network;
+		mnetwork2.network = network;
+		String xml1 = xstream.toXML(mnetwork1);
+		String xml2 = xstream.toXML(mnetwork2);
+		String fileName1 = "zurich_1pm/Evolution/Population/Network1/Objects/"+mnetwork1.networkID+"new.xml";
+		String fileName2 = "zurich_1pm/Evolution/Population/Network2/Objects/"+mnetwork2.networkID+"new.xml";
+		XMLOps.writeToFile(mnetwork1, fileName1);
+		XMLOps.writeToFile(mnetwork2, fileName2);
+		//FileOutputStream fos = new FileOutputStream(fileName2);
+		//xstream.toXML(mnetwork2, fos);
+		System.out.println(xml1);
+		System.out.println(xml2);
+		MNetwork mnetwork3 = XMLOps.readFromFile(mnetwork1.getClass(), fileName1);
+		MNetwork mnetwork4 = XMLOps.readFromFile(mnetwork2.getClass(), fileName2);
+		System.out.println("MNetwork1's network name is: "+mnetwork3.network.getName());
+		System.out.println("MNetwork2's name is: "+mnetwork4.networkID);
+		
+		
+		// %%%%%%%%%%%%%%%%%%%% FAILED: Serialization of Objects without Serializable %%%%%%%%%%%%%%%%%%%%
+		
+		//MObjectWriter.serializeToXML2(mnetwork1, "zurich_1pm/Evolution/Population/Network1/Objects/"+mnetwork1.networkID+".ser");
+		//MObjectWriter.serializeToXML2(mnetwork2, "zurich_1pm/Evolution/Population/Network2/Objects/"+mnetwork2.networkID+".ser");
+		
+		/*MRoute mRoute1 = new MRoute("testRoute1");
+		MRoute mRoute2 = new MRoute("testRoute2");
+		
+		Network network1 = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
+		Network network2 = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
+		MNetworkSerializable mnetwork1 = new MNetworkSerializable("mnetwork1");
+		MNetworkSerializable mnetwork2 = new MNetworkSerializable("mnetwork2");
+		Network network = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
+		network.setName("It worked!!!");
+		mnetwork1.network = network;
+		//MObjectWriter.writeObject(mRoute1, "zurich_1pm/Evolution/Population/Network1/Objects/"+mRoute1.routeID+".ser");
+		//MObjectWriter.writeObject(mRoute2, "zurich_1pm/Evolution/Population/Network2/Objects/"+mRoute2.routeID+".ser");
+		MObjectWriter.writeObject(mnetwork1, "zurich_1pm/Evolution/Population/Network1/Objects/mnetwork1.ser");
+		MObjectWriter.writeObject(mnetwork2, "zurich_1pm/Evolution/Population/Network2/Objects/mnetwork2.ser");
+		MNetwork mnetwork3 = (MNetwork) MObjectReader.readObject(new MNetwork("foo").getClass(), "zurich_1pm/Evolution/Population/Network1/Objects/mnetwork1.ser");
+		MNetwork mnetwork4 = (MNetwork) MObjectReader.readObject(new MNetwork("foo").getClass(), "zurich_1pm/Evolution/Population/Network2/Objects/mnetwork2.ser");
+		System.out.println("MRoute 3 = "+mnetwork3.networkID);
+		System.out.println("MNetwork 3 - actual networkName = "+mnetwork3.network.getName());
+		System.out.println("MRoute 4 = "+mnetwork4.networkID);*/
+		
+	// %%%%%%%%%%%%%%%%%%%%%%%%% Make Directory %%%%%%%%%%%%%%%%%%%%%%%%
+		// how to make a new directory (it will not overwrite directory/folder if it already exists :))
+		/*String mNetworkPath = "zurich_1pm/Evolution/Population/"+"Network2";
+		new File(mNetworkPath).mkdirs();*/
+		
+	// %%%%%%%%%%%%%%%%%%%%%%%%% MNetwor & MRoute Tests %%%%%%%%%%%%%%%%%%%%%%%%%
 		
 		// TEST: create a POPULATION as a map of networks
 		/*MNetworkPop population = new MNetworkPop(); // create a network
@@ -34,7 +93,7 @@ public class Demo {
 			}
 		}*/
 		
-	// %%%%% Random %%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%% Random %%%%%%%%%%%%%%%%%%%%%%%%%
 		
 		/*Set<String> sett = Sets.newHashSet("a", "b"," c");
 		System.out.println(sett.toString());*/
@@ -50,7 +109,7 @@ public class Demo {
 		System.out.println("Metro Node Id is "+metroNodeIdOut.toString());*/
 		
 		
-	// %%%%% Network Route Creator Tester %%%%%	
+	// %%%%%%%%%%%%%%%%%%%%%%%%% Network Route Creator Tester %%%%%%%%%%%%%%%%%%%%%%%%%	
 		
 		/*Network routesNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
 		NetworkFactory nf = routesNetwork.getFactory();
@@ -86,7 +145,7 @@ public class Demo {
 		
 		
 		
-	// %%%%% Config Tester %%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%% Config Tester %%%%%%%%%%%%%%%%%%%%%%%%%
 		
 		/* %%% Config Module Scanner %%%
 		 * Takes config file and scans through its modules and parameters
@@ -112,7 +171,7 @@ public class Demo {
 		/*ConfigWriter configWriter = new ConfigWriter(config);
 		configWriter.write("myOutput/ConfigScannerTestFile.xml");*/
 		
-	// %%%%% Config Tester2 %%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%% Config Tester2 %%%%%%%%%%%%%%%%%%%%%%%%%
 		
 		/*// Config > ConfigGroup(come as a set of configGroups=Modules) > Parameter(come as a set of parameterSet) > Values(one for each parameter in the set)
 		public static void scanConfigModules(Config config) {
@@ -174,7 +233,7 @@ public class Demo {
 
 
 
-//%%%%%%%%%%%%%%%%%%%%%  Config Scanner %%%%%%%%%%%%%%%%%%%%%%%% Successful
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Config Scanner %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Successful
 /*		Config config = ConfigUtils.createConfig();								// in this case it is empty files and structures
 		Scenario scenario = ScenarioUtils.createScenario(config);
 		scenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class,
@@ -218,7 +277,7 @@ import ch.ethz.matsim.baseline_scenario.transit.events.PublicTransitEvent;
 	 */
 
 		
-//%%%%%%%%%%%%%%%%%%%%%  Generic Map Iterator %%%%%%%%%%%%%%%%%%%% Failed
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Generic Map Iterator %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Failed
 /*		Map map = new HashMap<String, Long>();
      map.put("1$", new Long(10));
      map.put("2$", new Long(20));

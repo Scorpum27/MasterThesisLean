@@ -7,8 +7,11 @@ import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.pt.transitSchedule.api.TransitLine;
+import java.io.Serializable;
 
-public class MRoute {
+public class MRoute implements Serializable{
+
+	private static final long serialVersionUID = 1L;
 
 	String routeID;
 	NetworkRoute networkRoute;
@@ -20,7 +23,7 @@ public class MRoute {
 	// from eventsFile
 	String eventsFile;
 	int nBoardings;
-	double personKM;
+	double personMetroKM;
 	
 	// from transitScheduleFile
 	int nDepartures;
@@ -30,9 +33,14 @@ public class MRoute {
 	double constrCost;
 	double undergroundPercentage;	
 	
+	public MRoute() {
+	}
+	
 	public MRoute(String name) {	
 		this.routeID = name;
 		this.undergroundPercentage = 0.0;
+		this.personMetroKM = 0.0;
+		this.nBoardings = 0;
 	}
 	
 	
@@ -86,11 +94,11 @@ public class MRoute {
 		this.drivenKM = drivenKM;
 	}
 	
-	public double getPersonKM() {
-		return this.personKM;
+	public double getPersonMetroKM() {
+		return this.personMetroKM;
 	}
-	public void setPersonKM(double personKM) {
-		this.personKM = personKM;
+	public void setMetroPersonKM(double personKM) {
+		this.personMetroKM = personKM;
 	}
 	
 	public Double getUndergroundPercentage() {

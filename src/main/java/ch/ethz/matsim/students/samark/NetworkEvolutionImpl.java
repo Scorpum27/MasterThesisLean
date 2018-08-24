@@ -93,12 +93,9 @@ public class NetworkEvolutionImpl {
 		// 	Get [old map] refLink from [new map] node: Link oldMapLink = newMapNode.parse
 		// 	---> Id<Link> originalLinkId = orginalLinkFromMetroNode(Id<Node> metroNodeId)
 
-		boolean useOdPairsForInitialRoutes = true;
+		boolean useOdPairsForInitialRoutes = false;
 		if (initialRouteType.equals("OD")) {						// %%% TODO MIGHT BE CRITICAL !!
 			useOdPairsForInitialRoutes = true;
-		}
-		else {
-			useOdPairsForInitialRoutes = false;			
 		}
 		ArrayList<NetworkRoute> initialMetroRoutes = null;
 		Network separateRoutesNetwork = null;
@@ -146,7 +143,7 @@ public class NetworkEvolutionImpl {
 					
 			// Build TransitRoute from stops and NetworkRoute --> and add departures
 			String vehicleFileLocation = (mNetworkPath+"/Vehicles.xml");
-			TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create("TransitRoute_LineNr"+lineNr, TransitRoute.class ), metroNetworkRoute, stopArray, defaultPtMode);
+			TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create(thisNewNetworkName+"_Route"+lineNr, TransitRoute.class ), metroNetworkRoute, stopArray, defaultPtMode);
 			transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(metroScenario, metroSchedule, transitRoute,
 					nDepartures, tFirstDep, depSpacing, metroVehicleType, vehicleFileLocation); // Add (nDepartures) departures to TransitRoute
 								
@@ -765,6 +762,11 @@ public class NetworkEvolutionImpl {
 			
 	}		
 	
+// %%%%% Methods to write objects to file %%%%%
+
+
+
+
 
 // TODO Method to run event handler NetworkPerformanceHandler(String EventsFilePath, int iteration, String NetworkID)	
 // %%%%%%%%%%%%%%%%%%%%%% END HELPER METHODS STATIC %%%%%%%%%%%%%%%%%%%%%%%%%%%%
