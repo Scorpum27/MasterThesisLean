@@ -14,9 +14,21 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 		
+		Double personTravelTime = 1.0;
+		String travTime = "00:10:30";
+		String[] HourMinSec = travTime.split(":");
+		System.out.println("Person Travel Time of this leg in [s] = "+travTime);
+		System.out.println("Hours = "+HourMinSec[0]);
+		System.out.println("Mins = "+HourMinSec[1]);
+		System.out.println("Mins = "+Double.parseDouble(HourMinSec[1]));
+		System.out.println("Hours = "+Double.parseDouble(HourMinSec[0]));
+		//personTravelTime += (1)*Double.parseDouble(HourMinSec[1])/60;
+		personTravelTime = personTravelTime + (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
+		System.out.println("Total Person Travel Time of this leg in [s] = "+personTravelTime);
+		
 		// %%%%%%%%%%%%%%%%%%%% XMLWriter %%%%%%%%%%%%%%%%%%%%
 		
-		XStream xstream = new XStream(new StaxDriver());
+		/*XStream xstream = new XStream(new StaxDriver());
 		xstream.alias("mnetwork", MNetwork.class);	
 		MNetwork mnetwork1 = new MNetwork("mnetwork1");
 		MNetwork mnetwork2 = new MNetwork("mnetwork2");
@@ -37,7 +49,7 @@ public class Demo {
 		MNetwork mnetwork3 = XMLOps.readFromFile(mnetwork1.getClass(), fileName1);
 		MNetwork mnetwork4 = XMLOps.readFromFile(mnetwork2.getClass(), fileName2);
 		System.out.println("MNetwork1's network name is: "+mnetwork3.network.getName());
-		System.out.println("MNetwork2's name is: "+mnetwork4.networkID);
+		System.out.println("MNetwork2's name is: "+mnetwork4.networkID);*/
 		
 		
 		// %%%%%%%%%%%%%%%%%%%% FAILED: Serialization of Objects without Serializable %%%%%%%%%%%%%%%%%%%%

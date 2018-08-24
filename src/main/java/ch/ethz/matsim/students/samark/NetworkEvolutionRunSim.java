@@ -19,6 +19,7 @@ import org.matsim.core.controler.Controler;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.population.algorithms.TripsToLegsAlgorithm;
+import org.matsim.core.population.io.PopulationReader;
 import org.matsim.core.router.MainModeIdentifierImpl;
 import org.matsim.core.router.StageActivityTypesImpl;
 import org.matsim.core.scenario.ScenarioUtils;
@@ -193,16 +194,18 @@ public class NetworkEvolutionRunSim {
 	}
 	
 	public static void peoplePlansProcessing(MNetworkPop networkPopulation) {
-		System.out.println("Network name = "+networkPopulation.populationId);
-		System.out.println("Network size = "+networkPopulation.networkMap.size());
+		System.out.println("Population name = "+networkPopulation.populationId);
+		System.out.println("Population size = "+networkPopulation.networkMap.size());
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			// TEST			
 			String networkName = mNetwork.networkID;
+			System.out.println("NetworkName = "+networkName);
 			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";			
 			Config emptyConfig = ConfigUtils.createConfig();
 			emptyConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
-			Scenario emptyScenario = ScenarioUtils.createScenario(emptyConfig);
+			Scenario emptyScenario = ScenarioUtils.loadScenario(emptyConfig);
 			Population finalPlansPopulation = emptyScenario.getPopulation();
+			//PopulationReader p = new PopulationReader(emptyScenario);
 			Double[] travelTimeBins = new Double[90+1];
 			for (int d=0; d<travelTimeBins.length; d++) {
 				travelTimeBins[d] = 0.0;
@@ -213,9 +216,22 @@ public class NetworkEvolutionRunSim {
 				Plan plan = person.getSelectedPlan();
 				for (PlanElement element : plan.getPlanElements()) {
 						if (element instanceof Leg) {
-							System.out.println(element.getAttributes().getAttribute("travTime").getClass().getName());
-							String[] HourMinSec = element.getAttributes().getAttribute("travTime").toString().split(":");
-							personTravelTime += (1/60)*(Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]));
+							/*System.out.println("Plan Elements is: "+element.toString());
+							System.out.println("Plan Elements Attributes are: "+element.getAttributes().toString());
+							System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("mode"));
+							System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("travTime"));*/
+							String findString = "[travTime=";
+							int i1 = element.toString().indexOf(findString);
+							//System.out.println("i1 is: "+i1);
+							String travTime = element.toString().substring(i1+findString.length(), i1+findString.length()+8);
+							System.out.println("Plan Elements Attribute travTime is: "+travTime);
+
+							//System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("trav_time"));
+							//System.out.println(element.getAttributes().getAttribute("travTime").getClass().getName());
+							String[] HourMinSec = travTime.split(":");
+							System.out.println("Person Travel Time of this leg in [s] = "+travTime);
+							personTravelTime += (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
+							System.out.println("Total Person Travel Time of this leg in [m] = "+personTravelTime);
 						}
 				}
 				if (personTravelTime>=90) {
@@ -233,17 +249,22 @@ public class NetworkEvolutionRunSim {
 			}
 			mNetwork.totalTravelTime = totalTravelTime;
 			mNetwork.averageTravelTime = totalTravelTime/travels;
-			double standardDeviation = 0.0;
+			double standardDeviationInnerSum = 0.0;
 			for (int i=0; i<travelTimeBins.length; i++) {
 				for (int j=0; j<travelTimeBins[i]; j++) {
-					standardDeviation += Math.pow(i-mNetwork.averageTravelTime, 2);
+					standardDeviationInnerSum += Math.pow(i-mNetwork.averageTravelTime, 2);
 				}
 			}
+			double standardDeviation = Math.sqrt(standardDeviationInnerSum/(travels-1));
+			
 			mNetwork.stdDeviationTravelTime = standardDeviation;
+			System.out.println("standardDeviation = " + mNetwork.stdDeviationTravelTime);
+			System.out.println("averageTravelTime = " + mNetwork.averageTravelTime);
+			
 		}
 		for (MNetwork network : networkPopulation.networkMap.values()) {
-			System.out.println(network.networkID+" AverageTavelTime = "+network.averageTravelTime+"   (StandardDeviation="+network.stdDeviationTravelTime+")");
-			System.out.println(network.networkID+" TotalTravelTime = "+network.totalTravelTime);
+			System.out.println(network.networkID+" AverageTavelTime [min] = "+network.averageTravelTime+"   (StandardDeviation="+network.stdDeviationTravelTime+")");
+			System.out.println(network.networkID+" TotalTravelTime [min] = "+network.totalTravelTime);
 		}
 	}
 	
