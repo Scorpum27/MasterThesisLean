@@ -1,6 +1,9 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.HashMap;
+import java.util.Map;
 
 import org.matsim.api.core.v01.Coord;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
@@ -53,11 +56,13 @@ public class NetworkEvolution {
 		// % Parameters for Population: %
 		int populationSize = 2;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		int routesPerNetwork = 5;													// how many initial routes should be placed in every network
+		int routesPerNetwork = 65;													// how many initial routes should be placed in every network
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 																					// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		int iterationToReadOriginalNetwork = 100;									// TODO simulate originalNetwork up to 1000(?) This is the iteration for the simulation output of the original network
 																					// TODO maybe include additional strategy option here for how to make routes e.g. createNetworkRoutes(Strategy, initialRouteType, ...)
+		String zeroLog = "zurich_1pm/Evolution/Population/HistoryLog/Generation0";	// Make string and directory to save to file first generation (Generation0)
+		new File(zeroLog).mkdirs();
 		// %% Parameters for NetworkRoutes %%
 		Coord zurich_NetworkCenterCoord = new Coord(2683000.00, 1247700.00);		// default Coord(2683099.3305, 1247442.9076);
 		double xOffset = 1733436; 													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; X_MATSim= 2683476;
@@ -93,25 +98,29 @@ public class NetworkEvolution {
 					metroOpsCostPerKM, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground);
 			XMLOps.writeToFile(mNetwork, "zurich_1pm/Evolution/Population/"+thisNewNetworkName+"/Objects/"+mNetwork.networkID+".xml");
 			networkPopulation.addNetwork(mNetwork);
-			XMLOps.writeToFile(networkPopulation, "zurich_1pm/Evolution/Population/Objects/"+networkPopulation.populationId+".xml");
+			XMLOps.writeToFile(networkPopulation, "zurich_1pm/Evolution/Population/"+networkPopulation.populationId+".xml");
+			// initial data logging for generationNr=0;
+			mNetwork.network = null;		// set to null before storing to file bc would use up too much storage and is not needed (network can be created from other data)
+			XMLOps.writeToFile(mNetwork, zeroLog +"/"+mNetwork.networkID+".xml");
 		}*/
 		
 		
 		
 	// EVOLUTIONARY PROCESS
-
-		/*// SIMULATION LOOP:
-		int lastIteration = 5;
-		MNetworkPop evoNetworksToSimulate = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/Evolution/Population/Objects/"+populationName+".xml");
+	int nEvolutions = 5;
+	for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
+		
+		// SIMULATION LOOP:
+		int lastIteration = generationNr*2;
+		MNetworkPop evoNetworksToSimulate = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/Evolution/Population/"+populationName+".xml");
 		for (MNetwork mNetwork : evoNetworksToSimulate.getNetworks().values()) {
 			String initialConfig = "zurich_1pm/zurich_config.xml";
 			NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration);
 		} // End Network Simulation Loop 
-		
 
 		// - EVENTS PROCESSING:
-		int lastEventIteration = 5; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
-		MNetworkPop evoNetworksToProcess = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/Evolution/Population/Objects/"+populationName+".xml");
+		int lastEventIteration = lastIteration; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
+		MNetworkPop evoNetworksToProcess = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/Evolution/Population/"+populationName+".xml");
 		NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration);
 		for (MNetwork mNetwork : evoNetworksToProcess.getNetworks().values()) {
 			System.out.println(mNetwork.toString());
@@ -121,14 +130,31 @@ public class NetworkEvolution {
 			System.out.println("Number of Metro Users = " + mNetwork.nMetroUsers);
 			System.out.println("Total Metro Passengers KM = " + mNetwork.totalMetroPersonKM);
 		}
-		XMLOps.writeToFile(evoNetworksToProcess, "zurich_1pm/Evolution/Population/Objects/"+evoNetworksToProcess.populationId+".xml");
-		*/
-		// - PLANS PROCESSING:
-		MNetworkPop evoNetworksToProcessPlans = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/Evolution/Population/Objects/"+populationName+".xml");
-		NetworkEvolutionRunSim.peoplePlansProcessing(evoNetworksToProcessPlans);
-			// - Maybe hand over score to a separate score map for sorting scores		
-
+		XMLOps.writeToFile(evoNetworksToProcess, "zurich_1pm/Evolution/Population/"+evoNetworksToProcess.populationId+".xml");
 		
+		// - PLANS PROCESSING:
+		MNetworkPop evoNetworksToProcessPlans = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/Evolution/Population/"+populationName+".xml");
+		NetworkEvolutionRunSim.peoplePlansProcessing(evoNetworksToProcessPlans);
+		// - HISTORY LOGGER: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
+		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr;
+		new File(historyFileLocation).mkdirs();
+		Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
+		for (String networkName : evoNetworksToProcessPlans.getNetworks().keySet()) {
+			MNetwork mnetwork = evoNetworksToProcessPlans.getNetworks().get(networkName);
+			NetworkScoreLog nsl = new NetworkScoreLog();
+			nsl.averageTravelTime = mnetwork.averageTravelTime;
+			nsl.stdDeviationTravelTime = mnetwork.stdDeviationTravelTime;
+			networkScoreMap.put(networkName, nsl);
+			mnetwork.network = null;		// set to null before storing to file bc would use up too much storage and is not needed (network can be created from other data)
+			XMLOps.writeToFile(mnetwork, historyFileLocation+"/"+mnetwork.networkID+".xml");
+		}
+		XMLOps.writeToFile(networkScoreMap, "zurich_1pm/Evolution/Population/networkScoreMap.xml");
+		XMLOps.writeToFile(networkScoreMap, historyFileLocation+"/networkScoreMap.xml");
+	
+		// change routes and network here according to their scores!
+		
+	}
+
 		
 	
 	// INITIALIZATION
@@ -156,6 +182,9 @@ public class NetworkEvolution {
 		// - Make evolutionary operations
 		// - Update population
 		// - Log files to save development
+		//		- MNetwork (with its MRoutes, but without NetworkFile!)
+		//		- Iteration
+		//		- ScoreMap for each network (and routes?)
 		// --> Simulation loop
 		
 	

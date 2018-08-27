@@ -148,22 +148,22 @@ public class NetworkEvolutionRunSim {
 			Map<String, Double> personKMonRoutes = new HashMap<String, Double>();						// Map<RouteName, TotalPersonKM>
 			double totalMetroPersonKM = 0.0;
 			int nMetroUsers = travelStats.size(); 														// total number of persons who use the metro
-			System.out.println("Number of Metro Users = " + nMetroUsers);
+			//System.out.println("Number of Metro Users = " + nMetroUsers);
 			int nTotalBoardings = 0;
 			for (int i : routeBoardingCounter.values()) {
 				nTotalBoardings += i;
 			}
-			System.out.println("Total Metro Boardings = "+nTotalBoardings);
+			//System.out.println("Total Metro Boardings = "+nTotalBoardings);
 			
 			for (Map<String, Double> routesStats : travelStats.values()) {
 				for (String route : routesStats.keySet()) {
 					if (personKMonRoutes.containsKey(route)) {
 						personKMonRoutes.put(route, personKMonRoutes.get(route)+routesStats.get(route));
-						System.out.println("Putting on Route " +route+ " an additional " + routesStats.get(route) + " to a total of " + personKMonRoutes.get(route));  
+						//System.out.println("Putting on Route " +route+ " an additional " + routesStats.get(route) + " to a total of " + personKMonRoutes.get(route));  
 					}
 					else {
 						personKMonRoutes.put(route, routesStats.get(route));
-						System.out.println("Putting on Route " +route+ " an initial " + personKMonRoutes.get(route)); 
+						//System.out.println("Putting on Route " +route+ " an initial " + personKMonRoutes.get(route)); 
 					}
 				}
 			}
@@ -171,7 +171,7 @@ public class NetworkEvolutionRunSim {
 			for (String route : personKMonRoutes.keySet()) {
 				totalMetroPersonKM += personKMonRoutes.get(route);
 			}
-			System.out.println("Total Metro TransitKM = " + totalMetroPersonKM);
+			//System.out.println("Total Metro TransitKM = " + totalMetroPersonKM);
 
 			
 			// fill in performance indicators and scores in MRoutes
@@ -194,12 +194,12 @@ public class NetworkEvolutionRunSim {
 	}
 	
 	public static void peoplePlansProcessing(MNetworkPop networkPopulation) {
-		System.out.println("Population name = "+networkPopulation.populationId);
-		System.out.println("Population size = "+networkPopulation.networkMap.size());
+		//System.out.println("Population name = "+networkPopulation.populationId);
+		//System.out.println("Population size = "+networkPopulation.networkMap.size());
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			// TEST			
 			String networkName = mNetwork.networkID;
-			System.out.println("NetworkName = "+networkName);
+			//System.out.println("NetworkName = "+networkName);
 			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";			
 			Config emptyConfig = ConfigUtils.createConfig();
 			emptyConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
@@ -211,7 +211,7 @@ public class NetworkEvolutionRunSim {
 				travelTimeBins[d] = 0.0;
 			}
 			for (Person person : finalPlansPopulation.getPersons().values()) {
-				System.out.println("Person = "+person.getId().toString());
+				//System.out.println("Person = "+person.getId().toString());
 				double personTravelTime = 0.0;
 				Plan plan = person.getSelectedPlan();
 				for (PlanElement element : plan.getPlanElements()) {
@@ -224,14 +224,14 @@ public class NetworkEvolutionRunSim {
 							int i1 = element.toString().indexOf(findString);
 							//System.out.println("i1 is: "+i1);
 							String travTime = element.toString().substring(i1+findString.length(), i1+findString.length()+8);
-							System.out.println("Plan Elements Attribute travTime is: "+travTime);
+							//System.out.println("Plan Elements Attribute travTime is: "+travTime);
 
 							//System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("trav_time"));
 							//System.out.println(element.getAttributes().getAttribute("travTime").getClass().getName());
 							String[] HourMinSec = travTime.split(":");
-							System.out.println("Person Travel Time of this leg in [s] = "+travTime);
+							//System.out.println("Person Travel Time of this leg in [s] = "+travTime);
 							personTravelTime += (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
-							System.out.println("Total Person Travel Time of this leg in [m] = "+personTravelTime);
+							//System.out.println("Total Person Travel Time of this leg in [m] = "+personTravelTime);
 						}
 				}
 				if (personTravelTime>=90) {
@@ -258,8 +258,8 @@ public class NetworkEvolutionRunSim {
 			double standardDeviation = Math.sqrt(standardDeviationInnerSum/(travels-1));
 			
 			mNetwork.stdDeviationTravelTime = standardDeviation;
-			System.out.println("standardDeviation = " + mNetwork.stdDeviationTravelTime);
-			System.out.println("averageTravelTime = " + mNetwork.averageTravelTime);
+			//System.out.println("standardDeviation = " + mNetwork.stdDeviationTravelTime);
+			//System.out.println("averageTravelTime = " + mNetwork.averageTravelTime);
 			
 		}
 		for (MNetwork network : networkPopulation.networkMap.values()) {

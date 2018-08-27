@@ -27,7 +27,7 @@ public class MHandlerPassengers implements GenericEventHandler{
 			String personId = event.getAttributes().get("person");
 			String route = event.getAttributes().get("route");
 			double distance = Double.parseDouble(event.getAttributes().get("travelDistance"));
-			System.out.println("PT_Transit on Route "+ route + " --> "+ event.getAttributes().get("travelDistance") +" [m] travelled");
+			//System.out.println("PT_Transit on Route "+ route + " --> "+ event.getAttributes().get("travelDistance") +" [m] travelled");
 			Map<String, Double> routeDistances = new HashMap<String, Double>();
 			if(this.travelStats.containsKey(personId)) {
 				routeDistances = this.travelStats.get(personId);
@@ -49,7 +49,7 @@ public class MHandlerPassengers implements GenericEventHandler{
 				this.routeBoardingCounter.put(route, this.routeBoardingCounter.get(route)+1);				
 			}
 			else {this.routeBoardingCounter.put(route, 1);}			
-			System.out.println("And added one boarding for "+route+" to "+this.routeBoardingCounter.get(route));
+			// System.out.println("And added one boarding for "+route+" to "+this.routeBoardingCounter.get(route));
 		}
 		// test
 		/*for (String att : event.getAttributes().keySet()){
