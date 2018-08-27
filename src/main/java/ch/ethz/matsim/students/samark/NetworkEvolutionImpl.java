@@ -1,6 +1,7 @@
 package ch.ethz.matsim.students.samark;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
@@ -26,6 +27,7 @@ import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.charts.XYLineChart;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitRouteStop;
@@ -757,12 +759,35 @@ public class NetworkEvolutionImpl {
 				nodeList.add(thisNetwork.getLinks().get(linkList.get(linkList.size()-1)).getToNode().getId());
 				return nodeList;
 			}
-			
-		
-			
-	}		
+					
 	
-// %%%%% Methods to write objects to file %%%%%
+// %%%%%%%%%%%%% Plot Makers %%%%%%%%%%%%%%%%%%%%%
+
+	@SuppressWarnings("unchecked")
+	public static void writeChart(int lastGeneration, String fileName) throws FileNotFoundException {
+		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
+		Map<Integer, Double> generationsAverageTravelTime = new HashMap<Integer, Double>();
+		Map<Integer, Double> generationsAverageTravelTimeStdDev = new HashMap<Integer, Double>();
+		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
+		for (int g = 1; g<=lastGeneration; g++) {
+			double averageTravelTimeThisGeneration = 0.0;
+			double averageTravelTimeStdDevThisGeneration = 0.0;
+			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(), generationPath+g+"/networkScoreMap.xml");
+			for (NetworkScoreLog nsl : networkScores.values()) {
+				averageTravelTimeThisGeneration += nsl.averageTravelTime/networkScores.size();
+				averageTravelTimeStdDevThisGeneration += nsl.stdDeviationTravelTime/networkScores.size();
+			}
+			generationsAverageTravelTime.put(g, averageTravelTimeThisGeneration);
+			generationsAverageTravelTimeStdDev.put(g, averageTravelTimeStdDevThisGeneration);
+		}
+		XYLineChart chart = new XYLineChart("Evolution of Network Performance", "Generation", "Score");
+		chart.addSeries("Average Travel Time [min]", generationsAverageTravelTime);
+		chart.addSeries("Average Travel Time - Std Deviation [min]", generationsAverageTravelTimeStdDev);
+		chart.saveAsPng(fileName, 800, 600);
+	}
+
+}
+
 
 
 
