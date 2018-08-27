@@ -14,10 +14,11 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  * Make transitSchedule for both ways so that same vehicles are used (reverse)
  * Increase performance by not saving entire population, but storing location of separate networks, which can be loaded into population!
  * 
+ * CAUTION: Change: [int lastIteration = generationNr*2];
  * Total beeline distance in NetworkEvolutionRunSim (mNetwork.mPersonKMdirect = beelinedistances)
  * Make proper IDs to get objects
  * Small todo's in code
- * Make a GeographyProcessor that calculates the OG/UG percentage from given regions * 
+ * Make a GeographyProcessor that calculates the OG/UG percentage from given regions
  */
 
 public class NetworkEvolution {
@@ -51,10 +52,10 @@ public class NetworkEvolution {
 	
 	// - Initiate N=16 networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 2;														// how many networks should be developed in parallel
+		int populationSize = 3;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		int routesPerNetwork = 20;													// how many initial routes should be placed in every network
-		String initialRouteType = "OD";												// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
+		int routesPerNetwork = 30;													// how many initial routes should be placed in every network
+		String initialRouteType = "Random";												// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 																					// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		int iterationToReadOriginalNetwork = 100;									// TODO simulate originalNetwork up to 1000(?) This is the iteration for the simulation output of the original network
 																					// TODO maybe include additional strategy option here for how to make routes e.g. createNetworkRoutes(Strategy, initialRouteType, ...)
@@ -71,7 +72,7 @@ public class NetworkEvolution {
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
 		int nMostFrequentLinks = 150;												// empirical formula - default 300
 		double maxNewMetroLinkDistance = 0.40*metroCityRadius;						// default 0.80*metroCityRadius
-		double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// CAUTION: 0.00*metroCityRadius; // For OD-Pairs  [0.30*metroCityRadius for RandomRoutes]
+		double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// CAUTION: 0.00*metroCityRadius; // For OD-Pairs  [0.30*metroCityRadius for RandomRoutes]
 		double maxTerminalRadiusFromCenter = maxMetroRadiusFromCenter;				// default = maxMetroRadiusFromCenter
 		double minTerminalDistance = 0.70*maxMetroRadiusFromCenter;					// no default yet
 		
@@ -83,7 +84,7 @@ public class NetworkEvolution {
 		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		double metroOpsCostPerKM = 1000; double metroConstructionCostPerKmOverground = 1000000; double metroConstructionCostPerKmUnderground = 10000000;
 		
-		/*MNetworkPop networkPopulation = new MNetworkPop(populationName, populationSize);			// Initialize population of networks
+		MNetworkPop networkPopulation = new MNetworkPop(populationName, populationSize);			// Initialize population of networks
 		for (int N=1; N<=populationSize; N++) {													// Make individual networks one by one in loop
 			String thisNewNetworkName = ("Network"+N);											// Name networks by their number [1;populationSize]
 			MNetwork mNetwork = NetworkEvolutionImpl.createMNetworkRoutes(						// Make a list of routes that will be added to this network
@@ -104,11 +105,15 @@ public class NetworkEvolution {
 		
 		
 	// EVOLUTIONARY PROCESS
-	int nEvolutions = 2;
+	int nEvolutions = 3;
+	double averageTravelTimePerformanceGoal = 73.0;
+	MNetwork successfulNetwork = null;
+	double successfulAverageTravelTime = 0.0;
 	for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
+		int finalGeneration = generationNr;
 		
 		// SIMULATION LOOP:
-		int lastIteration = generationNr*2;
+		int lastIteration = generationNr*2;					// CHANGE THIS!
 		MNetworkPop evoNetworksToSimulate = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/Evolution/Population/"+populationName+".xml");
 		for (MNetwork mNetwork : evoNetworksToSimulate.getNetworks().values()) {
 			String initialConfig = "zurich_1pm/zurich_config.xml";
@@ -127,10 +132,24 @@ public class NetworkEvolution {
 		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr;
 		new File(historyFileLocation).mkdirs();
 		Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
+		boolean performanceGoalAccomplished = false;
 		for (String networkName : evoNetworksToProcessPlans.getNetworks().keySet()) {
 			MNetwork mnetwork = evoNetworksToProcessPlans.getNetworks().get(networkName);
 			NetworkScoreLog nsl = new NetworkScoreLog();
 			nsl.averageTravelTime = mnetwork.averageTravelTime;
+			if (performanceGoalAccomplished == false) {
+				if (nsl.averageTravelTime < averageTravelTimePerformanceGoal) {
+					performanceGoalAccomplished = true;
+					successfulNetwork = mnetwork;
+					successfulAverageTravelTime = nsl.averageTravelTime;
+				}				
+			}
+			if (performanceGoalAccomplished == true) {
+				if (nsl.averageTravelTime < successfulAverageTravelTime) {
+					successfulAverageTravelTime = nsl.averageTravelTime;
+					successfulNetwork = mnetwork;
+				}				
+			}
 			nsl.stdDeviationTravelTime = mnetwork.stdDeviationTravelTime;
 			networkScoreMap.put(networkName, nsl);
 			System.out.println("Network Stats: " + mnetwork.networkID);			// display most important analyzed data here
@@ -143,16 +162,23 @@ public class NetworkEvolution {
 		XMLOps.writeToFile(networkScoreMap, "zurich_1pm/Evolution/Population/networkScoreMap.xml");
 		XMLOps.writeToFile(networkScoreMap, historyFileLocation+"/networkScoreMap.xml");
 		
-		// change routes and network here according to their scores!
+		// If scores are good enough, stop evolution and give out a well-performing network
+		if(performanceGoalAccomplished == true) {		// 
+			System.out.println("Performance Goal has been achieved in Generation " +finalGeneration+ " by Network "+successfulNetwork.networkID+" at averageTravelTime "+successfulAverageTravelTime);			// display most important analyzed data here			
+			break;
+		}
 		
-	}*/
+		// If PerformanceGoal not yet achieved, change routes and network here according to their scores!
+		
+		
+	}
 
 	// Plot Score Evolution
-	
-	
-	int lastGeneration = 5;
-	NetworkEvolutionImpl.writeChart(lastGeneration, "zurich_1pm/Evolution/Population/scoreEvolution.png");
-	
+	int generationsToPlot = 3;
+	//NetworkEvolutionImpl.writeChartAverageGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionAverageOfGeneration.png");
+	//NetworkEvolutionImpl.writeChartBestGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionBestScoreOfGeneration.png");
+	NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolution.png");
+
 	
 	// INITIALIZATION
 		// - Initiate N=16 networks to make a population

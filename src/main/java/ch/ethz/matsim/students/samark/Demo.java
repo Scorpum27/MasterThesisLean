@@ -2,19 +2,19 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.IOException;
 
-import org.matsim.api.core.v01.network.Network;
-import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.scenario.ScenarioUtils;
-
-import com.thoughtworks.xstream.XStream;
-import com.thoughtworks.xstream.io.xml.StaxDriver;
-
 
 public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 		
-		Double personTravelTime = 1.0;
+		// %%%%%%%%%%%%%%%%%%%% Plotter %%%%%%%%%%%%%%%%%%%%
+
+		int generationsToPlot = 3;
+		NetworkEvolutionImpl.writeChartAverageGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionAverageOfGeneration.png");
+		NetworkEvolutionImpl.writeChartBestGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionBestScoreOfGeneration.png");
+		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolution.png");
+		
+		/*Double personTravelTime = 1.0;
 		String travTime = "00:10:30";
 		String[] HourMinSec = travTime.split(":");
 		System.out.println("Person Travel Time of this leg in [s] = "+travTime);
@@ -24,7 +24,7 @@ public class Demo {
 		System.out.println("Hours = "+Double.parseDouble(HourMinSec[0]));
 		//personTravelTime += (1)*Double.parseDouble(HourMinSec[1])/60;
 		personTravelTime = personTravelTime + (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
-		System.out.println("Total Person Travel Time of this leg in [s] = "+personTravelTime);
+		System.out.println("Total Person Travel Time of this leg in [s] = "+personTravelTime);*/
 		
 		// %%%%%%%%%%%%%%%%%%%% XMLWriter %%%%%%%%%%%%%%%%%%%%
 		

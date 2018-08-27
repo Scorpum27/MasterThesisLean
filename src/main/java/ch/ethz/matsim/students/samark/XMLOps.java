@@ -4,7 +4,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
-
 import com.thoughtworks.xstream.XStream;
 import com.thoughtworks.xstream.io.xml.StaxDriver;
 
@@ -17,9 +16,9 @@ public class XMLOps {
 		new File(filePath).mkdirs();
 		System.out.println("Creating File Path: " + filePath);
 		
-		FileOutputStream fos = new FileOutputStream(fileName);
-		
+		FileOutputStream fos = new FileOutputStream(fileName);		
 		XStream xstream = new XStream(new StaxDriver());
+
 		// Include the following for aliasing with xStream. Else, use "" for alias definition in individual classes
 		/*String aliasString;
 		if (object.getClass().getName().contains(".")) {
@@ -36,6 +35,9 @@ public class XMLOps {
 	public static <T extends Object> T readFromFile(Class<T> type, String fileName) throws FileNotFoundException {	
 		FileInputStream fis = new FileInputStream(fileName);
 		XStream xstream = new XStream(new StaxDriver());
+		
+		//XStream.setupDefaultSecurity(xstream);
+		//xstream.allowTypes(new Class[] {type});
 		Object object = xstream.fromXML(fis);
 		System.out.println("Loaded: " + fileName);
 		return type.cast(object);

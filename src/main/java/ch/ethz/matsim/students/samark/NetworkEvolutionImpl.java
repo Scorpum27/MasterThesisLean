@@ -764,18 +764,52 @@ public class NetworkEvolutionImpl {
 // %%%%%%%%%%%%% Plot Makers %%%%%%%%%%%%%%%%%%%%%
 
 	@SuppressWarnings("unchecked")
-	public static void writeChart(int lastGeneration, String fileName) throws FileNotFoundException {
+	public static void writeChartAverageTravelTimes(int lastGeneration, String fileName) throws FileNotFoundException { 	// Average and Best Scores
+		Map<Integer, Double> generationsAverageTravelTime = new HashMap<Integer, Double>();
+		Map<Integer, Double> generationsAverageTravelTimeStdDev = new HashMap<Integer, Double>();
+		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
+		Map<Integer, Double> generationsBestTravelTime = new HashMap<Integer, Double>();
+		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
+		for (int g = 1; g <= lastGeneration; g++) {
+			double averageTravelTimeThisGeneration = 0.0;
+			double averageTravelTimeStdDevThisGeneration = 0.0;
+			double bestAverageTravelTimeThisGeneration = Double.MAX_VALUE;
+			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
+					generationPath + g + "/networkScoreMap.xml");
+			for (NetworkScoreLog nsl : networkScores.values()) {
+				if (nsl.averageTravelTime < bestAverageTravelTimeThisGeneration) {
+					bestAverageTravelTimeThisGeneration = nsl.averageTravelTime;
+					System.out.println("bestAverageTravelTimeThisGeneration = " + bestAverageTravelTimeThisGeneration);
+				}
+				averageTravelTimeThisGeneration += nsl.averageTravelTime / networkScores.size();
+				averageTravelTimeStdDevThisGeneration += nsl.stdDeviationTravelTime / networkScores.size();
+			}
+			generationsAverageTravelTime.put(g, averageTravelTimeThisGeneration);
+			generationsAverageTravelTimeStdDev.put(g, averageTravelTimeStdDevThisGeneration);
+			generationsBestTravelTime.put(g, bestAverageTravelTimeThisGeneration);
+		}
+		XYLineChart chart = new XYLineChart("Evolution of Network Performance", "Generation", "Score");
+		chart.addSeries("Average Travel Time [min]", generationsAverageTravelTime);
+		chart.addSeries("Average Travel Time - Std Deviation [min]", generationsAverageTravelTimeStdDev);
+		chart.addSeries("Best Average Travel Time [min]", generationsBestTravelTime);
+		chart.saveAsPng(fileName, 800, 600);
+	}
+
+	@SuppressWarnings("unchecked")
+	public static void writeChartAverageGenerationNetworkAverageTravelTimes(int lastGeneration, String fileName) 	// only average scores
+			throws FileNotFoundException {
 		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
 		Map<Integer, Double> generationsAverageTravelTime = new HashMap<Integer, Double>();
 		Map<Integer, Double> generationsAverageTravelTimeStdDev = new HashMap<Integer, Double>();
 		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
-		for (int g = 1; g<=lastGeneration; g++) {
+		for (int g = 1; g <= lastGeneration; g++) {
 			double averageTravelTimeThisGeneration = 0.0;
 			double averageTravelTimeStdDevThisGeneration = 0.0;
-			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(), generationPath+g+"/networkScoreMap.xml");
+			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
+					generationPath + g + "/networkScoreMap.xml");
 			for (NetworkScoreLog nsl : networkScores.values()) {
-				averageTravelTimeThisGeneration += nsl.averageTravelTime/networkScores.size();
-				averageTravelTimeStdDevThisGeneration += nsl.stdDeviationTravelTime/networkScores.size();
+				averageTravelTimeThisGeneration += nsl.averageTravelTime / networkScores.size();
+				averageTravelTimeStdDevThisGeneration += nsl.stdDeviationTravelTime / networkScores.size();
 			}
 			generationsAverageTravelTime.put(g, averageTravelTimeThisGeneration);
 			generationsAverageTravelTimeStdDev.put(g, averageTravelTimeStdDevThisGeneration);
@@ -786,6 +820,30 @@ public class NetworkEvolutionImpl {
 		chart.saveAsPng(fileName, 800, 600);
 	}
 
+	@SuppressWarnings("unchecked")
+	public static void writeChartBestGenerationNetworkAverageTravelTimes(int lastGeneration, String fileName) 	// only best scores
+			throws FileNotFoundException {
+		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
+		Map<Integer, Double> generationsBestTravelTime = new HashMap<Integer, Double>();
+		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
+		for (int g = 1; g <= lastGeneration; g++) {
+			double bestAverageTravelTimeThisGeneration = Double.MAX_VALUE;
+			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
+					generationPath + g + "/networkScoreMap.xml");
+			for (NetworkScoreLog nsl : networkScores.values()) {
+				if (nsl.averageTravelTime < bestAverageTravelTimeThisGeneration) {
+					bestAverageTravelTimeThisGeneration = nsl.averageTravelTime;
+					System.out.println("bestAverageTravelTimeThisGeneration = " + bestAverageTravelTimeThisGeneration);
+				}
+			}
+			generationsBestTravelTime.put(g, bestAverageTravelTimeThisGeneration);
+		}
+		XYLineChart chart = new XYLineChart("Evolution of Network Performance", "Generation", "Score");
+		chart.addSeries("Best Average Travel Time [min]", generationsBestTravelTime);
+		chart.saveAsPng(fileName, 800, 600);
+	}
+	
+	
 }
 
 
