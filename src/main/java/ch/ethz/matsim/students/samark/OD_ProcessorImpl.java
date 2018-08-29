@@ -5,6 +5,7 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -183,93 +184,108 @@ public class OD_ProcessorImpl {
 						//
 						ArrayList<Node> nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(metroNetwork, originNode.getId(), destinationNode.getId());
 						if (nodeList == null) {
-								System.out.println("Oops, no shortest path available. Trying to create next networkRoute. Please lower minTerminalDistance"
-										+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
+								//System.out.println("Oops, no shortest path available. Trying to create next networkRoute. Please lower minTerminalDistance"
+								//		+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
 								continue;
 						}
 						else {
 							//System.out.println("Shortest Path found :-)");
 						}
-						List<Id<Link>> linkList = Metro_NetworkImpl.nodeListToNetworkLinkList(metroNetwork, nodeList);	// this is the new route candidate; check here
-																														// whether it is already part of an existing
+						List<Id<Link>> originalLinkList = Metro_NetworkImpl.nodeListToNetworkLinkList(metroNetwork, nodeList);	// this is the new route candidate;						
+						List<Id<Link>> reverseLinkList = OppositeLinkListOf(originalLinkList);									// this is the reverse version of new route candidate;
+																														// check if one version is already part of an existing
 																														// route or if we can place it as continuation
-						odRoutesTemp = CopyRoutesMap(odRoutes);
-
-						for (String networkRouteName : odRoutesTemp.keySet()) {										// check against all already selected OD pairs
-							Id<Link> otherStartTerminal = odRoutes.get(networkRouteName).getStartLinkId();
-							Id<Link> otherEndTerminal = odRoutes.get(networkRouteName).getEndLinkId();	
-							List<Id<Link>> otherLinkIds = odRoutes.get(networkRouteName).getLinkIds();	
-							List<Id<Link>> entireOtherLinkList = new ArrayList<Id<Link>>(otherLinkIds.size()+2);
-							entireOtherLinkList.add(otherStartTerminal);
-							entireOtherLinkList.addAll(otherLinkIds);
-							entireOtherLinkList.add(otherEndTerminal);
-							// A1
-							if (linkList.contains(otherStartTerminal) && linkList.contains(otherEndTerminal)) {
-								odRoutes.put(networkRouteName, RouteUtils.createNetworkRoute(linkList, metroNetwork));
-								odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);
-								odValuesX[row][col] = "0.0";																// we have used this OD-pair value now and must set it 
-								continue InnerOdLoop; 
-								}
-							// A2
-							else if (entireOtherLinkList.contains(linkList.get(0)) && entireOtherLinkList.contains(linkList.get(linkList.size()-1))) {
-								odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);
-								odValuesX[row][col] = "0.0";																// we have used this OD-pair value now and must set it 
-								continue InnerOdLoop; 
-								}							
-							// B1
-							else if (entireOtherLinkList.contains(linkList.get(linkList.size()-1))) {
-								// B1a
-								if(linkList.contains(otherStartTerminal)) {
-									int S2inN1 = linkList.indexOf(otherStartTerminal);
-									linkList.removeAll(linkList.subList(S2inN1, linkList.size()-1));
-									linkList.addAll(entireOtherLinkList);
+						List<List<Id<Link>>> linkListVersions = Arrays.asList(originalLinkList, reverseLinkList);
+						for (List<Id<Link>> linkList : linkListVersions) {
+							odRoutesTemp = CopyRoutesMap(odRoutes);
+							for (String networkRouteName : odRoutesTemp.keySet()) {										// check against all already selected OD pairs
+								Id<Link> otherStartTerminal = odRoutes.get(networkRouteName).getStartLinkId();
+								Id<Link> otherEndTerminal = odRoutes.get(networkRouteName).getEndLinkId();	
+								List<Id<Link>> otherLinkIds = odRoutes.get(networkRouteName).getLinkIds();	
+								List<Id<Link>> entireOtherLinkList = new ArrayList<Id<Link>>(otherLinkIds.size()+2);
+								entireOtherLinkList.add(otherStartTerminal);
+								entireOtherLinkList.addAll(otherLinkIds);
+								entireOtherLinkList.add(otherEndTerminal);
+								// A1
+								if (linkList.contains(otherStartTerminal) && linkList.contains(otherEndTerminal)) {
 									odRoutes.put(networkRouteName, RouteUtils.createNetworkRoute(linkList, metroNetwork));
 									odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);
 									odValuesX[row][col] = "0.0";																// we have used this OD-pair value now and must set it 
 									continue InnerOdLoop; 
 									}
-								// B1b
-								else if(linkList.contains(otherEndTerminal)) {
-									int T2inN1 = linkList.indexOf(otherEndTerminal);
-									linkList.removeAll(linkList.subList(T2inN1, linkList.size()-1));
-									List<Id<Link>> concatenatedLinkList = new ArrayList<Id<Link>>();
-									concatenatedLinkList.addAll(entireOtherLinkList);
-									concatenatedLinkList.addAll(OppositeLinkListOf(linkList));
-									odRoutes.put(networkRouteName, RouteUtils.createNetworkRoute(concatenatedLinkList, metroNetwork));
-									odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);
-									odValuesX[row][col] = "0.0";																// we have used this OD-pair value now and must set it 
-									continue InnerOdLoop; 
-								}
-							}
-							// B2
-							else if (entireOtherLinkList.contains(linkList.get(0))) {
-								// B2a
-								if(linkList.contains(otherStartTerminal)) {
-									int S2inN1 = linkList.indexOf(otherStartTerminal);
-									linkList.removeAll(linkList.subList(0, S2inN1));
-									linkList = OppositeLinkListOf(linkList);
-									linkList.addAll(entireOtherLinkList);
-									odRoutes.put(networkRouteName, RouteUtils.createNetworkRoute(linkList, metroNetwork));
+								// A2
+								else if (entireOtherLinkList.contains(linkList.get(0)) && entireOtherLinkList.contains(linkList.get(linkList.size()-1))) {
 									odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);
 									odValuesX[row][col] = "0.0";																// we have used this OD-pair value now and must set it 
 									continue InnerOdLoop;
+									}							
+								// B1
+								else if (entireOtherLinkList.contains(linkList.get(linkList.size()-1))) {
+									// B1a
+									if(linkList.contains(otherStartTerminal)) {
+										int S2inN1 = linkList.indexOf(otherStartTerminal);
+										linkList.removeAll(linkList.subList(S2inN1, linkList.size()));
+										System.out.println("Case B1a - LinkList BEFORE: "+linkList.toString());
+										System.out.println("Case B1a - LinkList TO ADD: "+entireOtherLinkList.toString());
+										linkList.addAll(entireOtherLinkList);
+										System.out.println("Case B1a - LinkList AFTER: "+linkList.toString());
+										odRoutes.put(networkRouteName, RouteUtils.createNetworkRoute(linkList, metroNetwork));
+										odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);
+										odValuesX[row][col] = "0.0";																// we have used this OD-pair value now and must set it 
+										continue InnerOdLoop; 
+										}
+									// B1b
+									/*else if(linkList.contains(otherEndTerminal)) {
+										int T2inN1 = linkList.indexOf(otherEndTerminal);
+										linkList.removeAll(linkList.subList(T2inN1, linkList.size()));
+										List<Id<Link>> concatenatedLinkList = new ArrayList<Id<Link>>();
+										System.out.println("Case B1b - LinkList TO ADD to empty list: "+entireOtherLinkList.toString());
+										concatenatedLinkList.addAll(entireOtherLinkList);
+										System.out.println("Case B1b - LinkList TO ADD to new list: " + OppositeLinkListOf(linkList).toString());
+										concatenatedLinkList.addAll(OppositeLinkListOf(linkList));
+										System.out.println("Case B1b - LinkList AFTER: "+concatenatedLinkList.toString());
+										odRoutes.put(networkRouteName, RouteUtils.createNetworkRoute(concatenatedLinkList, metroNetwork));
+										odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);
+										odValuesX[row][col] = "0.0";																// we have used this OD-pair value now and must set it 
+										continue InnerOdLoop;
+									}*/
 								}
-								// B2b
-								else if(linkList.contains(otherEndTerminal)) {
-									int T2inN1 = linkList.indexOf(otherEndTerminal);
-									linkList.removeAll(linkList.subList(0, T2inN1));
-									List<Id<Link>> concatenatedLinkList = new ArrayList<Id<Link>>();
-									concatenatedLinkList.addAll(entireOtherLinkList);
-									concatenatedLinkList.addAll(linkList);
-									odRoutes.put(networkRouteName, RouteUtils.createNetworkRoute(concatenatedLinkList, metroNetwork));
-									odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);
-									odValuesX[row][col] = "0.0";																// we have used this OD-pair value now and must set it 
-									continue InnerOdLoop;
+								// B2
+								else if (entireOtherLinkList.contains(linkList.get(0))) {
+									// B2a
+									/* if(linkList.contains(otherStartTerminal)) {
+										int S2inN1 = linkList.indexOf(otherStartTerminal);
+										linkList.removeAll(linkList.subList(0, S2inN1+1));
+										linkList = OppositeLinkListOf(linkList);
+										System.out.println("Case B2a - LinkList BEFORE: "+linkList.toString());
+										System.out.println("Case B2a - LinkList TO ADD: "+entireOtherLinkList.toString());
+										linkList.addAll(entireOtherLinkList);
+										System.out.println("Case B2a - LinkList AFTER: "+linkList.toString());
+										odRoutes.put(networkRouteName, RouteUtils.createNetworkRoute(linkList, metroNetwork));
+										odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);
+										odValuesX[row][col] = "0.0";																// we have used this OD-pair value now and must set it 
+										continue InnerOdLoop;
+									}*/
+									// B2b
+									if(linkList.contains(otherEndTerminal)) {
+										int T2inN1 = linkList.indexOf(otherEndTerminal);
+										linkList.removeAll(linkList.subList(0, T2inN1+1));
+										List<Id<Link>> concatenatedLinkList = new ArrayList<Id<Link>>();
+										System.out.println("Case B2b - LinkList TO ADD to empty list: "+entireOtherLinkList.toString());
+										concatenatedLinkList.addAll(entireOtherLinkList);
+										System.out.println("Case B2b - LinkList TO ADD to new list: " + linkList.toString());
+										concatenatedLinkList.addAll(linkList);
+										System.out.println("Case B2b - LinkList AFTER: "+concatenatedLinkList.toString());
+										odRoutes.put(networkRouteName, RouteUtils.createNetworkRoute(concatenatedLinkList, metroNetwork));
+										odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);
+										odValuesX[row][col] = "0.0";																// we have used this OD-pair value now and must set it 
+										continue InnerOdLoop;
+									}
 								}
 							}
 						}
 						// C (this will come into effect if for loop through all selectedNetwokRoutes has never found a match and has therefore not jumped back up to InnerOdLoop)
-						odRoutes.put(weakestRouteName, RouteUtils.createNetworkRoute(linkList, metroNetwork));
+						odRoutes.put(weakestRouteName, RouteUtils.createNetworkRoute(originalLinkList, metroNetwork));
 						odRoutesValues.put(weakestRouteName, thisValue);
 						odValuesX[row][col] = "0.0";
 					}
@@ -278,10 +294,10 @@ public class OD_ProcessorImpl {
 			System.out.println("End of loop - does odRoutesValues still contain zero values? - "+odRoutesValues.values().contains(0.0));
 			System.out.println("End of loop - Has change occured in last loop? - "+changeListener);
 			loopCounter++;
-		}while(loopCounter < 40);
-		//}while(changeListener == true || odRoutes.values().contains(0.0));														// while either a new better OD pair could be added,
-																																// a new overlap or extension was found or
-																																// bestRouteMaps still has a blank space with value 0.0
+		//}while(loopCounter < 200);
+		}while((changeListener == true || odRoutes.values().contains(0.0)) && loopCounter < 20000);					// while either a new better OD pair could be added,
+																													// a new overlap or extension was found or
+																													// bestRouteMaps still has a blank space with value 0.0
 		
 		if (odRoutes.size() != nRoutes) {
 			System.out.println("Fatal Error: nRoutes="+nRoutes+" || odPairs has size"+odRoutes.size());
@@ -302,7 +318,34 @@ public class OD_ProcessorImpl {
 		return networkRouteArray;
 	}
 	
-	public static ArrayList<NetworkRoute> createInitialRoutes2(Network metroNetwork,
+	
+	
+	
+	// %%%%% Helper Methods %%%%%
+	
+	public static List<Id<Link>> OppositeLinkListOf(List<Id<Link>> linkList){
+		List<Id<Link>> oppositeLinkList = new ArrayList<Id<Link>>(linkList.size());
+		for (int c=0; c<linkList.size(); c++) {
+			oppositeLinkList.add(ReverseLink(linkList.get(linkList.size()-1-c)));
+		}
+		return oppositeLinkList;
+	}
+	
+	public static Id<Link> ReverseLink(Id<Link> linkId){
+		String[] linkIdStrings = linkId.toString().split("_");
+		Id<Link> reverseId = Id.createLinkId("MetroNodeLinkRef_"+linkIdStrings[3]+"_MetroNodeLinkRef_"+linkIdStrings[1]);
+		return reverseId;
+	}
+	
+	public static Map<String, NetworkRoute> CopyRoutesMap(Map<String, NetworkRoute> map) {
+		Map<String, NetworkRoute> copiedMap = new HashMap<String, NetworkRoute>();
+		for (Map.Entry<String, NetworkRoute> mapEntry : map.entrySet()) {
+			copiedMap.put(mapEntry.getKey(), mapEntry.getValue());
+		}
+		return copiedMap;
+	}
+	
+	/*public static ArrayList<NetworkRoute> createInitialRoutes2(Network metroNetwork,
 			int nRoutes, double minRadius, double maxRadius, Coord cityCenterCoord,
 			String csvFileODValues, String csvFileODLocations, double xOffset, double yOffset) {
 		
@@ -571,10 +614,10 @@ public class OD_ProcessorImpl {
 							
 							else if (entireOtherLinkList.contains(linkList.get(linkList.size()-1))) {							// if start terminals overlap
 								// A
-								System.out.println("Case A / B");
 								if (linkList.contains(otherStartTerminal)) {													// if end terminal of this route is somewhere within other route (in case other route is longer)
 									int startTerminalOverlap = linkList.indexOf(otherStartTerminal);
 									linkList.removeAll(linkList.subList(startTerminalOverlap, linkList.size()-1));
+									System.out.println("Case A: Link List Before Merge: "+linkList);
 									linkList.addAll(entireOtherLinkList);
 									odRoutes.put(networkRouteName, RouteUtils.createNetworkRoute(linkList, metroNetwork));		// then we can just put this route as new route 
 									odRoutesValues.put(networkRouteName, odRoutesValues.get(networkRouteName)+thisValue);		// and add the other value to this one
@@ -658,26 +701,11 @@ public class OD_ProcessorImpl {
 		}
 		
 		return networkRouteArray;
-	}
+	}*/
 	
 	
 	
-	public static List<Id<Link>> OppositeLinkListOf(List<Id<Link>> linkList){
-		List<Id<Link>> oppositeLinkList = new ArrayList<Id<Link>>(linkList.size());
-		for (int c=0; c<linkList.size(); c++) {
-			oppositeLinkList.add(linkList.get(linkList.size()-1-c));
-		}
-		return oppositeLinkList;
-	}
-		
 	
-	public static Map<String, NetworkRoute> CopyRoutesMap(Map<String, NetworkRoute> map) {
-		Map<String, NetworkRoute> copiedMap = new HashMap<String, NetworkRoute>();
-		for (Map.Entry<String, NetworkRoute> mapEntry : map.entrySet()) {
-			copiedMap.put(mapEntry.getKey(), mapEntry.getValue());
-		}
-		return copiedMap;
-	}
 	
 	
 	/*public static ArrayList<NetworkRoute> createInitialRoutes(Network metroNetwork,

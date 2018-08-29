@@ -4,21 +4,71 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.network.Link;
+
 
 public class Demo {
 	
+	public static List<String> OppositeOf(List<String> listIn){
+		List<String> oppositeList = new ArrayList<String>(listIn.size());
+		for (int i=0; i<listIn.size(); i++) {
+			oppositeList.add(listIn.get(listIn.size()-1-i));
+		}
+		return oppositeList;
+	}
+	
 	public static void main(String[] args) throws IOException {
 		
-		// %%%%%%%%%%%%%%%%%%%% ... %%%%%%%%%%%%%%%%%%%%
-	
+		// %%%%%%%%%%%%%%%%%%%% Displaying an ArrayList %%%%%%%%%%%%%%%%%%%%
+		List<String> stringList = new ArrayList<String>();
+		stringList.add("String1");
+		stringList.add("String2");
+		stringList.add("String3");
+		stringList.add("String4");
+		stringList.add("String5");
+		System.out.println(stringList.toString());
+		List<String> stringListCut = new ArrayList<String>();
+		stringListCut = stringList;
+		int index3 = stringList.indexOf("String3");
+		//System.out.println("Index of String3 = "+index3);
+		int index3cut = stringListCut.indexOf("String3");
+		//System.out.println("Index of String3cut = "+index3cut);	
+		System.out.println("Size = "+stringList.size());
+		System.out.println("The test: "+stringListCut.subList(0, index3));
+		System.out.println(stringListCut.subList(index3, stringListCut.size()));
+		System.out.println(stringListCut.toString());
+		stringListCut.removeAll(stringListCut.subList(index3, stringListCut.size()));
+		System.out.println(stringListCut.toString());	
+		System.out.println(stringListCut.get(stringListCut.size()-1).toString());		
+		System.out.println(OppositeOf(stringListCut).toString());
+
+		String metroTestString = "MetroNodeLinkRef_840312_MetroNodeLinkRef_776361";
+		String[] splits1 = metroTestString.split("_");
+		String[] splits2 = metroTestString.split("MetroNodeLinkRef_");
+		System.out.println(splits1[0].toString());
+		System.out.println(splits1[1].toString());
+		System.out.println(splits1[2].toString());
+		System.out.println(splits1[3].toString());
+		//System.out.println(splits2.toString());
+		
+		List<Id<Link>> linkIds = new ArrayList<Id<Link>>();
+		linkIds.add(Id.createLinkId("MetroNodeLinkRef_1_MetroNodeLinkRef_2"));
+		linkIds.add(Id.createLinkId("MetroNodeLinkRef_2_MetroNodeLinkRef_3"));
+		linkIds.add(Id.createLinkId("MetroNodeLinkRef_3_MetroNodeLinkRef_4"));
+		linkIds.add(Id.createLinkId("MetroNodeLinkRef_4_MetroNodeLinkRef_5"));
+		System.out.println(linkIds.toString());
+		System.out.println(OD_ProcessorImpl.OppositeLinkListOf(linkIds).toString());
+
+
 		// %%%%%%%%%%%%%%%%%%%% ... %%%%%%%%%%%%%%%%%%%%
 		
 		// %%%%%%%%%%%%%%%%%%%% Plotter %%%%%%%%%%%%%%%%%%%%
 
-		int generationsToPlot = 3;
+		/*int generationsToPlot = 3;
 		NetworkEvolutionImpl.writeChartAverageGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionAverageOfGeneration.png");
 		NetworkEvolutionImpl.writeChartBestGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionBestScoreOfGeneration.png");
-		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolution.png");
+		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolution.png");*/
 		
 		/*Double personTravelTime = 1.0;
 		String travTime = "00:10:30";
