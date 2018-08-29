@@ -111,7 +111,7 @@ public class NetworkEvolutionImpl {
 		}
 		if (useOdPairsForInitialRoutes==true) {									
 			// %%% initial Routes OD_Pairs within bounds %%%		
-			initialMetroRoutes = OD_ProcessorImpl.createInitialRoutes(metroNetwork, routesPerNetwork, minTerminalRadiusFromCenter,
+			initialMetroRoutes = OD_ProcessorImpl.createInitialRoutes3(metroNetwork, routesPerNetwork, minTerminalRadiusFromCenter,
 					maxTerminalRadiusFromCenter, zurich_NetworkCenterCoord, "zurich_1pm/Evolution/Input/Data/OD_Input/Demand2013_PT.csv",
 					"zurich_1pm/Evolution/Input/Data/OD_Input/OD_ZoneCodesLocations.csv", xOffset, yOffset);	
 					// CAUTION: Make sure .csv is separated by semi-colon because location names also include commas sometimes and lead to failure!!			
@@ -582,6 +582,37 @@ public class NetworkEvolutionImpl {
 						}
 					}
 				}
+			NetworkWriter initialRoutesNetworkWriter = new NetworkWriter(routesNetwork);
+			initialRoutesNetworkWriter.write(fileName);
+			
+			return routesNetwork;
+		}
+		
+		public static Network NetworkRouteToNetwork(NetworkRoute networkRoute, Network metroNetwork, Set<String> networkRouteModes, String fileName) {
+			// Store all new networkRoutes in a separate network file for visualization
+				Network routesNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
+				NetworkFactory networkFactory = routesNetwork.getFactory();
+					List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
+					routeLinkList.add(networkRoute.getStartLinkId());
+					routeLinkList.addAll(networkRoute.getLinkIds());
+					routeLinkList.add(networkRoute.getEndLinkId());
+					for (Id<Link> linkID : routeLinkList) {
+						Node tempToNode = networkFactory.createNode(metroNetwork.getLinks().get(linkID).getToNode().getId(),
+								metroNetwork.getLinks().get(linkID).getToNode().getCoord());
+						Node tempFromNode = networkFactory.createNode( metroNetwork.getLinks().get(linkID).getFromNode().getId(),
+								metroNetwork.getLinks().get(linkID).getFromNode().getCoord());
+						Link tempLink = networkFactory.createLink(metroNetwork.getLinks().get(linkID).getId(), tempFromNode, tempToNode);
+						tempLink.setAllowedModes(networkRouteModes);
+						if (routesNetwork.getNodes().containsKey(tempToNode.getId()) == false) {
+							routesNetwork.addNode(tempToNode);
+						}
+						if (routesNetwork.getNodes().containsKey(tempFromNode.getId()) == false) {
+							routesNetwork.addNode(tempFromNode);
+						}
+						if (routesNetwork.getLinks().containsKey(tempLink.getId()) == false) {
+							routesNetwork.addLink(tempLink);
+						}
+					}
 			NetworkWriter initialRoutesNetworkWriter = new NetworkWriter(routesNetwork);
 			initialRoutesNetworkWriter.write(fileName);
 			

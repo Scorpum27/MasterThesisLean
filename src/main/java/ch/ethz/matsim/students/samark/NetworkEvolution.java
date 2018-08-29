@@ -12,7 +12,9 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  * Make actual evolutionary loop
  * OD initial routes: Make requirement that one terminal is certain distance from network center so that we get longer routes into city!
  * Make transitSchedule for both ways so that same vehicles are used (reverse)
+ * 
  * Increase performance by not saving entire population, but storing location of separate networks, which can be loaded into population!
+ * Make frequency optimization !
  * 
  * CAUTION: Change: [int lastIteration = generationNr*2];
  * Total beeline distance in NetworkEvolutionRunSim (mNetwork.mPersonKMdirect = beelinedistances)
@@ -52,10 +54,10 @@ public class NetworkEvolution {
 	
 	// - Initiate N=16 networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 3;														// how many networks should be developed in parallel
+		int populationSize = 1;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		int routesPerNetwork = 30;													// how many initial routes should be placed in every network
-		String initialRouteType = "Random";												// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
+		int routesPerNetwork = 15;													// how many initial routes should be placed in every network
+		String initialRouteType = "OD";												// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 																					// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		int iterationToReadOriginalNetwork = 100;									// TODO simulate originalNetwork up to 1000(?) This is the iteration for the simulation output of the original network
 																					// TODO maybe include additional strategy option here for how to make routes e.g. createNetworkRoutes(Strategy, initialRouteType, ...)
@@ -70,9 +72,9 @@ public class NetworkEvolution {
 		double maxMetroRadiusFactor = 1.20;											// give some flexibility by increasing from default 1.00 to 1.20
 		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// set default = 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
-		int nMostFrequentLinks = 150;												// empirical formula - default 300
+		int nMostFrequentLinks = 50;												// empirical formula - default 300
 		double maxNewMetroLinkDistance = 0.40*metroCityRadius;						// default 0.80*metroCityRadius
-		double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// CAUTION: 0.00*metroCityRadius; // For OD-Pairs  [0.30*metroCityRadius for RandomRoutes]
+		double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// CAUTION: 0.00*metroCityRadius; // For OD-Pairs  [0.30*metroCityRadius for RandomRoutes]
 		double maxTerminalRadiusFromCenter = maxMetroRadiusFromCenter;				// default = maxMetroRadiusFromCenter
 		double minTerminalDistance = 0.70*maxMetroRadiusFromCenter;					// no default yet
 		
@@ -103,7 +105,7 @@ public class NetworkEvolution {
 		}
 		
 		
-		
+	/*
 	// EVOLUTIONARY PROCESS
 	int nEvolutions = 3;
 	double averageTravelTimePerformanceGoal = 73.0;
