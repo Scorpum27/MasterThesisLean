@@ -56,7 +56,7 @@ public class NetworkEvolution {
 		// % Parameters for Population: %
 		int populationSize = 1;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		int routesPerNetwork = 15;													// how many initial routes should be placed in every network
+		int routesPerNetwork = 5;													// how many initial routes should be placed in every network
 		String initialRouteType = "OD";												// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 																					// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		int iterationToReadOriginalNetwork = 100;									// TODO simulate originalNetwork up to 1000(?) This is the iteration for the simulation output of the original network
