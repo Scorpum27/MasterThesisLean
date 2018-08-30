@@ -9,14 +9,20 @@ import org.matsim.api.core.v01.Coord;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
 
 /* TODO
+ * Check Theory and Questions for Network Approach Optimization
  * Make actual evolutionary loop
- * OD initial routes: Make requirement that one terminal is certain distance from network center so that we get longer routes into city!
  * Make transitSchedule for both ways so that same vehicles are used (reverse)
- * 
  * Increase performance by not saving entire population, but storing location of separate networks, which can be loaded into population!
  * Make frequency optimization !
+ * Make framework of Virtual City according to this network
  * 
- * CAUTION: Change: [int lastIteration = generationNr*2];
+ * Most frequent links: Merge close ones
+ * OD-OPTIONS: For optimization
+ *  - Pick best N routes at the end (make more routes at the beginning instead)
+ *  - Freeze long enough routes when it comes to making them longer or even increasing their score in order for the other ones to gain more length as well
+ *  - Delete routes, which are not long enough
+ *  - Decrease internal parameter for trying to add to new routes to existing ones gradually
+ * 
  * Total beeline distance in NetworkEvolutionRunSim (mNetwork.mPersonKMdirect = beelinedistances)
  * Make proper IDs to get objects
  * Small todo's in code
@@ -56,7 +62,7 @@ public class NetworkEvolution {
 		// % Parameters for Population: %
 		int populationSize = 1;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		int routesPerNetwork = 5;													// how many initial routes should be placed in every network
+		int routesPerNetwork = 4;													// how many initial routes should be placed in every network
 		String initialRouteType = "OD";												// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 																					// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		int iterationToReadOriginalNetwork = 100;									// TODO simulate originalNetwork up to 1000(?) This is the iteration for the simulation output of the original network
@@ -79,7 +85,7 @@ public class NetworkEvolution {
 		double minTerminalDistance = 0.70*maxMetroRadiusFromCenter;					// no default yet
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
-		String vehicleTypeName = "metro";  double maxVehicleSpeed = 120/3.6 /*[m/s]*/;
+		String vehicleTypeName = "metro";  double maxVehicleSpeed = 70/3.6 /*[m/s]*/;
 		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
 		double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 5.0*60;
 		int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
@@ -105,17 +111,17 @@ public class NetworkEvolution {
 		}
 		
 		
-	/*
+	
 	// EVOLUTIONARY PROCESS
-	int nEvolutions = 3;
-	double averageTravelTimePerformanceGoal = 73.0;
+	int nEvolutions = 5;
+	double averageTravelTimePerformanceGoal = 60.0;
 	MNetwork successfulNetwork = null;
 	double successfulAverageTravelTime = 0.0;
 	for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
 		int finalGeneration = generationNr;
 		
 		// SIMULATION LOOP:
-		int lastIteration = generationNr*2;					// CHANGE THIS!
+		int lastIteration = generationNr;					// CHANGE THIS!
 		MNetworkPop evoNetworksToSimulate = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/Evolution/Population/"+populationName+".xml");
 		for (MNetwork mNetwork : evoNetworksToSimulate.getNetworks().values()) {
 			String initialConfig = "zurich_1pm/zurich_config.xml";
@@ -171,8 +177,7 @@ public class NetworkEvolution {
 		}
 		
 		// If PerformanceGoal not yet achieved, change routes and network here according to their scores!
-		
-		
+		// TODO: ...
 	}
 
 	// Plot Score Evolution

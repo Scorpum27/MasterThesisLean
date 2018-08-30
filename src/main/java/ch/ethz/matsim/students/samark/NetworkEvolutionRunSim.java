@@ -152,7 +152,7 @@ public class NetworkEvolutionRunSim {
 			for (int i : routeBoardingCounter.values()) {
 				nTotalBoardings += i;
 			}
-			//System.out.println("Total Metro Boardings = "+nTotalBoardings);
+			System.out.println("Total Metro Boardings = "+nTotalBoardings);
 			
 			for (Map<String, Double> routesStats : travelStats.values()) {
 				for (String route : routesStats.keySet()) {

@@ -20,7 +20,7 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 		
-		// %%%%%%%%%%%%%%%%%%%% Displaying an ArrayList %%%%%%%%%%%%%%%%%%%%
+		// %%%%%%%%%%%%%%%%%%%% Displaying and Operating on an ArrayList %%%%%%%%%%%%%%%%%%%%
 		List<String> stringList = new ArrayList<String>();
 		stringList.add("String1");
 		stringList.add("String2");
@@ -32,7 +32,7 @@ public class Demo {
 		stringListCut = stringList;
 		int index3 = stringList.indexOf("String3");
 		//System.out.println("Index of String3 = "+index3);
-		int index3cut = stringListCut.indexOf("String3");
+		//int index3cut = stringListCut.indexOf("String3");
 		//System.out.println("Index of String3cut = "+index3cut);	
 		System.out.println("Size = "+stringList.size());
 		System.out.println("The test: "+stringListCut.subList(0, index3));
@@ -45,7 +45,7 @@ public class Demo {
 
 		String metroTestString = "MetroNodeLinkRef_840312_MetroNodeLinkRef_776361";
 		String[] splits1 = metroTestString.split("_");
-		String[] splits2 = metroTestString.split("MetroNodeLinkRef_");
+		//String[] splits2 = metroTestString.split("MetroNodeLinkRef_");
 		System.out.println(splits1[0].toString());
 		System.out.println(splits1[1].toString());
 		System.out.println(splits1[2].toString());

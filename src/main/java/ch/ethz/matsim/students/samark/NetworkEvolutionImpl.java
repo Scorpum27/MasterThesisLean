@@ -142,12 +142,15 @@ public class NetworkEvolutionImpl {
 			// Create an array of stops along new networkRoute on the center of each of its individual links
 			List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
 							metroSchedule, metroNetwork, metroNetworkRoute, defaultPtMode, stopTime, maxVehicleSpeed, blocksLane);
-					
+			
+			
 			// Build TransitRoute from stops and NetworkRoute --> and add departures
 			String vehicleFileLocation = (mNetworkPath+"/Vehicles.xml");
-			TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create(thisNewNetworkName+"_Route"+lineNr, TransitRoute.class ), metroNetworkRoute, stopArray, defaultPtMode);
+			TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create(thisNewNetworkName+"_Route"+lineNr, TransitRoute.class ), 
+					metroNetworkRoute, stopArray, defaultPtMode);
+			double totalRouteTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
 			transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(metroScenario, metroSchedule, transitRoute,
-					nDepartures, tFirstDep, depSpacing, metroVehicleType, vehicleFileLocation); // Add (nDepartures) departures to TransitRoute
+					nDepartures, tFirstDep, depSpacing, totalRouteTravelTime, metroVehicleType, vehicleFileLocation); // Add (nDepartures) departures to TransitRoute
 								
 			// Build TransitLine from TrasitRoute
 			TransitLine transitLine = metroScheduleFactory.createTransitLine(Id.create("TransitLine_Nr"+lineNr, TransitLine.class));
@@ -492,7 +495,6 @@ public class NetworkEvolutionImpl {
 			return customMapCopy;
 		}
 
-		// XXX DONE
 		// REMEMBER: New nodes are named "MetroNodeLinkRef_"+linkID.toString()
 		public static ArrayList<NetworkRoute> createInitialRoutes(Network newMetroNetwork,
 				Map<Id<Link>, CustomLinkAttributes> links_MetroTerminalCandidates, int nRoutes, double minTerminalDistance) {
@@ -543,6 +545,8 @@ public class NetworkEvolutionImpl {
 						continue OuterNetworkRouteLoop;
 				}
 				List<Id<Link>> linkList = nodeListToNetworkLinkList(newMetroNetwork, nodeList);
+				// extend linkList with its opposite direction for PT transportation!
+				
 				NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, newMetroNetwork);
 				
 				System.out.println("The new networkRoute is: [Length="+(networkRoute.getLinkIds().size()+2)+"] - " + networkRoute.toString());
