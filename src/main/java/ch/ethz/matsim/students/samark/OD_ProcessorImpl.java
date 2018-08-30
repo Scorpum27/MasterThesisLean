@@ -304,14 +304,19 @@ public class OD_ProcessorImpl {
 		//convert ODRoutes Map to a networkRoutes Array
 		ArrayList<NetworkRoute> networkRouteArray = new ArrayList<NetworkRoute>();
 		int nr = 0;
-		for (NetworkRoute thisRoute : odRoutes.values()) {
+		for (NetworkRoute onewayRoute : odRoutes.values()) {
 			// extend networkRoutes here with their reverseOption
-			
+			List<Id<Link>> twowayLinkList = new ArrayList<Id<Link>>();
+			twowayLinkList.add(onewayRoute.getStartLinkId());
+			twowayLinkList.addAll(onewayRoute.getLinkIds());
+			twowayLinkList.add(onewayRoute.getEndLinkId());
+			twowayLinkList.addAll(OppositeLinkListOf(twowayLinkList));
+			NetworkRoute twowayRoute = RouteUtils.createNetworkRoute(twowayLinkList, metroNetwork);
 			nr++;
-			System.out.println("The new networkRoute is: [Length="+(thisRoute.getLinkIds().size()+2)+"] - " +thisRoute.toString());		
-			networkRouteArray.add(thisRoute);
+			System.out.println("The new networkRoute is: [Length="+(twowayRoute.getLinkIds().size()+2)+"] - " +twowayRoute.toString());		
+			networkRouteArray.add(twowayRoute);
 			// this loop for displaying single lines !
-			NetworkEvolutionImpl.NetworkRouteToNetwork(thisRoute, metroNetwork, Sets.newHashSet("pt"),
+			NetworkEvolutionImpl.NetworkRouteToNetwork(twowayRoute, metroNetwork, Sets.newHashSet("pt"),
 					("zurich_1pm/Evolution/Population/Network1/5_zurich_network_MetroInitialRoute"+nr+"_OD.xml"));
 		}
 		

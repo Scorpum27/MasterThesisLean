@@ -545,10 +545,9 @@ public class NetworkEvolutionImpl {
 						continue OuterNetworkRouteLoop;
 				}
 				List<Id<Link>> linkList = nodeListToNetworkLinkList(newMetroNetwork, nodeList);
-				// extend linkList with its opposite direction for PT transportation!
-				
+				linkList.addAll(OppositeLinkListOf(linkList)); // extend linkList with its opposite direction for PT transportation!
 				NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, newMetroNetwork);
-				
+
 				System.out.println("The new networkRoute is: [Length="+(networkRoute.getLinkIds().size()+2)+"] - " + networkRoute.toString());
 				networkRouteArray.add(networkRoute);
 			}
@@ -878,6 +877,20 @@ public class NetworkEvolutionImpl {
 		chart.saveAsPng(fileName, 800, 600);
 	}
 	
+	
+	public static List<Id<Link>> OppositeLinkListOf(List<Id<Link>> linkList){
+		List<Id<Link>> oppositeLinkList = new ArrayList<Id<Link>>(linkList.size());
+		for (int c=0; c<linkList.size(); c++) {
+			oppositeLinkList.add(ReverseLink(linkList.get(linkList.size()-1-c)));
+		}
+		return oppositeLinkList;
+	}
+	
+	public static Id<Link> ReverseLink(Id<Link> linkId){
+		String[] linkIdStrings = linkId.toString().split("_");
+		Id<Link> reverseId = Id.createLinkId("MetroNodeLinkRef_"+linkIdStrings[3]+"_MetroNodeLinkRef_"+linkIdStrings[1]);
+		return reverseId;
+	}
 	
 }
 
