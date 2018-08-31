@@ -20,8 +20,15 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 		
+		// %%%%%%%%%%%%%%%%%%%% Plotting network evolution performance %%%%%%%%%%%%%%%%%%%%
+
+		int generationsToPlot = 50;
+		//NetworkEvolutionImpl.writeChartAverageGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionAverageOfGeneration.png");
+		//NetworkEvolutionImpl.writeChartBestGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionBestScoreOfGeneration.png");
+		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolution.png");
+		
 		// %%%%%%%%%%%%%%%%%%%% Displaying and Operating on an ArrayList %%%%%%%%%%%%%%%%%%%%
-		List<String> stringList = new ArrayList<String>();
+		/*List<String> stringList = new ArrayList<String>();
 		stringList.add("String1");
 		stringList.add("String2");
 		stringList.add("String3");
@@ -58,7 +65,7 @@ public class Demo {
 		linkIds.add(Id.createLinkId("MetroNodeLinkRef_3_MetroNodeLinkRef_4"));
 		linkIds.add(Id.createLinkId("MetroNodeLinkRef_4_MetroNodeLinkRef_5"));
 		System.out.println(linkIds.toString());
-		System.out.println(OD_ProcessorImpl.OppositeLinkListOf(linkIds).toString());
+		System.out.println(OD_ProcessorImpl.OppositeLinkListOf(linkIds).toString());*/
 
 
 		// %%%%%%%%%%%%%%%%%%%% ... %%%%%%%%%%%%%%%%%%%%

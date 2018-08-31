@@ -8,21 +8,23 @@ import java.util.Map;
 import org.matsim.api.core.v01.Coord;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
 
-/* TODO
- * Check Theory and Questions for Network Approach Optimization
- * Make actual evolutionary loop
- * Make transitSchedule for both ways so that same vehicles are used (reverse)
+/* 
+ * TODO Check, where VC fails --> The population is zero from the start (also check event handlers for their naming and if they can be detected by algorithm!)
+ * TODO check where THIS here went wrong in time evaluation!
+ * TODO Make actual evolutionary loop --> Challenge: Nice network mergers 
+ * TODO Check Theory and Questions for Network Approach Optimization -> IVT
+ * TODO Make frequency optimization !
  * Increase performance by not saving entire population, but storing location of separate networks, which can be loaded into population!
- * Make frequency optimization !
- * Make framework of Virtual City according to this network
  * 
- * Most frequent links: Merge close ones
+ * Most frequent links: Merge close ones from beginning (small walking distance is justifiable for significant increase in networkEfficiency)
  * OD-OPTIONS: For optimization
+ *  - TODO Make outer loop to connect existing routes that suddenly touch!
  *  - Pick best N routes at the end (make more routes at the beginning instead)
  *  - Freeze long enough routes when it comes to making them longer or even increasing their score in order for the other ones to gain more length as well
  *  - Delete routes, which are not long enough
  *  - Decrease internal parameter for trying to add to new routes to existing ones gradually
  * 
+ * Compare metro KM to SBahn KMs
  * Total beeline distance in NetworkEvolutionRunSim (mNetwork.mPersonKMdirect = beelinedistances)
  * Make proper IDs to get objects
  * Small todo's in code
@@ -57,12 +59,15 @@ public class NetworkEvolution {
 
 	// INITIALIZATION
 	// !! Run RunScenario First to have simulation output that can be analyzed !!
-	
+		// if desired, process raw existing network for its performance for reference
+		// NetworkScoreLog rawNetworkPerformance = NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240);		
+		NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240);
+		
 	// - Initiate N=16 networks to make a population
 		// % Parameters for Population: %
 		int populationSize = 1;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		int routesPerNetwork = 4;													// how many initial routes should be placed in every network
+		int routesPerNetwork = 20;													// how many initial routes should be placed in every network
 		String initialRouteType = "OD";												// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 																					// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		int iterationToReadOriginalNetwork = 100;									// TODO simulate originalNetwork up to 1000(?) This is the iteration for the simulation output of the original network
@@ -78,16 +83,17 @@ public class NetworkEvolution {
 		double maxMetroRadiusFactor = 1.20;											// give some flexibility by increasing from default 1.00 to 1.20
 		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// set default = 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
-		int nMostFrequentLinks = 50;												// empirical formula - default 300
+		int nMostFrequentLinks = 70;												// empirical formula - default 300
 		double maxNewMetroLinkDistance = 0.40*metroCityRadius;						// default 0.80*metroCityRadius
 		double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// CAUTION: 0.00*metroCityRadius; // For OD-Pairs  [0.30*metroCityRadius for RandomRoutes]
 		double maxTerminalRadiusFromCenter = maxMetroRadiusFromCenter;				// default = maxMetroRadiusFromCenter
 		double minTerminalDistance = 0.70*maxMetroRadiusFromCenter;					// no default yet
+		double odConsiderationThreshold = 0.10;										// from which threshold onwards odPairs can be considered for adding to developing routes
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
 		String vehicleTypeName = "metro";  double maxVehicleSpeed = 70/3.6 /*[m/s]*/;
 		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
-		double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 5.0*60;
+		double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 7.5*60;
 		int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
 		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		double metroOpsCostPerKM = 1000; double metroConstructionCostPerKmOverground = 1000000; double metroConstructionCostPerKmUnderground = 10000000;
@@ -98,7 +104,7 @@ public class NetworkEvolution {
 			MNetwork mNetwork = NetworkEvolutionImpl.createMNetworkRoutes(						// Make a list of routes that will be added to this network
 					thisNewNetworkName, routesPerNetwork, initialRouteType, iterationToReadOriginalNetwork,
 					minMetroRadiusFromCenter, maxMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
-					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance,
+					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, odConsiderationThreshold,
 					xOffset, yOffset, vehicleTypeName, vehicleLength, maxVehicleSpeed, vehicleSeats, vehicleStandingRoom,
 					defaultPtMode, blocksLane, stopTime, maxVehicleSpeed, tFirstDep, tLastDep, depSpacing, nDepartures,
 					metroOpsCostPerKM, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground);
@@ -114,14 +120,14 @@ public class NetworkEvolution {
 	
 	// EVOLUTIONARY PROCESS
 	int nEvolutions = 5;
-	double averageTravelTimePerformanceGoal = 60.0;
+	double averageTravelTimePerformanceGoal = 40.0;
 	MNetwork successfulNetwork = null;
 	double successfulAverageTravelTime = 0.0;
 	for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
 		int finalGeneration = generationNr;
 		
 		// SIMULATION LOOP:
-		int lastIteration = generationNr;					// CHANGE THIS!
+		int lastIteration = 2*generationNr;
 		MNetworkPop evoNetworksToSimulate = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/Evolution/Population/"+populationName+".xml");
 		for (MNetwork mNetwork : evoNetworksToSimulate.getNetworks().values()) {
 			String initialConfig = "zurich_1pm/zurich_config.xml";
@@ -135,7 +141,8 @@ public class NetworkEvolution {
 		XMLOps.writeToFile(evoNetworksToProcess, "zurich_1pm/Evolution/Population/"+evoNetworksToProcess.populationId+".xml");
 		// - PLANS PROCESSING:
 		MNetworkPop evoNetworksToProcessPlans = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/Evolution/Population/"+populationName+".xml");
-		NetworkEvolutionRunSim.peoplePlansProcessing(evoNetworksToProcessPlans);
+		int maxConsideredTravelTimeInMin = 240;
+		NetworkEvolutionRunSim.peoplePlansProcessingM(evoNetworksToProcessPlans, maxConsideredTravelTimeInMin);
 		// - HISTORY LOGGER: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
 		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr;
 		new File(historyFileLocation).mkdirs();
@@ -175,6 +182,7 @@ public class NetworkEvolution {
 			System.out.println("Performance Goal has been achieved in Generation " +finalGeneration+ " by Network "+successfulNetwork.networkID+" at averageTravelTime "+successfulAverageTravelTime);			// display most important analyzed data here			
 			break;
 		}
+		
 		
 		// If PerformanceGoal not yet achieved, change routes and network here according to their scores!
 		// TODO: ...

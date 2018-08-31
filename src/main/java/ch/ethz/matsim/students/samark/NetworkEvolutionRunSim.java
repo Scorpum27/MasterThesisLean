@@ -192,7 +192,7 @@ public class NetworkEvolutionRunSim {
 		// - Maybe hand over score to a separate score map for sorting scores
 	}
 	
-	public static void peoplePlansProcessing(MNetworkPop networkPopulation) {
+	public static void peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInMin) {
 		//System.out.println("Population name = "+networkPopulation.populationId);
 		//System.out.println("Population size = "+networkPopulation.networkMap.size());
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
@@ -205,7 +205,7 @@ public class NetworkEvolutionRunSim {
 			Scenario emptyScenario = ScenarioUtils.loadScenario(emptyConfig);
 			Population finalPlansPopulation = emptyScenario.getPopulation();
 			//PopulationReader p = new PopulationReader(emptyScenario);
-			Double[] travelTimeBins = new Double[90+1];
+			Double[] travelTimeBins = new Double[maxTravelTimeInMin+1];
 			for (int d=0; d<travelTimeBins.length; d++) {
 				travelTimeBins[d] = 0.0;
 			}
@@ -233,8 +233,8 @@ public class NetworkEvolutionRunSim {
 							//System.out.println("Total Person Travel Time of this leg in [m] = "+personTravelTime);
 						}
 				}
-				if (personTravelTime>=90) {
-					travelTimeBins[90]++;
+				if (personTravelTime>=maxTravelTimeInMin) {
+					travelTimeBins[maxTravelTimeInMin]++;
 				}
 				else {
 					travelTimeBins[(int) Math.ceil(personTravelTime)]++;
@@ -267,6 +267,60 @@ public class NetworkEvolutionRunSim {
 		}
 	}
 	
+	public static NetworkScoreLog peoplePlansProcessingStandard(String finalOutputPlansFile, int maxTravelTimeInMin) {
+			Config emptyConfig = ConfigUtils.createConfig();
+			emptyConfig.getModules().get("plans").addParam("inputPlansFile", finalOutputPlansFile);
+			Scenario emptyScenario = ScenarioUtils.loadScenario(emptyConfig);
+			Population finalPlansPopulation = emptyScenario.getPopulation();	// the population is contained within the outputPlans and retrieved by the inputPlansFile config parameter
+			Double[] travelTimeBins = new Double[maxTravelTimeInMin+1];
+			for (int d=0; d<travelTimeBins.length; d++) {
+				travelTimeBins[d] = 0.0;
+			}
+			for (Person person : finalPlansPopulation.getPersons().values()) {
+				double personTravelTime = 0.0;
+				Plan plan = person.getSelectedPlan();
+				for (PlanElement element : plan.getPlanElements()) {
+						if (element instanceof Leg) {
+							String findString = "[travTime=";
+							int i1 = element.toString().indexOf(findString);
+							String travTime = element.toString().substring(i1+findString.length(), i1+findString.length()+8);
+							String[] HourMinSec = travTime.split(":");
+							personTravelTime += (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
+						}
+				}
+				if (personTravelTime>=maxTravelTimeInMin) {
+					travelTimeBins[maxTravelTimeInMin]++;
+				}
+				else {
+					travelTimeBins[(int) Math.ceil(personTravelTime)]++;
+				}
+			}
+			double totalTravelTime = 0.0;
+			int travels = 0;
+			for (int i=0; i<travelTimeBins.length; i++) {
+				totalTravelTime += i*travelTimeBins[i];
+				travels += travelTimeBins[i];
+			}
+			
+			NetworkScoreLog nsl = new NetworkScoreLog();
+			nsl.totalTravelTime = totalTravelTime;
+			nsl.averageTravelTime = totalTravelTime/travels;
+			double standardDeviationInnerSum = 0.0;
+			for (int i=0; i<travelTimeBins.length; i++) {
+				for (int j=0; j<travelTimeBins[i]; j++) {
+					standardDeviationInnerSum += Math.pow(i-nsl.averageTravelTime, 2);
+				}
+			}
+			double standardDeviation = Math.sqrt(standardDeviationInnerSum/(travels-1));
+			
+			nsl.stdDeviationTravelTime = standardDeviation;
+			//System.out.println("standardDeviation = " + mNetwork.stdDeviationTravelTime);
+			//System.out.println("averageTravelTime = " + mNetwork.averageTravelTime);
+			
+			System.out.println(" AverageTavelTime [min] = "+nsl.averageTravelTime+"   (StandardDeviation="+nsl.stdDeviationTravelTime+")");
+			System.out.println(" TotalTravelTime [min] = "+nsl.totalTravelTime);
+		return nsl;
+	}
 	
 }
 

@@ -60,9 +60,8 @@ public class Metro_TransitScheduleImpl {
 		
 		List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
 		routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute));
-		routeLinkList.addAll(OppositeLinkListOf(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute)));
+		routeLinkList.addAll(OppositeLinkListOf(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute)));	// TODO: Reverse Routes for this network
 		for (Id<Link> linkID : routeLinkList) {
-//		for (Id<Link> linkID : Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute)) {
 			// place the stop facilities always on the FromNode of the RefLink; this way, the new facilities will have the same coords as the original network's facilities!
 			Link currentLink = network.getLinks().get(linkID);
 			TransitStopFacility transitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+linkID.toString(), TransitStopFacility.class), currentLink.getFromNode().getCoord(), blocksLane);
@@ -83,10 +82,10 @@ public class Metro_TransitScheduleImpl {
 		}
 		// do this to add last terminal link on way back, because the stops are always added at the fromNode location and the last link needs a stop at the final toNode!
 		Id<Link> terminalLink = stopArray.get(stopArray.size()-1).getStopFacility().getLinkId();
-		TransitStopFacility transitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+terminalLink.toString()+"_TerminalStop", TransitStopFacility.class), 
+		TransitStopFacility terminalTransitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+terminalLink.toString()+"_TerminalStop", TransitStopFacility.class), 
 				network.getLinks().get(terminalLink).getToNode().getCoord(), blocksLane);
-		transitStopFacility.setName("MetroStopRefLink_"+terminalLink.toString()+"_TerminalStop");
-		transitStopFacility.setLinkId(terminalLink);
+		terminalTransitStopFacility.setName("MetroStopRefLink_"+terminalLink.toString()+"_TerminalStop");
+		terminalTransitStopFacility.setLinkId(terminalLink);
 		double terminalArrivalOffset = stopArray.get(stopArray.size()-1).getDepartureOffset()+stopArray.get(1).getArrivalOffset();
 		double terminalDepartureOffset = terminalArrivalOffset+stopTime;
 		TransitRouteStop terminalTransitRouteStop = transitScheduleFactory.createTransitRouteStop(

@@ -35,8 +35,8 @@ public class OD_ProcessorImpl {
 	// search for nRoutes highest values and store as list of Coords[][]!
 	// Convert coords to closest nodes!
 	
-	public static ArrayList<NetworkRoute> createInitialRoutes3(Network metroNetwork,
-			int nRoutes, double minRadius, double maxRadius, Coord cityCenterCoord,
+	public static ArrayList<NetworkRoute> createInitialRoutesOD(Network metroNetwork,
+			int nRoutes, double minRadius, double maxRadius, double odConsiderationThreshold, Coord cityCenterCoord,
 			String csvFileODValues, String csvFileODLocations, double xOffset, double yOffset) {
 		
 		List<String[]> odLocations = new ArrayList<String[]>();
@@ -170,7 +170,7 @@ public class OD_ProcessorImpl {
 					}
 					String weakestRouteName = findWeakestODroute(odRoutesValues);
 					double weakestSelectedODvalue = odRoutesValues.get(weakestRouteName);
-					if (thisValue > 0.7*weakestSelectedODvalue) {
+					if (thisValue > odConsiderationThreshold*weakestSelectedODvalue) {
 						changeListener = true;
 						Coord originCoord = zoneToCoord(odValuesX[0][col], odLocations);
 						Coord destinationCoord = zoneToCoord(odValuesX[row][0], odLocations);

@@ -47,7 +47,7 @@ public class NetworkEvolutionImpl {
 	public static MNetwork createMNetworkRoutes(String thisNewNetworkName, int routesPerNetwork, String initialRouteType, int iterationToReadOriginalNetwork,
 			double minMetroRadiusFromCenter, double maxMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
 			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter,
-			double minTerminalDistance, double xOffset, double yOffset,String vehicleTypeName, double vehicleLength, double maxVelocity,
+			double minTerminalDistance, double odConsiderationThreshold, double xOffset, double yOffset,String vehicleTypeName, double vehicleLength, double maxVelocity,
 			int vehicleSeats, int vehicleStandingRoom,String defaultPtMode, boolean blocksLane, double stopTime, double maxVehicleSpeed,
 			double tFirstDep, double tLastDep, double depSpacing, int nDepartures,
 			double metroOpsCostPerKM, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground ) {
@@ -106,13 +106,13 @@ public class NetworkEvolutionImpl {
 			// Select all metro terminal candidates by setting bounds on their location (distance from city center)
 			Map<Id<Link>, CustomLinkAttributes> links_MetroTerminalCandidates = NetworkEvolutionImpl.findLinksWithinBounds(links_mostFrequentInRadiusMainFacilitiesSet, 
 					originalNetwork, zurich_NetworkCenterCoord, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, (mNetworkPath+"/3_zurich_network_MetroTerminalCandidate.xml")); // find most frequent links
-			initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutes(metroNetwork, links_MetroTerminalCandidates, routesPerNetwork, minTerminalDistance);			
+			initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork, links_MetroTerminalCandidates, routesPerNetwork, minTerminalDistance);			
 			separateRoutesNetwork = NetworkEvolutionImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork, Sets.newHashSet("pt"), (mNetworkPath+"/5_zurich_network_MetroInitialRoutes_Random.xml"));
 		}
 		if (useOdPairsForInitialRoutes==true) {									
 			// %%% initial Routes OD_Pairs within bounds %%%		
-			initialMetroRoutes = OD_ProcessorImpl.createInitialRoutes3(metroNetwork, routesPerNetwork, minTerminalRadiusFromCenter,
-					maxTerminalRadiusFromCenter, zurich_NetworkCenterCoord, "zurich_1pm/Evolution/Input/Data/OD_Input/Demand2013_PT.csv",
+			initialMetroRoutes = OD_ProcessorImpl.createInitialRoutesOD(metroNetwork, routesPerNetwork, minTerminalRadiusFromCenter,
+					maxTerminalRadiusFromCenter, odConsiderationThreshold, zurich_NetworkCenterCoord, "zurich_1pm/Evolution/Input/Data/OD_Input/Demand2013_PT.csv",
 					"zurich_1pm/Evolution/Input/Data/OD_Input/OD_ZoneCodesLocations.csv", xOffset, yOffset);	
 					// CAUTION: Make sure .csv is separated by semi-colon because location names also include commas sometimes and lead to failure!!			
 			separateRoutesNetwork = NetworkEvolutionImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork, Sets.newHashSet("pt"),
@@ -496,7 +496,7 @@ public class NetworkEvolutionImpl {
 		}
 
 		// REMEMBER: New nodes are named "MetroNodeLinkRef_"+linkID.toString()
-		public static ArrayList<NetworkRoute> createInitialRoutes(Network newMetroNetwork,
+		public static ArrayList<NetworkRoute> createInitialRoutesRandom(Network newMetroNetwork,
 				Map<Id<Link>, CustomLinkAttributes> links_MetroTerminalCandidates, int nRoutes, double minTerminalDistance) {
 
 			ArrayList<NetworkRoute> networkRouteArray = new ArrayList<NetworkRoute>();
@@ -558,7 +558,7 @@ public class NetworkEvolutionImpl {
 			return networkRouteArray;
 		}
 
-		public static Network networkRoutesToNetwork(ArrayList<NetworkRoute> networkRoutes, Network metroNetwork, Set<String> networkRouteModes, String fileName) {
+		public static Network networkRoutesToNetwork(ArrayList<NetworkRoute> networkRoutes, Network network, Set<String> networkRouteModes, String fileName) {
 			// Store all new networkRoutes in a separate network file for visualization
 				Network routesNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
 				NetworkFactory networkFactory = routesNetwork.getFactory();
@@ -568,11 +568,11 @@ public class NetworkEvolutionImpl {
 					routeLinkList.addAll(nR.getLinkIds());
 					routeLinkList.add(nR.getEndLinkId());
 					for (Id<Link> linkID : routeLinkList) {
-						Node tempToNode = networkFactory.createNode(metroNetwork.getLinks().get(linkID).getToNode().getId(),
-								metroNetwork.getLinks().get(linkID).getToNode().getCoord());
-						Node tempFromNode = networkFactory.createNode( metroNetwork.getLinks().get(linkID).getFromNode().getId(),
-								metroNetwork.getLinks().get(linkID).getFromNode().getCoord());
-						Link tempLink = networkFactory.createLink(metroNetwork.getLinks().get(linkID).getId(), tempFromNode, tempToNode);
+						Node tempToNode = networkFactory.createNode(network.getLinks().get(linkID).getToNode().getId(),
+								network.getLinks().get(linkID).getToNode().getCoord());
+						Node tempFromNode = networkFactory.createNode( network.getLinks().get(linkID).getFromNode().getId(),
+								network.getLinks().get(linkID).getFromNode().getCoord());
+						Link tempLink = networkFactory.createLink(network.getLinks().get(linkID).getId(), tempFromNode, tempToNode);
 						tempLink.setAllowedModes(networkRouteModes);
 						if (routesNetwork.getNodes().containsKey(tempToNode.getId()) == false) {
 							routesNetwork.addNode(tempToNode);
