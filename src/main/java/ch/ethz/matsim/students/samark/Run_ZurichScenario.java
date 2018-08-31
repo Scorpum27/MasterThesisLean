@@ -16,7 +16,7 @@ public class Run_ZurichScenario {
 static public void main(String[] args) {
 		
 		Config config = ConfigUtils.loadConfig(args[0]);
-		config.getModules().get("controler").addParam("lastIteration", "1000");
+		config.getModules().get("controler").addParam("lastIteration", "100");
 
 		// config.transit().setTransitScheduleFile(null); // potentially "null", but should set TransitSchedule
 

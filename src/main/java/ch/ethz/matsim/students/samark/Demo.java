@@ -1,16 +1,170 @@
 package ch.ethz.matsim.students.samark;
 
-import java.util.Set;
-import com.google.common.collect.Sets;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.network.Link;
+
 
 public class Demo {
 	
-	public static void main(String[] args) {
+	public static List<String> OppositeOf(List<String> listIn){
+		List<String> oppositeList = new ArrayList<String>(listIn.size());
+		for (int i=0; i<listIn.size(); i++) {
+			oppositeList.add(listIn.get(listIn.size()-1-i));
+		}
+		return oppositeList;
+	}
+	
+	public static void main(String[] args) throws IOException {
 		
-	// %%%%% Random %%%%%
+		// %%%%%%%%%%%%%%%%%%%% Displaying and Operating on an ArrayList %%%%%%%%%%%%%%%%%%%%
+		List<String> stringList = new ArrayList<String>();
+		stringList.add("String1");
+		stringList.add("String2");
+		stringList.add("String3");
+		stringList.add("String4");
+		stringList.add("String5");
+		System.out.println(stringList.toString());
+		List<String> stringListCut = new ArrayList<String>();
+		stringListCut = stringList;
+		int index3 = stringList.indexOf("String3");
+		//System.out.println("Index of String3 = "+index3);
+		//int index3cut = stringListCut.indexOf("String3");
+		//System.out.println("Index of String3cut = "+index3cut);	
+		System.out.println("Size = "+stringList.size());
+		System.out.println("The test: "+stringListCut.subList(0, index3));
+		System.out.println(stringListCut.subList(index3, stringListCut.size()));
+		System.out.println(stringListCut.toString());
+		stringListCut.removeAll(stringListCut.subList(index3, stringListCut.size()));
+		System.out.println(stringListCut.toString());	
+		System.out.println(stringListCut.get(stringListCut.size()-1).toString());		
+		System.out.println(OppositeOf(stringListCut).toString());
+
+		String metroTestString = "MetroNodeLinkRef_840312_MetroNodeLinkRef_776361";
+		String[] splits1 = metroTestString.split("_");
+		//String[] splits2 = metroTestString.split("MetroNodeLinkRef_");
+		System.out.println(splits1[0].toString());
+		System.out.println(splits1[1].toString());
+		System.out.println(splits1[2].toString());
+		System.out.println(splits1[3].toString());
+		//System.out.println(splits2.toString());
 		
-		Set<String> sett = Sets.newHashSet("a", "b"," c");
-		System.out.println(sett.toString());
+		List<Id<Link>> linkIds = new ArrayList<Id<Link>>();
+		linkIds.add(Id.createLinkId("MetroNodeLinkRef_1_MetroNodeLinkRef_2"));
+		linkIds.add(Id.createLinkId("MetroNodeLinkRef_2_MetroNodeLinkRef_3"));
+		linkIds.add(Id.createLinkId("MetroNodeLinkRef_3_MetroNodeLinkRef_4"));
+		linkIds.add(Id.createLinkId("MetroNodeLinkRef_4_MetroNodeLinkRef_5"));
+		System.out.println(linkIds.toString());
+		System.out.println(OD_ProcessorImpl.OppositeLinkListOf(linkIds).toString());
+
+
+		// %%%%%%%%%%%%%%%%%%%% ... %%%%%%%%%%%%%%%%%%%%
+		
+		// %%%%%%%%%%%%%%%%%%%% Plotter %%%%%%%%%%%%%%%%%%%%
+
+		/*int generationsToPlot = 3;
+		NetworkEvolutionImpl.writeChartAverageGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionAverageOfGeneration.png");
+		NetworkEvolutionImpl.writeChartBestGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionBestScoreOfGeneration.png");
+		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolution.png");*/
+		
+		/*Double personTravelTime = 1.0;
+		String travTime = "00:10:30";
+		String[] HourMinSec = travTime.split(":");
+		System.out.println("Person Travel Time of this leg in [s] = "+travTime);
+		System.out.println("Hours = "+HourMinSec[0]);
+		System.out.println("Mins = "+HourMinSec[1]);
+		System.out.println("Mins = "+Double.parseDouble(HourMinSec[1]));
+		System.out.println("Hours = "+Double.parseDouble(HourMinSec[0]));
+		//personTravelTime += (1)*Double.parseDouble(HourMinSec[1])/60;
+		personTravelTime = personTravelTime + (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
+		System.out.println("Total Person Travel Time of this leg in [s] = "+personTravelTime);*/
+		
+		// %%%%%%%%%%%%%%%%%%%% XMLWriter %%%%%%%%%%%%%%%%%%%%
+		
+		/*XStream xstream = new XStream(new StaxDriver());
+		xstream.alias("mnetwork", MNetwork.class);	
+		MNetwork mnetwork1 = new MNetwork("mnetwork1");
+		MNetwork mnetwork2 = new MNetwork("mnetwork2");
+		Network network = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
+		network.setName("It worked!!!");
+		mnetwork1.network = network;
+		mnetwork2.network = network;
+		String xml1 = xstream.toXML(mnetwork1);
+		String xml2 = xstream.toXML(mnetwork2);
+		String fileName1 = "zurich_1pm/Evolution/Population/Network1/Objects/"+mnetwork1.networkID+"new.xml";
+		String fileName2 = "zurich_1pm/Evolution/Population/Network2/Objects/"+mnetwork2.networkID+"new.xml";
+		XMLOps.writeToFile(mnetwork1, fileName1);
+		XMLOps.writeToFile(mnetwork2, fileName2);
+		//FileOutputStream fos = new FileOutputStream(fileName2);
+		//xstream.toXML(mnetwork2, fos);
+		System.out.println(xml1);
+		System.out.println(xml2);
+		MNetwork mnetwork3 = XMLOps.readFromFile(mnetwork1.getClass(), fileName1);
+		MNetwork mnetwork4 = XMLOps.readFromFile(mnetwork2.getClass(), fileName2);
+		System.out.println("MNetwork1's network name is: "+mnetwork3.network.getName());
+		System.out.println("MNetwork2's name is: "+mnetwork4.networkID);*/
+		
+		
+		// %%%%%%%%%%%%%%%%%%%% FAILED: Serialization of Objects without Serializable %%%%%%%%%%%%%%%%%%%%
+		
+		//MObjectWriter.serializeToXML2(mnetwork1, "zurich_1pm/Evolution/Population/Network1/Objects/"+mnetwork1.networkID+".ser");
+		//MObjectWriter.serializeToXML2(mnetwork2, "zurich_1pm/Evolution/Population/Network2/Objects/"+mnetwork2.networkID+".ser");
+		
+		/*MRoute mRoute1 = new MRoute("testRoute1");
+		MRoute mRoute2 = new MRoute("testRoute2");
+		
+		Network network1 = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
+		Network network2 = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
+		MNetworkSerializable mnetwork1 = new MNetworkSerializable("mnetwork1");
+		MNetworkSerializable mnetwork2 = new MNetworkSerializable("mnetwork2");
+		Network network = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
+		network.setName("It worked!!!");
+		mnetwork1.network = network;
+		//MObjectWriter.writeObject(mRoute1, "zurich_1pm/Evolution/Population/Network1/Objects/"+mRoute1.routeID+".ser");
+		//MObjectWriter.writeObject(mRoute2, "zurich_1pm/Evolution/Population/Network2/Objects/"+mRoute2.routeID+".ser");
+		MObjectWriter.writeObject(mnetwork1, "zurich_1pm/Evolution/Population/Network1/Objects/mnetwork1.ser");
+		MObjectWriter.writeObject(mnetwork2, "zurich_1pm/Evolution/Population/Network2/Objects/mnetwork2.ser");
+		MNetwork mnetwork3 = (MNetwork) MObjectReader.readObject(new MNetwork("foo").getClass(), "zurich_1pm/Evolution/Population/Network1/Objects/mnetwork1.ser");
+		MNetwork mnetwork4 = (MNetwork) MObjectReader.readObject(new MNetwork("foo").getClass(), "zurich_1pm/Evolution/Population/Network2/Objects/mnetwork2.ser");
+		System.out.println("MRoute 3 = "+mnetwork3.networkID);
+		System.out.println("MNetwork 3 - actual networkName = "+mnetwork3.network.getName());
+		System.out.println("MRoute 4 = "+mnetwork4.networkID);*/
+		
+	// %%%%%%%%%%%%%%%%%%%%%%%%% Make Directory %%%%%%%%%%%%%%%%%%%%%%%%
+		// how to make a new directory (it will not overwrite directory/folder if it already exists :))
+		/*String mNetworkPath = "zurich_1pm/Evolution/Population/"+"Network2";
+		new File(mNetworkPath).mkdirs();*/
+		
+	// %%%%%%%%%%%%%%%%%%%%%%%%% MNetwor & MRoute Tests %%%%%%%%%%%%%%%%%%%%%%%%%
+		
+		// TEST: create a POPULATION as a map of networks
+		/*MNetworkPop population = new MNetworkPop(); // create a network
+		int nNetworks = 10;
+		int nRoutesPerNetwork = 5;
+		for (int n = 1; n <= nNetworks; n++) {
+			MNetwork newNetwork = new MNetwork("Network" + Integer.toString(n));
+			for (int r = 1; r <= nRoutesPerNetwork; r++) {
+				MRoute newRoute = new MRoute("Route" + Integer.toString(r));
+				newNetwork.addNetworkRoute(newRoute);
+			}
+			population.addNetwork(newNetwork);
+		}
+
+		// TEST: Test if initialized correctly
+		for (MNetwork m : population.getNetworks().values()) {
+			System.out.println(m.networkID + " contains routes:");
+			for (MRoute r : m.getNetworkRoutes().values()) {
+				System.out.println(r.routeID);
+			}
+		}*/
+		
+	// %%%%%%%%%%%%%%%%%%%%%%%%% Random %%%%%%%%%%%%%%%%%%%%%%%%%
+		
+		/*Set<String> sett = Sets.newHashSet("a", "b"," c");
+		System.out.println(sett.toString());*/
 			
 	// %%%%% Network Converter Tester %%%%%	
 		
@@ -23,7 +177,7 @@ public class Demo {
 		System.out.println("Metro Node Id is "+metroNodeIdOut.toString());*/
 		
 		
-	// %%%%% Network Route Creator Tester %%%%%	
+	// %%%%%%%%%%%%%%%%%%%%%%%%% Network Route Creator Tester %%%%%%%%%%%%%%%%%%%%%%%%%	
 		
 		/*Network routesNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
 		NetworkFactory nf = routesNetwork.getFactory();
@@ -59,7 +213,7 @@ public class Demo {
 		
 		
 		
-	// %%%%% Config Tester %%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%% Config Tester %%%%%%%%%%%%%%%%%%%%%%%%%
 		
 		/* %%% Config Module Scanner %%%
 		 * Takes config file and scans through its modules and parameters
@@ -85,7 +239,7 @@ public class Demo {
 		/*ConfigWriter configWriter = new ConfigWriter(config);
 		configWriter.write("myOutput/ConfigScannerTestFile.xml");*/
 		
-	// %%%%% Config Tester2 %%%%%
+	// %%%%%%%%%%%%%%%%%%%%%%%%% Config Tester2 %%%%%%%%%%%%%%%%%%%%%%%%%
 		
 		/*// Config > ConfigGroup(come as a set of configGroups=Modules) > Parameter(come as a set of parameterSet) > Values(one for each parameter in the set)
 		public static void scanConfigModules(Config config) {
@@ -147,7 +301,7 @@ public class Demo {
 
 
 
-//%%%%%%%%%%%%%%%%%%%%%  Config Scanner %%%%%%%%%%%%%%%%%%%%%%%% Successful
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Config Scanner %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Successful
 /*		Config config = ConfigUtils.createConfig();								// in this case it is empty files and structures
 		Scenario scenario = ScenarioUtils.createScenario(config);
 		scenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class,
@@ -191,7 +345,7 @@ import ch.ethz.matsim.baseline_scenario.transit.events.PublicTransitEvent;
 	 */
 
 		
-//%%%%%%%%%%%%%%%%%%%%%  Generic Map Iterator %%%%%%%%%%%%%%%%%%%% Failed
+//%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  Generic Map Iterator %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% Failed
 /*		Map map = new HashMap<String, Long>();
      map.put("1$", new Long(10));
      map.put("2$", new Long(20));

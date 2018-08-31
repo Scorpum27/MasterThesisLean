@@ -32,6 +32,7 @@ import org.matsim.pt.transitSchedule.api.TransitSchedule;
 
 public class Metro_NetworkImpl {
 
+	// done
 	public static Map<Id<Link>, CustomLinkAttributes> createCustomLinkMap(Network network, String fileName) {
 		Map<Id<Link>, CustomLinkAttributes> customLinkMap = new HashMap<Id<Link>, CustomLinkAttributes>(
 				network.getLinks().size());
@@ -48,6 +49,7 @@ public class Metro_NetworkImpl {
 
 		return customLinkMap;
 	}
+	
 
 	public static Map<Id<Link>, CustomLinkAttributes> findLinksAboveThreshold(Network network, double threshold,
 			Map<Id<Link>, CustomLinkAttributes> customLinkMapIn, String fileName) { // output is a map with all links
@@ -296,8 +298,10 @@ public class Metro_NetworkImpl {
 			}
 
 		}
+		System.out.println("It read this line here...!");
 
 		if (fileName != null) {
+			System.out.println("Creating a new network now!");
 			NetworkWriter networkWriter = new NetworkWriter(newNetwork);
 			networkWriter.write(fileName);
 		}
@@ -313,10 +317,10 @@ public class Metro_NetworkImpl {
 		return customMapCopy;
 	}
 
+	// XXX DONE
 	// REMEMBER: New nodes are named "MetroNodeLinkRef_"+linkID.toString()
 	public static ArrayList<NetworkRoute> createInitialRoutes(Network newMetroNetwork,
-			Map<Id<Link>, CustomLinkAttributes> links_MetroTerminalCandidates, int nRoutes, double minTerminalDistance,
-			String fileName) {
+			Map<Id<Link>, CustomLinkAttributes> links_MetroTerminalCandidates, int nRoutes, double minTerminalDistance) {
 
 		ArrayList<NetworkRoute> networkRouteArray = new ArrayList<NetworkRoute>();
 
@@ -360,11 +364,7 @@ public class Metro_NetworkImpl {
 							+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
 					continue OuterNetworkRouteLoop;
 			}
-				//System.out.println("Node list of network route is: " + nodeList.toString());
 			List<Id<Link>> linkList = nodeListToNetworkLinkList(newMetroNetwork, nodeList);
-				//System.out.println("Link list of network route is: " + linkList.toString());
-	// TODO %%% NetworkRoute newRoute = (NetworkRoute) new LinkNetworkRouteFactory().createRoute(linkList.get(0), linkList.get(linkList.size()-1));
-	// TODO %%% newRoute.set
 			NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, newMetroNetwork);
 			
 			System.out.println("The new networkRoute is: [Length="+(networkRoute.getLinkIds().size()+2)+"] - " + networkRoute.toString());
@@ -374,7 +374,6 @@ public class Metro_NetworkImpl {
 		// Doing already in main file --> Not necessary to do here again:
 		// Store all new networkRoutes in a separate network file for visualization
 		// --> networkRoutesToNetwork(networkRouteArray, newMetroNetwork, fileName);
-		
 		return networkRouteArray;
 	}
 
