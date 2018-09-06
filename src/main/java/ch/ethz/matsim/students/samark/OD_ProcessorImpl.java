@@ -236,12 +236,12 @@ public class OD_ProcessorImpl {
 										.contains(Id.createLinkId("MetroNodeLinkRef_297850_MetroNodeLinkRef_513640"))
 										&& entireOtherLinkList.contains(
 												Id.createLinkId("MetroNodeLinkRef_513640_MetroNodeLinkRef_297850"))) {
-									System.out.println(
-											"FOUND THE MATCH - the suggested new link list is: " + linkList.toString());
-									System.out
-											.println("FOUND THE MATCH - the networkRouteName is: " + networkRouteName);
-									System.out.println(
-											"FOUND THE MATCH - the networkRoute is: " + entireOtherLinkList.toString());
+//									System.out.println(
+//											"FOUND THE MATCH - the suggested new link list is: " + linkList.toString());
+//									System.out
+//											.println("FOUND THE MATCH - the networkRouteName is: " + networkRouteName);
+//									System.out.println(
+//											"FOUND THE MATCH - the networkRoute is: " + entireOtherLinkList.toString());
 								}
 								if (entireOtherLinkList.contains(linkList.get(linkList.size() - 1))
 										&& linkList.contains(otherStartTerminal)
@@ -249,10 +249,10 @@ public class OD_ProcessorImpl {
 									// the third condition is for the case that the new link is exactly the
 									int S2inN1 = linkList.indexOf(otherStartTerminal);
 									linkList.removeAll(linkList.subList(S2inN1, linkList.size()));
-									System.out.println("Case B1a - LinkList BEFORE: " + linkList.toString());
-									System.out.println("Case B1a - LinkList TO ADD: " + entireOtherLinkList.toString());
+									//System.out.println("Case B1a - LinkList BEFORE: " + linkList.toString());
+									//System.out.println("Case B1a - LinkList TO ADD: " + entireOtherLinkList.toString());
 									linkList.addAll(entireOtherLinkList);
-									System.out.println("Case B1a - LinkList AFTER: " + linkList.toString());
+									//System.out.println("Case B1a - LinkList AFTER: " + linkList.toString());
 									odRoutes.put(networkRouteName,
 											RouteUtils.createNetworkRoute(linkList, metroNetwork));
 									odRoutesValues.put(networkRouteName,
@@ -267,13 +267,13 @@ public class OD_ProcessorImpl {
 									int T2inN1 = linkList.indexOf(otherEndTerminal);
 									linkList.removeAll(linkList.subList(0, T2inN1 + 1));
 									List<Id<Link>> concatenatedLinkList = new ArrayList<Id<Link>>();
-									System.out.println("Case B2b - LinkList TO ADD to empty list: "
-											+ entireOtherLinkList.toString());
+//									System.out.println("Case B2b - LinkList TO ADD to empty list: "
+//											+ entireOtherLinkList.toString());
 									concatenatedLinkList.addAll(entireOtherLinkList);
-									System.out
-											.println("Case B2b - LinkList TO ADD to new list: " + linkList.toString());
+//									System.out
+//											.println("Case B2b - LinkList TO ADD to new list: " + linkList.toString());
 									concatenatedLinkList.addAll(linkList);
-									System.out.println("Case B2b - LinkList AFTER: " + concatenatedLinkList.toString());
+//									System.out.println("Case B2b - LinkList AFTER: " + concatenatedLinkList.toString());
 									odRoutes.put(networkRouteName,
 											RouteUtils.createNetworkRoute(concatenatedLinkList, metroNetwork));
 									odRoutesValues.put(networkRouteName,
@@ -288,7 +288,7 @@ public class OD_ProcessorImpl {
 							odRoutes.put(weakestRouteName, RouteUtils.createNetworkRoute(originalLinkList, metroNetwork));
 							odRoutesValues.put(weakestRouteName, thisValue);
 							odValuesX[row][col] = "0.0";
-							System.out.println("XXX: Adding individual new list: "+originalLinkList.toString());
+							//System.out.println("XXX: Adding individual new list: "+originalLinkList.toString());
 						}
 					}
 				}
@@ -313,7 +313,7 @@ public class OD_ProcessorImpl {
 			twowayLinkList.addAll(OppositeLinkListOf(twowayLinkList));
 			NetworkRoute twowayRoute = RouteUtils.createNetworkRoute(twowayLinkList, metroNetwork);
 			nr++;
-			System.out.println("The new networkRoute is: [Length="+(twowayRoute.getLinkIds().size()+2)+"] - " +twowayRoute.toString());		
+			//System.out.println("The new networkRoute is: [Length="+(twowayRoute.getLinkIds().size()+2)+"] - " +twowayRoute.toString());		
 			networkRouteArray.add(twowayRoute);
 			// this loop for displaying single lines !
 			NetworkEvolutionImpl.NetworkRouteToNetwork(twowayRoute, metroNetwork, Sets.newHashSet("pt"),

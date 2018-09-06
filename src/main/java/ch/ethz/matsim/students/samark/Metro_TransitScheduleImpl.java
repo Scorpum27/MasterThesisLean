@@ -60,10 +60,15 @@ public class Metro_TransitScheduleImpl {
 		
 		List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
 		routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute));
-		routeLinkList.addAll(OppositeLinkListOf(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute)));	// TODO: Reverse Routes for this network
+		//routeLinkList.addAll(OppositeLinkListOf(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute)));	// This is already implemented in networkRouteGeneration
+		System.out.println("routeLinkList is: "+routeLinkList.toString());
+
 		for (Id<Link> linkID : routeLinkList) {
 			// place the stop facilities always on the FromNode of the RefLink; this way, the new facilities will have the same coords as the original network's facilities!
+			System.out.println("current LinkId in RouteLinkList is: "+linkID.toString());			
 			Link currentLink = network.getLinks().get(linkID);
+			System.out.println("currentLink is: "+currentLink.getId().toString());
+			System.out.println("blocksLane is: "+blocksLane);
 			TransitStopFacility transitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+linkID.toString(), TransitStopFacility.class), currentLink.getFromNode().getCoord(), blocksLane);
 			transitStopFacility.setName("MetroStopRefLink_"+linkID.toString());
 			transitStopFacility.setLinkId(linkID);
@@ -161,8 +166,8 @@ public class Metro_TransitScheduleImpl {
 	public static Network mergeRoutesNetworkToOriginalNetwork(Network routesNetwork, Network originalNetwork, Set<String> transportModes, String fileName) {
 		Network mergedNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
 		
-		Metro_NetworkImpl.copyNetworkToNetwork(routesNetwork, mergedNetwork);
-		Metro_NetworkImpl.copyNetworkToNetwork(originalNetwork, mergedNetwork);
+		Metro_NetworkImpl.copyNetworkToNetwork(routesNetwork, mergedNetwork, transportModes);
+		Metro_NetworkImpl.copyNetworkToNetwork(originalNetwork, mergedNetwork, null);
 		
 		// Add this part to connect new network to old network. this is NOT NECESSARY as the agents will "telewalk" to the metro nodes of the new network.
 		// This would have to be added for new car links given the fact, that only walking is teleported and cars could not reach the new links.

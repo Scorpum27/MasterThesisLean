@@ -58,7 +58,7 @@ import ch.ethz.matsim.papers.mode_choice_paper.utils.LongPlanFilter;
 public class Run_VirtualCity {
 
 	static public void main(String[] args) throws FileNotFoundException, ConfigurationException {
-		int populationSize = 8;														// how many networks should be developed in parallel
+		int populationSize = 2;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 
 		final int XMax = 30;													// set network size in West-to-East
@@ -101,18 +101,17 @@ public class Run_VirtualCity {
 		}
 		
 		// create population by means of population factory
-		Population population = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getPopulation();
 		double networkSize = Math.sqrt(XMax*XMax+YMax*YMax);
 		String populationPrefix = "Pop";
 		VC_ScenarioImpl demandCreator = new VC_ScenarioImpl();
 		System.out.println("networkSize is: "+networkSize);
-		demandCreator.createNewDemand(ScenarioUtils.createScenario(ConfigUtils.createConfig()), networkPopulation.networkMap.values().iterator().next().network, networkSize, nNewPeople, populationPrefix);
+		Population population = demandCreator.createNewDemand(ScenarioUtils.createScenario(ConfigUtils.createConfig()), networkPopulation.networkMap.values().iterator().next().network, networkSize, nNewPeople, populationPrefix);
 
 		PopulationWriter populationWriter = new PopulationWriter(population);		// Write new population to new file >> change config after that to new network name!
 		populationWriter.write("zurich_1pm/VirtualCity/Input/Generated_Population/Plans"+nNewPeople+".xml");
 		
 		// EVOLUTIONARY PROCESS
-		int nEvolutions = 5;
+		int nEvolutions = 2;
 		double averageTravelTimePerformanceGoal = 0.0;
 		MNetwork successfulNetwork = null;
 		double successfulAverageTravelTime = 0.0;

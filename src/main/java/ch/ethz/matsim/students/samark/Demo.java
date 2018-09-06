@@ -2,39 +2,339 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
+import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.network.Network;
+import org.matsim.api.core.v01.network.NetworkFactory;
+import org.matsim.api.core.v01.network.Node;
+import org.matsim.core.config.Config;
+import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.population.routes.NetworkRoute;
+import org.matsim.core.population.routes.RouteUtils;
+import org.matsim.core.scenario.ScenarioUtils;
 
 
 public class Demo {
 	
-	public static List<String> OppositeOf(List<String> listIn){
-		List<String> oppositeList = new ArrayList<String>(listIn.size());
-		for (int i=0; i<listIn.size(); i++) {
-			oppositeList.add(listIn.get(listIn.size()-1-i));
-		}
-		return oppositeList;
-	}
+
 	
 	public static void main(String[] args) throws IOException {
-		
-		// %%%%%%%%%%%%%%%%%%%% Plotting network evolution performance %%%%%%%%%%%%%%%%%%%%
 
-		int generationsToPlot = 50;
+	// %%%%%%%%%%%%%%%%%%%% CROSSOVER TESTER %%%%%%%%%%%%%%%%%%%%
+		
+		Config config = ConfigUtils.createConfig();
+		Scenario scenario0 = ScenarioUtils.loadScenario(config);
+		Network network = scenario0.getNetwork();
+		NetworkFactory nf = network.getFactory();
+		config.getModules().get("network").addParam("inputNetworkFile", "Evolution/Population/GlobalMetroNetwork.xml");
+		Scenario scenario1 = ScenarioUtils.loadScenario(config);
+		Network globalNetwork = scenario1.getNetwork();
+		
+		
+		Node thisnode;
+		Node lastnode = null;
+		Link link;
+		Link reverseLink;
+		
+		List<Id<Link>> linkList1 = new ArrayList<Id<Link>>();
+		for (int n=0; n<5; n++) {
+			thisnode = nf.createNode(Id.createNodeId(n), new Coord(1.0*n, 0.0));
+			network.addNode(thisnode);
+			if(n!=0) {
+				link = nf.createLink(Id.createLinkId("MetroNodeLinkRef_"+lastnode.getId().toString()+"_MetroNodeLinkRef_"+thisnode.getId().toString()), lastnode, thisnode);
+				reverseLink = nf.createLink(Id.createLinkId("MetroNodeLinkRef_"+thisnode.getId().toString()+"_MetroNodeLinkRef_"+lastnode.getId().toString()), thisnode, lastnode);
+				network.addLink(link);
+				network.addLink(reverseLink);
+				linkList1.add(link.getId());
+			}
+			lastnode = thisnode;
+		}
+		linkList1.addAll(NetworkEvolutionImpl.OppositeLinkListOf(linkList1));
+		NetworkRoute nr1 = RouteUtils.createNetworkRoute(linkList1, network);
+		MRoute mr1 = new MRoute("Network1_Route1");
+		mr1.networkRoute = nr1;
+		mr1.linkList = linkList1;
+
+		
+		List<Id<Link>> linkList2 = new ArrayList<Id<Link>>();
+		for (int n=0; n<5; n++) {
+			thisnode = nf.createNode(Id.createNodeId(n+5), new Coord(1.0*n, 2.0));
+			network.addNode(thisnode);
+			if(n!=0) {
+				link = nf.createLink(Id.createLinkId("MetroNodeLinkRef_"+lastnode.getId().toString()+"_MetroNodeLinkRef_"+thisnode.getId().toString()), lastnode, thisnode);
+				reverseLink = nf.createLink(Id.createLinkId("MetroNodeLinkRef_"+thisnode.getId().toString()+"_MetroNodeLinkRef_"+lastnode.getId().toString()), thisnode, lastnode);
+				network.addLink(link);
+				network.addLink(reverseLink);
+				linkList2.add(link.getId());
+			}
+			lastnode = thisnode;
+		}
+		linkList2.addAll(NetworkEvolutionImpl.OppositeLinkListOf(linkList2));
+		NetworkRoute nr2 = RouteUtils.createNetworkRoute(linkList2, network);
+		MRoute mr2 = new MRoute("Network1_Route2");
+		mr2.networkRoute = nr2;
+		mr2.linkList = linkList2;
+
+
+		
+		List<Id<Link>> linkList3 = new ArrayList<Id<Link>>();
+		for (int n=0; n<5; n++) {
+			thisnode = nf.createNode(Id.createNodeId(n+10), new Coord(1.0, 1.0*(n-1)));
+			if(n==1) {
+				thisnode = network.getNodes().get(Id.createNodeId(1));
+			}
+			else if(n==3) {
+				thisnode = network.getNodes().get(Id.createNodeId(6));
+			}
+			else {network.addNode(thisnode);}
+			if(n!=0) {
+				link = nf.createLink(Id.createLinkId("MetroNodeLinkRef_"+lastnode.getId().toString()+"_MetroNodeLinkRef_"+thisnode.getId().toString()), lastnode, thisnode);
+				reverseLink = nf.createLink(Id.createLinkId("MetroNodeLinkRef_"+thisnode.getId().toString()+"_MetroNodeLinkRef_"+lastnode.getId().toString()), thisnode, lastnode);
+				network.addLink(link);
+				network.addLink(reverseLink);
+				linkList3.add(link.getId());
+			}
+			lastnode = thisnode;
+		}
+		linkList3.addAll(NetworkEvolutionImpl.OppositeLinkListOf(linkList3));
+		NetworkRoute nr3 = RouteUtils.createNetworkRoute(linkList3, network);
+		MRoute mr3 = new MRoute("Network2_Route1");
+		mr3.networkRoute = nr3;
+		mr3.linkList = linkList3;
+
+
+		
+		List<Id<Link>> linkList4 = new ArrayList<Id<Link>>();
+		for (int n=0; n<5; n++) {
+			thisnode = nf.createNode(Id.createNodeId(n+15), new Coord(3.0, 1.0*(n-1)));
+			if(n==1) {
+				thisnode = network.getNodes().get(Id.createNodeId(3));
+			}
+			else if(n==3) {
+				thisnode = network.getNodes().get(Id.createNodeId(8));
+			}
+			else{ network.addNode(thisnode); }
+			if(n!=0) {
+				link = nf.createLink(Id.createLinkId("MetroNodeLinkRef_"+lastnode.getId().toString()+"_MetroNodeLinkRef_"+thisnode.getId().toString()), lastnode, thisnode);
+				reverseLink = nf.createLink(Id.createLinkId("MetroNodeLinkRef_"+thisnode.getId().toString()+"_MetroNodeLinkRef_"+lastnode.getId().toString()), thisnode, lastnode);
+				network.addLink(link);
+				network.addLink(reverseLink);
+				linkList4.add(link.getId());
+			}
+			lastnode = thisnode;
+		}
+		linkList4.addAll(NetworkEvolutionImpl.OppositeLinkListOf(linkList4));
+		NetworkRoute nr4 = RouteUtils.createNetworkRoute(linkList4, network);
+		MRoute mr4 = new MRoute("Network2_Route2");
+		mr4.networkRoute = nr4;
+		mr4.linkList = linkList4;
+
+
+
+		MNetworkPop evoNetworksToProcessPlans = new MNetworkPop("evoNetworks");
+		MNetwork mn1 = new MNetwork("Network1");
+		mn1.network = network;
+		mn1.routeMap.put(mr1.routeID, mr1);
+		mn1.routeMap.put(mr2.routeID, mr2);
+		evoNetworksToProcessPlans.addNetwork(mn1);
+		MNetwork mn2 = new MNetwork("Network2");
+		mn2.network = network;
+		mn2.routeMap.put(mr3.routeID, mr3);
+		mn2.routeMap.put(mr4.routeID, mr4);
+		evoNetworksToProcessPlans.addNetwork(mn2);		
+		
+		
+		Map<String,NetworkScoreLog> networkScoreMap = new HashMap<String,NetworkScoreLog>();
+		NetworkScoreLog nsl1 = new NetworkScoreLog();
+		nsl1.overallScore = 1.00;
+		networkScoreMap.put("Network1", nsl1);
+		NetworkScoreLog nsl2 = new NetworkScoreLog();
+		nsl2.overallScore = 1.01;
+		networkScoreMap.put("Network2", nsl2);
+		
+
+		
+		MNetworkPop newPopulation = new MNetworkPop(evoNetworksToProcessPlans.populationId);
+		newPopulation.networkMap = evoNetworksToProcessPlans.networkMap;
+		int nOldPop = newPopulation.networkMap.size();
+		System.out.println("Old Pop size ="+nOldPop);
+		
+		// List<MRoute> offspringRoutes = new ArrayList<MRoute>();
+		// find and store Elite network
+		String eliteNetwork = "";
+		if (networkScoreMap.size() == 0) {		System.out.println("CAUTION: NetworkScoreMapSize is zero!");	}
+		double maxNetworkScore = -Double.MAX_VALUE;
+		for (String networkName : networkScoreMap.keySet()) {
+			if (networkScoreMap.get(networkName).overallScore > maxNetworkScore) {
+				maxNetworkScore = networkScoreMap.get(networkName).overallScore;
+				eliteNetwork = networkName;
+			}
+		}
+		MNetwork eliteMNetwork = evoNetworksToProcessPlans.getNetworks().get(eliteNetwork);
+		System.out.println("EliteNetwork="+eliteNetwork);
+
+		
+		String vehicleTypeName = "metro";  double maxVelocity = 70/3.6 /*[m/s]*/;
+		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
+		double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 7.5*60;
+		int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
+		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
+		double metroOpsCostPerKM = 1000; double metroConstructionCostPerKmOverground = 1000000; double metroConstructionCostPerKmUnderground = 10000000;
+		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
+		boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
+		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
+		int iterationToReadOriginalNetwork = 100;
+		
+		// CROSS-OVERS
+		int nCrossOverCandidates = (int) Math.ceil(0.5*nOldPop);
+		List<MNetwork> newOffspring = new ArrayList<MNetwork>();
+		System.out.println("We will try nCrossOverCandidates="+nCrossOverCandidates);
+		
+		double pCrossOver=1.0;
+		double alpha = 2.0;
+		for (int n=0; n<nCrossOverCandidates; n++) {
+			Random r = new Random();
+			if (r.nextDouble()<pCrossOver) {
+				String nameParent1;
+				String nameParent2;
+				nameParent1 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap);
+				System.out.println("ParentName 1="+nameParent1);
+				do{
+					nameParent2 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap);
+				}while(nameParent1.equals(nameParent2));
+				System.out.println("ParentName 2="+nameParent2);
+				MNetwork parentMNetwork1 = evoNetworksToProcessPlans.getNetworks().get(nameParent1);
+				MNetwork parentMNetwork2 = evoNetworksToProcessPlans.getNetworks().get(nameParent2);
+				MNetwork[] offspringMNetworks = NetworkEvolutionImpl.crossMNetworks(globalNetwork, parentMNetwork1, parentMNetwork2,
+						vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
+						stopTime, blocksLane, metroConstructionCostPerKmOverground,
+						metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork,
+						useOdPairsForInitialRoutes); // (make sure IDs are same as parent Networks to remove old network adding to newPopulation)
+				newOffspring.add(offspringMNetworks[0]);
+				newOffspring.add(offspringMNetworks[1]);
+				for (String mr : newOffspring.get(0).routeMap.keySet()) {
+					System.out.println("New offspring Network1 includes route = "+newOffspring.get(0).routeMap.get(mr).linkList.toString());
+				}
+				for (String mr : newOffspring.get(1).routeMap.keySet()) {
+					System.out.println("New offspring Network2 includes route = "+newOffspring.get(1).routeMap.get(mr).linkList.toString());
+				}
+			}
+		}
+		int nNewOffspring = newOffspring.size();
+		System.out.println("nNewOffspring="+nNewOffspring);
+		if(nNewOffspring != 0) {
+			List<String> deletedNetworkNames = NetworkEvolutionImpl.RemoveWeakestNetworks(newPopulation, nNewOffspring);
+			System.out.println("deletedNetworkNames="+deletedNetworkNames.toString());
+			do {
+				NetworkEvolutionImpl.RenameOffspring(deletedNetworkNames.get(0), newOffspring.get(0));	// renaming offspring with its MNetworkId and the Id of all its MRoutes
+				newPopulation.networkMap.put(newOffspring.get(0).networkID, newOffspring.get(0));
+				deletedNetworkNames.remove(0);
+				newOffspring.remove(0);
+			}while(deletedNetworkNames.size()>0);
+		}
+		if (nNewOffspring == nOldPop) {										// check with this condition if all old networks have been deleted for new offspring
+			newPopulation.networkMap.put(eliteNetwork, eliteMNetwork);		// if also elite network has been deleted, add manually again (it will replace the new one with the same name)
+		}
+		
+		
+		// read out all final network routes !!
+		for(MNetwork mnetwork : newPopulation.networkMap.values()) {
+			for (String mr : mnetwork.routeMap.keySet()) {
+				System.out.println("Network="+mnetwork.networkID+"   |   Route="+mnetwork.routeMap.get(mr).linkList.toString());
+			}
+		}
+		
+	// %%%%%%%%%%%%%%%%%%%% REMOVE from List - RETURN TYPE %%%%%%%%%%%%%%%%%%%%
+		
+		/*List<String> strings = new ArrayList<String>();
+		strings.add("hello1");
+		System.out.println(strings.remove(0));*/
+		
+	// %%%%%%%%%%%%%%%%%%%% NULL Testing %%%%%%%%%%%%%%%%%%%%
+		
+		/*MNetwork mn1 = new MNetwork("MN1");
+		MNetwork mn2 = new MNetwork("MN2");
+		MNetworkPop mnPop1 = new MNetworkPop("MNPOP1");
+		mnPop1.networkMap = new HashMap<String, MNetwork>();
+		mnPop1.addNetwork(mn1);
+		mnPop1.addNetwork(mn2);
+		MNetworkPop mnPop2 = new MNetworkPop("MNPOP2");
+		// mnPop2.addNetwork(mnPop1.networkMap.get("MN1"));
+		mnPop2.networkMap = mnPop1.networkMap;
+		// mnPop1.networkMap.remove("MN1");
+		mnPop1.networkMap = null;
+		System.out.println("Name OUT: "+mnPop2.networkMap.get("MN1").networkID.toString());*/
+		
+		
+		
+	// %%%%%%%%%%%%%%%%%%%% Save & Load MNetwork(Pop) %%%%%%%%%%%%%%%%%%%%
+		
+		/*Scenario sc1 = ScenarioUtils.createScenario(ConfigUtils.createConfig());
+		Network network1 = sc1.getNetwork();
+		Node toNode1 = network1.getFactory().createNode(Id.createNodeId("toNode1"), new Coord(0.0,0.0));
+		Node fromNode1 = network1.getFactory().createNode(Id.createNodeId("fromNode1"), new Coord(1.0,1.0));
+		network1.addNode(fromNode1);
+		network1.addNode(toNode1);
+		Link link1 = network1.getFactory().createLink(Id.createLinkId("Link2"), fromNode1, toNode1);
+		network1.addLink(link1);
+		
+		Scenario sc2 = ScenarioUtils.createScenario(ConfigUtils.createConfig());
+		Network network2 = sc2.getNetwork();
+		Node toNode2 = network2.getFactory().createNode(Id.createNodeId("toNode2"), new Coord(2.0,2.0));
+		Node fromNode2 = network2.getFactory().createNode(Id.createNodeId("fromNode2"), new Coord(3.0,3.0));
+		network2.addNode(fromNode2);
+		network2.addNode(toNode2);
+		Link link2 = network2.getFactory().createLink(Id.createLinkId("Link2"), fromNode2, toNode2);
+		network2.addLink(link2);
+		
+		MNetwork mnetwork1 = new MNetwork("mnetwork1");
+		MNetwork mnetwork2 = new MNetwork("mnetwork2");	
+		mnetwork1.network = network1;
+		mnetwork2.network = network2;
+		
+		MNetworkPop mnetworkPop = new MNetworkPop("mnetworkPopulation");
+		mnetworkPop.networkMap.put(mnetwork1.networkID, mnetwork1);
+		mnetworkPop.networkMap.put(mnetwork2.networkID, mnetwork2);
+		
+		XMLOps.writeToFileMNetworkPop(mnetworkPop, "zurich_1pm/Evolution/Population/PopTest.xml");
+		
+		MNetworkPop mnp = XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/PopTest.xml");
+		for (String mns : mnp.networkMap.keySet()) {
+			System.out.println("MNetwork "+mns+" is named "+mnp.networkMap.get(mns).networkID+" and its network has the following nodes: "+mnp.networkMap.get(mns).network.getNodes().toString());
+		}*/
+		
+			
+			
+	// %%%%%%%%%%%%%%%%%%%% PeoplePlansProcessing %%%%%%%%%%%%%%%%%%%%
+		
+		//NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240);
+		//NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput_BACKUP__100/output_plans.xml.gz", 240);
+		//NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Evolution/Population/Network1/Simulation_Output/output_plans.xml.gz", 240);
+
+	// %%%%%%%%%%%%%%%%%%%% Plotting network evolution performance %%%%%%%%%%%%%%%%%%%%
+
+		/*int generationsToPlot = 50;
 		//NetworkEvolutionImpl.writeChartAverageGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionAverageOfGeneration.png");
 		//NetworkEvolutionImpl.writeChartBestGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionBestScoreOfGeneration.png");
-		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolution.png");
+		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolution.png");*/
 		
-		// %%%%%%%%%%%%%%%%%%%% Displaying and Operating on an ArrayList %%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%% Displaying and Operating on an ArrayList %%%%%%%%%%%%%%%%%%%%
 		/*List<String> stringList = new ArrayList<String>();
 		stringList.add("String1");
 		stringList.add("String2");
 		stringList.add("String3");
 		stringList.add("String4");
 		stringList.add("String5");
-		System.out.println(stringList.toString());
+		System.out.println(stringList.subList(2, 4));*/
+
+		/*System.out.println(stringList.toString());
 		List<String> stringListCut = new ArrayList<String>();
 		stringListCut = stringList;
 		int index3 = stringList.indexOf("String3");
@@ -68,9 +368,9 @@ public class Demo {
 		System.out.println(OD_ProcessorImpl.OppositeLinkListOf(linkIds).toString());*/
 
 
-		// %%%%%%%%%%%%%%%%%%%% ... %%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%% ... %%%%%%%%%%%%%%%%%%%%
 		
-		// %%%%%%%%%%%%%%%%%%%% Plotter %%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%% Plotter %%%%%%%%%%%%%%%%%%%%
 
 		/*int generationsToPlot = 3;
 		NetworkEvolutionImpl.writeChartAverageGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionAverageOfGeneration.png");
@@ -89,7 +389,7 @@ public class Demo {
 		personTravelTime = personTravelTime + (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
 		System.out.println("Total Person Travel Time of this leg in [s] = "+personTravelTime);*/
 		
-		// %%%%%%%%%%%%%%%%%%%% XMLWriter %%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%% XMLWriter %%%%%%%%%%%%%%%%%%%%
 		
 		/*XStream xstream = new XStream(new StaxDriver());
 		xstream.alias("mnetwork", MNetwork.class);	
@@ -115,7 +415,7 @@ public class Demo {
 		System.out.println("MNetwork2's name is: "+mnetwork4.networkID);*/
 		
 		
-		// %%%%%%%%%%%%%%%%%%%% FAILED: Serialization of Objects without Serializable %%%%%%%%%%%%%%%%%%%%
+	// %%%%%%%%%%%%%%%%%%%% FAILED: Serialization of Objects without Serializable %%%%%%%%%%%%%%%%%%%%
 		
 		//MObjectWriter.serializeToXML2(mnetwork1, "zurich_1pm/Evolution/Population/Network1/Objects/"+mnetwork1.networkID+".ser");
 		//MObjectWriter.serializeToXML2(mnetwork2, "zurich_1pm/Evolution/Population/Network2/Objects/"+mnetwork2.networkID+".ser");
@@ -299,6 +599,15 @@ public class Demo {
 		
 
 	} // end of main method
+	
+	public static List<String> OppositeOf(List<String> listIn){
+		List<String> oppositeList = new ArrayList<String>(listIn.size());
+		for (int i=0; i<listIn.size(); i++) {
+			oppositeList.add(listIn.get(listIn.size()-1-i));
+		}
+		return oppositeList;
+	}
+	
 } // end of Demo class
 
 
@@ -390,6 +699,8 @@ import ch.ethz.matsim.baseline_scenario.transit.events.PublicTransitEvent;
  	     Type value = type.getActualTypeArguments()[1];
  	     System.out.println("Value: " + value);
  	  	*/
+
+
 
 
 /*

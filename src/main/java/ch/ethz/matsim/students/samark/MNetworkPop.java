@@ -10,6 +10,7 @@ public class MNetworkPop implements Serializable{
 	
 	String populationId;
 	Map<String, MNetwork> networkMap;
+	Map<String, String> mNetworkFileLocationMap;
 
 	
 	public MNetworkPop() {

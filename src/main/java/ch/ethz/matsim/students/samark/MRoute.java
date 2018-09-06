@@ -27,6 +27,8 @@ public class MRoute implements Serializable{
 	
 	// from transitScheduleFile
 	int nDepartures;
+	double departureSpacing;
+	double firstDeparture;
 	String transitScheduleFile;
 	double drivenKM;
 	double opsCost;

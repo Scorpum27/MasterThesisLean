@@ -52,6 +52,8 @@ public class NetworkEvolutionRunSim {
 		modConfig.getModules().get("controler").addParam("lastIteration", Integer.toString(lastIteration));
 		modConfig.getModules().get("controler").addParam("writeEventsInterval", "1");
 		String inputNetworkFile = "";
+//		[OLD] input Network file: Take the more holistic network with all possible links because when merging these single networks,
+//		where only the new networkRoute links have been added, the resulting networks may not have the same links
 		if (initialRouteType.equals("OD")) {
 			inputNetworkFile = "Evolution/Population/"+mNetwork.networkID+"/MergedNetworkODInitialRoutes.xml";
 		}
@@ -62,6 +64,8 @@ public class NetworkEvolutionRunSim {
 			System.out.println("ERROR: Do not know which inputNetwork to simulate. "
 					+ "Please specify in initialNetworkType and make sure such a network file actually exists!");
 		}
+//		// USE THIS HERE FOR GLOBAL NETWORK WITH ALL METRO LINKS AND NOT JUST CURRENT ROUTE ONES !!
+//		inputNetworkFile = "Evolution/Population/GlobalMetroNetwork.xml";
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
 		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml");
@@ -182,7 +186,7 @@ public class NetworkEvolutionRunSim {
 					mNetwork.routeMap.put(routeId, mRoute);
 				}
 			}
-	
+
 			// fill in performance indicators and scores in MNetworks
 			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
 			mNetwork.totalMetroPersonKM = totalMetroPersonKM;
@@ -259,6 +263,8 @@ public class NetworkEvolutionRunSim {
 			mNetwork.stdDeviationTravelTime = standardDeviation;
 			//System.out.println("standardDeviation = " + mNetwork.stdDeviationTravelTime);
 			//System.out.println("averageTravelTime = " + mNetwork.averageTravelTime);
+			
+			
 			
 		}
 		for (MNetwork network : networkPopulation.networkMap.values()) {

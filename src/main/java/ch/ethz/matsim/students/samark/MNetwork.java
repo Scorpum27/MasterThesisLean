@@ -20,32 +20,79 @@ public class MNetwork implements Serializable{
 	private static final long serialVersionUID = 1L;
 
 	public MNetwork() {
+		this.totalMetroPersonKM = 0.0;
+		this.averageTravelTime = Double.MAX_VALUE;
+		this.stdDeviationTravelTime = Double.MAX_VALUE;
+		this.totalTravelTime = Double.MAX_VALUE;
+		this.totalMetroPersonKM = 0.0;
+		this.personKMdirect = 0.0;
+		this.nMetroUsers = 0;
+		this.drivenKM = 0.0;
+		this.totalRouteLength = 0.0;		
+		this.opsCost = Double.MAX_VALUE;
+		this.constrCost = Double.MAX_VALUE;
+		this.evolutionGeneration = 0;
+		this.overallScore = 0.0;
 	}
 	
 	public MNetwork(String name) {
 		this.networkID = name;
 		this.routeMap = new HashMap<String, MRoute>();
+		this.totalMetroPersonKM = 0.0;
+		this.averageTravelTime = Double.MAX_VALUE;
+		this.stdDeviationTravelTime = Double.MAX_VALUE;
+		this.totalTravelTime = Double.MAX_VALUE;
+		this.totalMetroPersonKM = 0.0;
+		this.personKMdirect = 0.0;
+		this.nMetroUsers = 0;
+		this.drivenKM = 0.0;
+		this.opsCost = Double.MAX_VALUE;
+		this.constrCost = Double.MAX_VALUE;
+		this.evolutionGeneration = 0;
+		this.overallScore = 0.0;
+		this.totalRouteLength = 0.0;		
+	}
+	
+	public void calculateNetworkScore() {
+//		double a = 10.0;
+//		double b = 25.0;
+//		this.overallScore = a/(this.averageTravelTime-60)+ b*this.totalMetroPersonKM/this.drivenKM;
+		double c = 100.0;
+		double d = 100.0;
+		this.overallScore = Math.exp((this.averageTravelTime-60)/(-c))+Math.exp((this.drivenKM/this.totalMetroPersonKM)/(-d));
+	}
+	
+	public void calculateTotalRouteLength() {
+		double totalRouteLength = 0.0;
+		for (MRoute mroute : this.routeMap.values()) {
+			totalRouteLength += mroute.routeLength;
+		}
+		this.totalRouteLength = totalRouteLength;
 	}
 	
 	Network network;
+	String networkFileLocation;
 	String networkID;
 	Map<String, MRoute> routeMap;
+	double totalRouteLength;			// calculate from individual route lengths (one-way only) 
 	TransitSchedule transitSchedule;
 	Vehicles vehicles;
 	
 	// from events
-	double totalMetroPersonKM;
-	double personKMdirect;
-	int nMetroUsers;
+	double totalMetroPersonKM;		// NetworkEvolutionRunSim.runEventsProcessing
+	double personKMdirect;			// to be implemented in: NetworkEvolutionRunSim.runEventsProcessing
+	int nMetroUsers;				// NetworkEvolutionRunSim.runEventsProcessing
 	// from transitSchedule
-	double drivenKM;
-	double opsCost;
-	double constrCost;
+	double drivenKM;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
+	double opsCost;					// to be implemented in NetworkEvolution
+	double constrCost;				// to be implemented in NetworkEvolution
 	// from evolution loop
-	int evolutionGeneration;
-	double averageTravelTime;
-	double stdDeviationTravelTime;
-	double totalTravelTime;
+	int evolutionGeneration;		// NetworkEvolution --> Evolutionary loop
+	double averageTravelTime;		// NetworkEvolutionRunSim.peoplePlansProcessingM
+	double stdDeviationTravelTime;	// NetworkEvolutionRunSim.peoplePlansProcessingM
+	double totalTravelTime; 		// NetworkEvolutionRunSim.peoplePlansProcessingM
+	// Calculate
+	double overallScore;			// NetworkEvolution main separate line
 	
 	public double getTotalTravelTime() {
 		return this.totalTravelTime;

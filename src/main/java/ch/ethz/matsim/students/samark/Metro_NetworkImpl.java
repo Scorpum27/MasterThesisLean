@@ -471,14 +471,20 @@ public class Metro_NetworkImpl {
 		return linkList;
 	}
 
-	public static Network copyNetworkToNetwork(Network fromNetwork, Network toNetwork) {
+	public static Network copyNetworkToNetwork(Network fromNetwork, Network toNetwork, Set<String> transportModes) {
 		NetworkFactory networkFactory = toNetwork.getFactory();
-		
+		// connectingLinkToToNode.setAllowedModes(transportModes);
 		for (Link link : fromNetwork.getLinks().values()) {
 			Node tempFromNode = networkFactory.createNode(Id.createNodeId(link.getFromNode().getId()), link.getFromNode().getCoord());
 			Node tempToNode = networkFactory.createNode(Id.createNodeId(link.getToNode().getId()), link.getToNode().getCoord());
 			Link tempLink = networkFactory.createLink(Id.createLinkId(link.getId()), tempFromNode, tempToNode);
-			tempLink.setAllowedModes(link.getAllowedModes());
+			
+			if (transportModes == null) {
+				tempLink.setAllowedModes(link.getAllowedModes());				
+			}
+			else {
+				tempLink.setAllowedModes(transportModes);
+			}
 			if (toNetwork.getNodes().keySet().contains(tempFromNode.getId())==false) {
 				toNetwork.addNode(tempFromNode);
 			}
