@@ -16,13 +16,12 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 /* 
  * TODO Most frequent links: Merge close ones from beginning (small walking distance is justifiable for significant increase in networkEfficiency)
- * TODO Make actual evolutionary loop --> Challenge: Nice network mergers
  * TODO MUTATIONS in evo-loop
  * TODO Check Theory and Questions for Network Approach Optimization -> IVT
  * TODO Make frequency optimization !
- * TODO Check, where VC fails --> The population is zero from the start (also check event handlers for their naming and if they can be detected by algorithm!)
- * TODO storing and carrying around all networks and also these helper networks 1,2,4 etc... is it necessary? (network % is good for visualization! --> Keep it!)
- * TODO VC - also store global network that one can refer to when merging together new routes!
+ * TODO Make separate score evolution with actual OverallScore instead of bestAverageTravelTimeThisGeneration
+ * TODO !! If a network has not undergone modification (evolution), we can use the same simulationOutput as in the Generation before (as we would just simulate the same network again)
+ * TODO Check, where VC fails --> The population is zero from the start (also check event handlers for their naming and if they can be detected by algorithm!) --- VC - also store global network that one can refer to when merging together new routes!
  * TODO Introduce more randomness in MRoutesMerger
  * 
  * OD-OPTIONS: For optimization
@@ -38,6 +37,18 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  * Small todo's in code
  * Make a GeographyProcessor that calculates the OG/UG percentage from given regions
  */
+
+/*
+ * NetworkEvolutionImpl-Line 201/1101: Not necessary > test by running without 
+ * 		mNetwork.network = mergedNetwork;
+		mNetwork.transitSchedule = mergedTransitSchedule;
+		mNetwork.vehicles = mergedVehicles;
+	NetworkEvolutionImpl-Line 1021: Not necessary > test by running without	
+		mnetworkOut1.network = globalNetwork;
+		mnetworkOut2.network = globalNetwork;
+	
+ */
+
 
 public class NetworkEvolution {
 
@@ -121,7 +132,7 @@ public class NetworkEvolution {
 					defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, depSpacing, nDepartures,
 					metroOpsCostPerKM, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground);
 			networkPopulation.addNetwork(mNetwork);
-			// for network evolution log:
+			// For network Evolution log:
 			// XMLOps.writeToFileMNetwork(mNetwork, zeroLog +"/"+mNetwork.networkID);
 		}
 		MNetworkPop latestPopulation = networkPopulation;
@@ -156,14 +167,14 @@ public class NetworkEvolution {
 		// - EVENTS PROCESSING: 
 			int lastEventIteration = lastIteration; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
 			MNetworkPop evoNetworksToProcess = evoNetworksToSimulate;  // for isolated code running: MNetworkPop evoNetworksToProcess = XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/"+populationName+".xml");
-			NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration);
+			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration);
 					// only for isolated code running to store processed performance parameters:
 					// XMLOps.writeToFileMNetworkPop(evoNetworksToProcess, "zurich_1pm/Evolution/Population/"+evoNetworksToProcess.populationId+".xml");
 			
 		// - PLANS PROCESSING:
 			MNetworkPop evoNetworksToProcessPlans = evoNetworksToProcess; 	// for isolated code running: XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/"+populationName+".xml");
 			int maxConsideredTravelTimeInMin = 240;
-			NetworkEvolutionRunSim.peoplePlansProcessingM(evoNetworksToProcessPlans, maxConsideredTravelTimeInMin);
+			evoNetworksToProcessPlans = NetworkEvolutionRunSim.peoplePlansProcessingM(evoNetworksToProcessPlans, maxConsideredTravelTimeInMin);
 			
 		// - TOTAL SCORE CALCULATOR & HISTORY LOGGER: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
 			String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr;

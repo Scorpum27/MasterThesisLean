@@ -13,7 +13,6 @@ import org.matsim.api.core.v01.population.Population;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.config.ConfigWriter;
 import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
 import org.matsim.core.controler.Controler;
 import org.matsim.core.events.EventsUtils;
@@ -51,26 +50,12 @@ public class NetworkEvolutionRunSim {
 		modConfig.getModules().get("controler").addParam("overwriteFiles", "overwriteExistingFiles");
 		modConfig.getModules().get("controler").addParam("lastIteration", Integer.toString(lastIteration));
 		modConfig.getModules().get("controler").addParam("writeEventsInterval", "1");
-		String inputNetworkFile = "";
-//		[OLD] input Network file: Take the more holistic network with all possible links because when merging these single networks,
-//		where only the new networkRoute links have been added, the resulting networks may not have the same links
-		if (initialRouteType.equals("OD")) {
-			inputNetworkFile = "Evolution/Population/"+mNetwork.networkID+"/MergedNetworkODInitialRoutes.xml";
-		}
-		else if (initialRouteType.equals("Random")) {
-			inputNetworkFile = "Evolution/Population/"+mNetwork.networkID+"/MergedNetworkRandomInitialRoutes.xml";
-		}
-		else {
-			System.out.println("ERROR: Do not know which inputNetwork to simulate. "
-					+ "Please specify in initialNetworkType and make sure such a network file actually exists!");
-		}
-//		// USE THIS HERE FOR GLOBAL NETWORK WITH ALL METRO LINKS AND NOT JUST CURRENT ROUTE ONES !!
-//		inputNetworkFile = "Evolution/Population/GlobalMetroNetwork.xml";
+		String inputNetworkFile = "Evolution/Population/GlobalMetroNetwork.xml"; 
+		// See old versions BEFORE 06.09.2018 for how to load specific mergedNetworks OD/Random instead of Global Network with all links
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
 		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml");
-		ConfigWriter configWriter = new ConfigWriter(modConfig);
-		configWriter.write("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/modifiedConfig.xml");
+		// See old versions BEFORE 06.09.2018 for how to write config to file (not necessary)
 		
 		Scenario modScenario = ScenarioUtils.createScenario(modConfig);
 		modScenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class,
@@ -132,7 +117,7 @@ public class NetworkEvolutionRunSim {
 	}
 
 	
-	public static void runEventsProcessing(MNetworkPop networkPopulation, int lastIteration) {
+	public static MNetworkPop runEventsProcessing(MNetworkPop networkPopulation, int lastIteration) {
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			String networkName = mNetwork.networkID;
 			
@@ -175,7 +160,6 @@ public class NetworkEvolutionRunSim {
 				totalMetroPersonKM += personKMonRoutes.get(route);
 			}
 			//System.out.println("Total Metro TransitKM = " + totalMetroPersonKM);
-
 			
 			// fill in performance indicators and scores in MRoutes
 			for (String routeId : mNetwork.routeMap.keySet()) {
@@ -194,20 +178,17 @@ public class NetworkEvolutionRunSim {
 		}		// END of NETWORK Loop
 
 		// - Maybe hand over score to a separate score map for sorting scores
+		return networkPopulation;
 	}
 	
-	public static void peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInMin) {
-		//System.out.println("Population name = "+networkPopulation.populationId);
-		//System.out.println("Population size = "+networkPopulation.networkMap.size());
+	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInMin) {
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
-			// TEST			
 			String networkName = mNetwork.networkID;
-			//System.out.println("NetworkName = "+networkName);
 			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";			
-			Config emptyConfig = ConfigUtils.createConfig();
-			emptyConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
-			Scenario emptyScenario = ScenarioUtils.loadScenario(emptyConfig);
-			Population finalPlansPopulation = emptyScenario.getPopulation();
+			Config newConfig = ConfigUtils.createConfig();
+			newConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
+			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
+			Population finalPlansPopulation = newScenario.getPopulation();
 			//PopulationReader p = new PopulationReader(emptyScenario);
 			Double[] travelTimeBins = new Double[maxTravelTimeInMin+1];
 			for (int d=0; d<travelTimeBins.length; d++) {
@@ -228,7 +209,6 @@ public class NetworkEvolutionRunSim {
 							//System.out.println("i1 is: "+i1);
 							String travTime = element.toString().substring(i1+findString.length(), i1+findString.length()+8);
 							//System.out.println("Plan Elements Attribute travTime is: "+travTime);
-
 							//System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("trav_time"));
 							//System.out.println(element.getAttributes().getAttribute("travTime").getClass().getName());
 							String[] HourMinSec = travTime.split(":");
@@ -259,18 +239,15 @@ public class NetworkEvolutionRunSim {
 				}
 			}
 			double standardDeviation = Math.sqrt(standardDeviationInnerSum/(travels-1));
-			
 			mNetwork.stdDeviationTravelTime = standardDeviation;
-			//System.out.println("standardDeviation = " + mNetwork.stdDeviationTravelTime);
-			//System.out.println("averageTravelTime = " + mNetwork.averageTravelTime);
-			
-			
-			
+
 		}
+		// Display Travel Time Stats
 		for (MNetwork network : networkPopulation.networkMap.values()) {
 			System.out.println(network.networkID+" AverageTavelTime [min] = "+network.averageTravelTime+"   (StandardDeviation="+network.stdDeviationTravelTime+")");
 			System.out.println(network.networkID+" TotalTravelTime [min] = "+network.totalTravelTime);
 		}
+		return networkPopulation;
 	}
 	
 	public static NetworkScoreLog peoplePlansProcessingStandard(String finalOutputPlansFile, int maxTravelTimeInMin) {

@@ -60,15 +60,10 @@ public class Metro_TransitScheduleImpl {
 		
 		List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
 		routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute));
-		//routeLinkList.addAll(OppositeLinkListOf(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute)));	// This is already implemented in networkRouteGeneration
-		System.out.println("routeLinkList is: "+routeLinkList.toString());
 
 		for (Id<Link> linkID : routeLinkList) {
 			// place the stop facilities always on the FromNode of the RefLink; this way, the new facilities will have the same coords as the original network's facilities!
-			System.out.println("current LinkId in RouteLinkList is: "+linkID.toString());			
 			Link currentLink = network.getLinks().get(linkID);
-			System.out.println("currentLink is: "+currentLink.getId().toString());
-			System.out.println("blocksLane is: "+blocksLane);
 			TransitStopFacility transitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+linkID.toString(), TransitStopFacility.class), currentLink.getFromNode().getCoord(), blocksLane);
 			transitStopFacility.setName("MetroStopRefLink_"+linkID.toString());
 			transitStopFacility.setLinkId(linkID);
@@ -128,9 +123,9 @@ public class Metro_TransitScheduleImpl {
 			if (freeVehicles.isEmpty()==false) {
 				Iterator<Double> depOffsetIter = freeVehicles.keySet().iterator();
 				Double earliestFreeArrival = depOffsetIter.next();
-				System.out.println("d = "+d);
-				System.out.println("depTimeOffset = "+depTimeOffset);
-				System.out.println("earliestFreeArrival = "+earliestFreeArrival);
+//				System.out.println("d = "+d);
+//				System.out.println("depTimeOffset = "+depTimeOffset);
+//				System.out.println("earliestFreeArrival = "+earliestFreeArrival);
 				if(earliestFreeArrival < depTimeOffset) {
 					vehicle = scenario.getTransitVehicles().getVehicles().get(freeVehicles.get(earliestFreeArrival));
 					freeVehicles.remove(earliestFreeArrival);
@@ -143,7 +138,7 @@ public class Metro_TransitScheduleImpl {
 				vehicle = scenario.getTransitVehicles().getFactory().createVehicle(Id.createVehicleId(transitRoute.getId().toString()+"_"+vehicleType.getId().toString()+"_"+d), vehicleType);
 			}
 			freeVehicles.put(depTimeOffset+totalRouteTravelTime, vehicle.getId());
-			System.out.println("VehicleName is = "+vehicle.getId().toString());
+//			System.out.println("VehicleName is = "+vehicle.getId().toString());
 			
 			// System.out.println(scenario.getVehicles().getVehicles().containsKey(vehicle.getId()));
 			if (scenario.getTransitVehicles().getVehicles().containsKey(vehicle.getId())) {
@@ -169,24 +164,9 @@ public class Metro_TransitScheduleImpl {
 		Metro_NetworkImpl.copyNetworkToNetwork(routesNetwork, mergedNetwork, transportModes);
 		Metro_NetworkImpl.copyNetworkToNetwork(originalNetwork, mergedNetwork, null);
 		
+		// BEFORE 06.09.2018: Add small connectors between metro links and original links
 		// Add this part to connect new network to old network. this is NOT NECESSARY as the agents will "telewalk" to the metro nodes of the new network.
 		// This would have to be added for new car links given the fact, that only walking is teleported and cars could not reach the new links.
-		/*for (Node node : routesNetwork.getNodes().values()) {
-			Id<Link> originalRefLinkId = Metro_NetworkImpl.orginalLinkFromMetroNode(node.getId());
-			Link originalRefLink = originalNetwork.getLinks().get(originalRefLinkId);
-			Link connectingLinkToToNode = originalNetwork.getFactory().createLink(Id.createLinkId("Connector_newNode"+node.getId().toString()+"_originalNode"+originalRefLink.getToNode().getId().toString()), mergedNetwork.getNodes().get(node.getId()), mergedNetwork.getNodes().get(originalRefLink.getToNode().getId())); 
-			Link connectingLinkToFromNode = originalNetwork.getFactory().createLink(Id.createLinkId("Connector_newNode"+node.getId().toString()+"_originalNode"+originalRefLink.getFromNode().getId().toString()), mergedNetwork.getNodes().get(node.getId()), mergedNetwork.getNodes().get(originalRefLink.getFromNode().getId())); 
-			Link connectingLinkFromToNode = originalNetwork.getFactory().createLink(Id.createLinkId("Connector_originalNode"+originalRefLink.getToNode().getId().toString()+"_newNode"+node.getId().toString()), mergedNetwork.getNodes().get(originalRefLink.getToNode().getId()), mergedNetwork.getNodes().get(node.getId())); 
-			Link connectingLinkFromFromNode = originalNetwork.getFactory().createLink(Id.createLinkId("Connector_originalNode"+originalRefLink.getFromNode().getId().toString()+"_newNode"+node.getId().toString()), mergedNetwork.getNodes().get(originalRefLink.getFromNode().getId()), mergedNetwork.getNodes().get(node.getId())); 
-			connectingLinkToToNode.setAllowedModes(transportModes);
-			connectingLinkToFromNode.setAllowedModes(transportModes);
-			connectingLinkFromToNode.setAllowedModes(transportModes);
-			connectingLinkFromFromNode.setAllowedModes(transportModes);
-			mergedNetwork.addLink(connectingLinkToToNode);
-			mergedNetwork.addLink(connectingLinkToFromNode);
-			mergedNetwork.addLink(connectingLinkFromToNode);
-			mergedNetwork.addLink(connectingLinkFromFromNode);
-		}*/
 		
 		NetworkWriter initialRoutesNetworkWriter = new NetworkWriter(mergedNetwork);
 		initialRoutesNetworkWriter.write(fileName);

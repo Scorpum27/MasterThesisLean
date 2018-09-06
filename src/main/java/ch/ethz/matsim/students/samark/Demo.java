@@ -27,6 +27,7 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 
+		
 	// %%%%%%%%%%%%%%%%%%%% CROSSOVER TESTER %%%%%%%%%%%%%%%%%%%%
 		
 		Config config = ConfigUtils.createConfig();
@@ -183,8 +184,8 @@ public class Demo {
 		
 		String vehicleTypeName = "metro";  double maxVelocity = 70/3.6 /*[m/s]*/;
 		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
-		double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 7.5*60;
-		int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
+//		double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 7.5*60;
+//		int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
 		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		double metroOpsCostPerKM = 1000; double metroConstructionCostPerKmOverground = 1000000; double metroConstructionCostPerKmUnderground = 10000000;
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
