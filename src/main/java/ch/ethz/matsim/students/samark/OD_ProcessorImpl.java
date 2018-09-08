@@ -35,7 +35,7 @@ public class OD_ProcessorImpl {
 	
 	public static ArrayList<NetworkRoute> createInitialRoutesOD(Network metroNetwork,
 			int nRoutes, double minRadius, double maxRadius, double odConsiderationThreshold, Coord cityCenterCoord,
-			String csvFileODValues, String csvFileODLocations, double xOffset, double yOffset) {
+			String csvFileODValues, String csvFileODLocations, double xOffset, double yOffset) throws IOException {
 		
 		List<String[]> odLocations = new ArrayList<String[]>();
 		List<String[]> odValues = new ArrayList<String[]>();
@@ -290,6 +290,7 @@ public class OD_ProcessorImpl {
 			twowayLinkList.add(onewayRoute.getEndLinkId());
 			twowayLinkList.addAll(OppositeLinkListOf(twowayLinkList));
 			NetworkRoute twowayRoute = RouteUtils.createNetworkRoute(twowayLinkList, metroNetwork);
+			Log.write("Created OD-Links NetworkRoute with Links: "+"\r\n"+twowayLinkList.toString());
 			networkRouteArray.add(twowayRoute);
 			// nr++;
 			// For displaying single routes:

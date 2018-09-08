@@ -54,12 +54,17 @@ public class MNetwork implements Serializable{
 	}
 	
 	public void calculateNetworkScore() {
-//		double a = 10.0;
-//		double b = 25.0;
-//		this.overallScore = a/(this.averageTravelTime-60)+ b*this.totalMetroPersonKM/this.drivenKM;
-		double c = 100.0;
-		double d = 100.0;
-		this.overallScore = Math.exp((this.averageTravelTime-60)/(-c))+Math.exp((this.drivenKM/this.totalMetroPersonKM)/(-d));
+		double a1 = 100.0;
+		double b = 18000000.0;
+		double c = -0.266;
+		double d = 0.764;
+		this.overallScore = Math.exp((this.averageTravelTime-60)/(-a1))  +  this.totalMetroPersonKM/100000 * (c+Math.exp((this.drivenKM)/(b)-d));	// CostPerMetroKM = C(m) = c+exp(this.drivenKM/b-d)
+//		double a1 = 100.0;  double b = 18000000.0;  double c = -0.266;  double d = 0.764;
+//		System.out.println("Math.exp((this.averageTravelTime-60)/(-a1))  +  this.totalMetroPersonKM/100000 * (c+Math.exp((this.drivenKM)/(b)-d)); = " + Math.exp((mnetwork.averageTravelTime-60)/(-a1)) +" + " +mnetwork.totalMetroPersonKM/100000 * (c+Math.exp((mnetwork.drivenKM)/(b)-d)));
+		
+		// double a2 = 100.0;
+		// old scoring function: this.overallScore = Math.exp((this.averageTravelTime-60)/(-a1))  +  Math.exp((this.drivenKM/this.totalMetroPersonKM)/(-a2));
+
 	}
 	
 	public void calculateTotalRouteLength() {

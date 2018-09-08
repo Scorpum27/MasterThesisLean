@@ -1,6 +1,7 @@
 package ch.ethz.matsim.students.samark;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -37,7 +38,9 @@ import ch.ethz.matsim.papers.mode_choice_paper.utils.LongPlanFilter;
 public class NetworkEvolutionRunSim {
 
 	public static void run(String[] args, MNetwork mNetwork, String initialRouteType, 
-			String initialConfig, int lastIteration) throws ConfigurationException  {
+			String initialConfig, int lastIteration) throws ConfigurationException, IOException  {
+		
+		Log.write("  >> Running MATSim simulation on Network = : "+mNetwork.networkID);
 		
 		CommandLine cmd = new CommandLine.Builder(args)
 				.allowOptions("model-type", "fallback-behaviour")
@@ -117,9 +120,14 @@ public class NetworkEvolutionRunSim {
 	}
 
 	
-	public static MNetworkPop runEventsProcessing(MNetworkPop networkPopulation, int lastIteration) {
+	public static MNetworkPop runEventsProcessing(MNetworkPop networkPopulation, int lastIteration) throws IOException {
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
+			if(networkPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
+				continue;
+			}
+			Log.write("  >> Running Events Processing on Network = : "+mNetwork.networkID);
 			String networkName = mNetwork.networkID;
+
 			
 			// read and handle events
 			String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			

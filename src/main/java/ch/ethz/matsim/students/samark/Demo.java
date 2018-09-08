@@ -28,13 +28,24 @@ public class Demo {
 	public static void main(String[] args) throws IOException {
 
 		
+		
 	// %%%%%%%%%%%%%%%%%%%% CROSSOVER TESTER %%%%%%%%%%%%%%%%%%%%
+
+	// Test Network:	//	   14      19
+						//	    |       |
+						//	5---6---7---8---9
+						//	    |       |		
+						//	   12       17
+						//	    |       |		   
+						//	0---1---2---3---4
+						//	    |       |	
+						//	   12       15
 		
 		Config config = ConfigUtils.createConfig();
 		Scenario scenario0 = ScenarioUtils.loadScenario(config);
 		Network network = scenario0.getNetwork();
 		NetworkFactory nf = network.getFactory();
-		config.getModules().get("network").addParam("inputNetworkFile", "Evolution/Population/GlobalMetroNetwork.xml");
+		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/GlobalMetroNetwork.xml");
 		Scenario scenario1 = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario1.getNetwork();
 		
@@ -161,6 +172,7 @@ public class Demo {
 		networkScoreMap.put("Network2", nsl2);
 		
 
+	for (int g=0; g<10; g++) {
 		
 		MNetworkPop newPopulation = new MNetworkPop(evoNetworksToProcessPlans.populationId);
 		newPopulation.networkMap = evoNetworksToProcessPlans.networkMap;
@@ -199,7 +211,7 @@ public class Demo {
 		System.out.println("We will try nCrossOverCandidates="+nCrossOverCandidates);
 		
 		double pCrossOver=1.0;
-		double alpha = 2.0;
+		double alpha = 10.0;
 		for (int n=0; n<nCrossOverCandidates; n++) {
 			Random r = new Random();
 			if (r.nextDouble()<pCrossOver) {
@@ -213,7 +225,7 @@ public class Demo {
 				System.out.println("ParentName 2="+nameParent2);
 				MNetwork parentMNetwork1 = evoNetworksToProcessPlans.getNetworks().get(nameParent1);
 				MNetwork parentMNetwork2 = evoNetworksToProcessPlans.getNetworks().get(nameParent2);
-				MNetwork[] offspringMNetworks = NetworkEvolutionImpl.crossMNetworks(globalNetwork, parentMNetwork1, parentMNetwork2,
+				MNetwork[] offspringMNetworks = NetworkEvolutionImpl.crossMNetworks(network, parentMNetwork1, parentMNetwork2,
 						vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
 						stopTime, blocksLane, metroConstructionCostPerKmOverground,
 						metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork,
@@ -251,6 +263,51 @@ public class Demo {
 				System.out.println("Network="+mnetwork.networkID+"   |   Route="+mnetwork.routeMap.get(mr).linkList.toString());
 			}
 		}
+		
+		evoNetworksToProcessPlans = newPopulation;
+	}
+	
+		
+	// %%%%%%%%%%%%%%%%%%%% MODIFYING MAP WHILE LOOPING IT --> TEMP_MAP %%%%%%%%%%%%%%%%%%%%
+
+				/*Map<Integer, Integer> mergedInt = new HashMap<Integer, Integer>();
+				for (int i=0; i<13; i++) {
+					mergedInt.put(i, 1);
+				}
+				
+				// Map<Integer, Integer> mergedIntCopy = mergedInt;
+				Map<Integer, Integer> mergedIntX = new HashMap<Integer, Integer>();
+				
+				do {	
+					List<Integer> toBeDeletedInts = new ArrayList<Integer>();
+					Iterator<Integer> intIter = mergedInt.keySet().iterator();
+					int thisInt = intIter.next();
+					System.out.println("thisInt="+thisInt);
+
+					toBeDeletedInts.add(thisInt);
+					System.out.println("Adding to be deleted="+thisInt);
+
+					mergedIntX.put(thisInt, 1);
+					for (int otherInt : mergedInt.keySet()) {
+						System.out.println("OtherInt="+otherInt);
+						if(thisInt == otherInt) {
+							continue;
+						}
+						if(Math.abs(thisInt-otherInt)<=3) {
+							mergedIntX.put(thisInt, mergedIntX.get(thisInt)+1);
+							toBeDeletedInts.add(otherInt);
+							System.out.println("Adding to be deleted="+otherInt);
+						}				
+					}
+					for (int l : toBeDeletedInts) {
+						mergedInt.remove(l);
+					}
+				}while(mergedInt.size()>0);
+				
+				
+				for (int m : mergedIntX.keySet()) {
+					System.out.println("Key "+m+" has score "+mergedIntX.get(m));
+				}*/
 		
 	// %%%%%%%%%%%%%%%%%%%% REMOVE from List - RETURN TYPE %%%%%%%%%%%%%%%%%%%%
 		
