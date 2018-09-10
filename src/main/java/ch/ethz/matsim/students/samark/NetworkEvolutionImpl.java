@@ -972,16 +972,16 @@ public class NetworkEvolutionImpl {
 	public static MNetworkPop developGeneration(Network globalNetwork, Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop evoNetworksToProcessPlans, String populationName,
 			Double alpha, Double pCrossOver, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM,
 			int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes, String vehicleTypeName, double vehicleLength, double maxVelocity, 
-			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane) throws IOException {
+			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes) throws IOException {
 		
 		// Copy oldPopulation (evoNetworksToProcessPlans) to new one to fill in gradually with new offspring afterwards
 		MNetworkPop newPopulation = new MNetworkPop(evoNetworksToProcessPlans.populationId);
-		newPopulation.networkMap = evoNetworksToProcessPlans.networkMap;
+		newPopulation.networkMap = evoNetworksToProcessPlans.getNetworks();
 		int nOldPop = newPopulation.networkMap.size();
 		
 		// List<MRoute> offspringRoutes = new ArrayList<MRoute>();
 		// find and store Elite network
-		String eliteNetwork = "";
+		String eliteNetwork = "NoEliteNetworkYet";
 		if (networkScoreMap.size() == 0) {		System.out.println("CAUTION: NetworkScoreMapSize is zero!");	}
 		double maxNetworkScore = -Double.MAX_VALUE;
 		for (String networkName : networkScoreMap.keySet()) {
@@ -1052,12 +1052,14 @@ public class NetworkEvolutionImpl {
 			Log.write("   >>> Putting back removed ELITE NETWORK = " + eliteNetwork);
 		}
 		Log.write("   >>> Processed Networks = " + processedNetworks.toString());
-		for (MNetwork mn : newPopulation.networkMap.values()) {
-			for (String mString:mn.routeMap.keySet()){
-				 MRoute mr=mn.routeMap.get(mString);
-				 Log.writeAndDisplay("   >>> "+mString+" = "+mr.linkList.subList(0, mr.linkList.size()/2).toString());
-				 }
-
+		if (logEntireRoutes) {
+			for (MNetwork mn : newPopulation.networkMap.values()) {
+				for (String mString : mn.routeMap.keySet()) {
+					MRoute mr = mn.routeMap.get(mString);
+					Log.writeAndDisplay(
+							"   >>> " + mString + " = " + mr.linkList.subList(0, mr.linkList.size() / 2).toString());
+				}
+			}
 		}
 		// Read out all final network routes
 		/*for(MNetwork mnetwork : newPopulation.networkMap.values()) {
@@ -1082,8 +1084,8 @@ public class NetworkEvolutionImpl {
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, double metroConstructionCostPerKmOverground,
 			double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM, int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes) throws IOException {
 		
-		Map<String, MRoute> routesPool1 = parentMNetwork1.getRouteMap();
-		Map<String, MRoute> routesPool2 = parentMNetwork2.getRouteMap();
+		Map<String, MRoute> routesPool1 = Clone.mRouteMap(parentMNetwork1.getRouteMap());
+		Map<String, MRoute> routesPool2 = Clone.mRouteMap(parentMNetwork2.getRouteMap());
 		Map<String, MRoute> routesOut1 = new HashMap<String, MRoute>();
 		Map<String, MRoute> routesOut2 = new HashMap<String, MRoute>();
 		

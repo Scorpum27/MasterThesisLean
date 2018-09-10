@@ -2,47 +2,44 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
+import java.util.Set;
 
 
 public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 
+	// Clone Tester
+		
+		Set<String> l1 = new HashSet<String>();
+		l1.add("hello");
+		l1.add("hope it works");
+		Set<String> l2 = Clone.set(l1);
+		System.out.println(l2.toString());
+		
 	// MRoute Dynamic map during loop tester
 		
-		Map<String, String> routesPool1 = new HashMap<String, String>();
-		Map<String, String> routesPool2 = new HashMap<String, String>();
-		Map<String, String> routesOut1 = new HashMap<String, String>();
-		Map<String, String> routesOut2 = new HashMap<String, String>();
-		Loop1:
-		for (String routeP1name : routesPool1.keySet()) {
-			String routeFromP1 = routesPool1.get(routeP1name);
-			for (String routeP2name : routesPool2.keySet()) {
-				String routeFromP2 = routesPool2.get(routeP2name);
-				// hand over IDs to new crossed routes
-				// make route and transitSchedule and calculate stuff here (maybe store frequency in MRoute itself!)
-				System.out.println("Now trying to cross routes:  "+routeFromP1+ " & " + routeFromP2);
-				String[] crossedRoutes = new String[] {routeFromP1+routeFromP2,routeFromP2+routeFromP1};
-				if (crossedRoutes != null) {
-					System.out.println("Success - new Route A = "+crossedRoutes[0]);
-					System.out.println("Success - new Route B = "+crossedRoutes[1]);
-					routesOut1.put(crossedRoutes[0], crossedRoutes[0]);
-					routesOut2.put(crossedRoutes[1], crossedRoutes[1]);
-					continue Loop1;
-				}
-			}
-			// this will come in place if inner loop has not found a feasible crossing and has therefore not broken inner loop to jump to outer loop
-			routesOut1.put(routeFromP1, routeFromP1);	
-		}
-		for (Integer routeFromP2 : routesPool2.values()) { // add all routesFromP2 that could not be crossed with any routesFromP1
-			if (routesOut2.containsKey(routeFromP2)==false) {
-				routesOut2.put(routeFromP2, routeFromP2);
-			}
+		/*MNetworkPop mpop = new MNetworkPop("Mpop");
+		MNetwork mn1 = new MNetwork("mn1");
+		MNetwork mn2 = new MNetwork("mn2");
+		MNetwork mn3 = new MNetwork("mn3");
+		mpop.addNetwork(mn1);
+		mpop.addNetwork(mn2);
+		mpop.addNetwork(mn3);
+		
+		Map<String, MNetwork> mnMap = new HashMap<String, MNetwork>();
+		mnMap = mpop.getNetworks();
+		mnMap.get("mn1").networkID = "mn2";
+		System.out.println(mnMap.get("mn1").networkID);
+		for (String mns : mpop.networkMap.keySet()) {
+			System.out.println(mpop.networkMap.get(mns).networkID);
 		}
 		
+		mpop.addNetwork(mn1);*/
+		
+			
 	// %%%%%%%%%%%%%%%%%%%% SCORES PLOTTER %%%%%%%%%%%%%%%%%%%%
 
 		/*int generationsToPlot = 6-1;	// always one less than last generation (bc last evolution is not simulated)

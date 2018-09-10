@@ -107,7 +107,7 @@ public class NetworkEvolution {
 		double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
 		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
-		int nMostFrequentLinks = 70;												// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
+		int nMostFrequentLinks = 140;												// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
 		double maxNewMetroLinkDistance = 0.40*metroCityRadius;						// DEFAULT = 0.40*metroCityRadius
 		double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
 																					// DEFAULT = 0.20*metroCityRadius for RandomRoutes
@@ -170,7 +170,7 @@ public class NetworkEvolution {
 					// for isolated code running:
 					// XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/"+populationName+".xml");
 			for (MNetwork mNetwork : evoNetworksToSimulate.getNetworks().values()) {
-				if (evoNetworksToSimulate.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
+				if (evoNetworksToSimulate.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())==false) {
 					continue;		// must not simulate this loop again, because it has not been changed in last evolution
 									// Comment this if lastIteration changes over evolutions !!
 				}
@@ -201,8 +201,8 @@ public class NetworkEvolution {
 			boolean performanceGoalAccomplished = false;
 			for (String networkName : evoNetworksToProcessPlans.getNetworks().keySet()) {
 				MNetwork mnetwork = evoNetworksToProcessPlans.getNetworks().get(networkName);
-				Log.write("  >> Logging (and calculating) score for Network = : "+mnetwork.networkID);
-				if(evoNetworksToProcessPlans.modifiedNetworksInLastEvolution.contains(mnetwork.networkID)) {
+				Log.write("  >> Logging (and calculating) score for Network = : "+mnetwork.getNetworkID());
+				if(evoNetworksToProcessPlans.modifiedNetworksInLastEvolution.contains(mnetwork.getNetworkID())) {
 					mnetwork.calculateTotalRouteLength();
 					mnetwork.drivenKM = mnetwork.totalRouteLength*(2*nDepartures);
 					mnetwork.calculateNetworkScore();		// from internal scoring parameters calculate overall score according to internal function
@@ -210,12 +210,12 @@ public class NetworkEvolution {
 						if (mnetwork.averageTravelTime < averageTravelTimePerformanceGoal) {
 							performanceGoalAccomplished = true;
 							successfulNetwork = mnetwork;
-							successfulAverageTravelTime = mnetwork.averageTravelTime;
+							successfulAverageTravelTime = mnetwork.getAverageTravelTime();
 						}					
 					}
 					if (performanceGoalAccomplished == true) {		// this loop is for the case that performance goal is achieved by one network, but in same iteration another network has an even better score
 						if (mnetwork.averageTravelTime < successfulAverageTravelTime) {
-							successfulAverageTravelTime = mnetwork.averageTravelTime;
+							successfulAverageTravelTime = mnetwork.getAverageTravelTime();
 							successfulNetwork = mnetwork;
 						}				
 					}
@@ -224,10 +224,10 @@ public class NetworkEvolution {
 				nsl.NetworkScore2LogMap(mnetwork);			// copy network parameters to network score log for storing evolution
 				networkScoreMap.put(networkName, nsl);		// network score map is finally stored
 				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": OVERALL SCORE = " + mnetwork.overallScore);
-				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Number Metro Users = " + mnetwork.nMetroUsers);
-				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Average Travel Time = " + mnetwork.averageTravelTime);
+				//Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Number Metro Users = " + mnetwork.nMetroUsers);
+				//Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Average Travel Time = " + mnetwork.averageTravelTime);
 				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Total Metro Passengers KM = " + mnetwork.totalMetroPersonKM);
-				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Total Driven KM = " + mnetwork.drivenKM);
+				//Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Total Driven KM = " + mnetwork.drivenKM);
 				
 				// mnetwork.network = null;		// set to null before storing to file bc would use up too much storage and is not needed (network can be created from other data)
 				// CAUTION: Do this for continuous loops! // XMLOps.writeToFileMNetwork(mnetwork, historyFileLocation+"/"+mnetwork.networkID+".xml");
@@ -247,9 +247,11 @@ public class NetworkEvolution {
 			double alpha = 10.0;		// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability
 										// to choose a weak netwok more than linearly -> linearly would be p_i = Score_i/Score_tot)
 			Double pCrossOver = 0.5; 	// 0.25;
+			boolean logEntireRoutes = false;
 			latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, networkScoreMap, evoNetworksToProcessPlans, populationName, alpha, pCrossOver,
 					metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork, 
-					useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane);
+					useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, 
+					logEntireRoutes);
 		
 			
 			// choose by roulette wheel (overall network score) four times two parents to yield four offspring
