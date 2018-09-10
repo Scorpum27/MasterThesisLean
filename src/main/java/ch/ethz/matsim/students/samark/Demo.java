@@ -5,29 +5,49 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-
-import org.matsim.api.core.v01.Coord;
-import org.matsim.api.core.v01.Id;
-import org.matsim.api.core.v01.Scenario;
-import org.matsim.api.core.v01.network.Link;
-import org.matsim.api.core.v01.network.Network;
-import org.matsim.api.core.v01.network.NetworkFactory;
-import org.matsim.api.core.v01.network.Node;
-import org.matsim.core.config.Config;
-import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.population.routes.NetworkRoute;
-import org.matsim.core.population.routes.RouteUtils;
-import org.matsim.core.scenario.ScenarioUtils;
 
 
 public class Demo {
 	
-
-	
 	public static void main(String[] args) throws IOException {
 
+	// MRoute Dynamic map during loop tester
 		
+		Map<String, String> routesPool1 = new HashMap<String, String>();
+		Map<String, String> routesPool2 = new HashMap<String, String>();
+		Map<String, String> routesOut1 = new HashMap<String, String>();
+		Map<String, String> routesOut2 = new HashMap<String, String>();
+		Loop1:
+		for (String routeP1name : routesPool1.keySet()) {
+			String routeFromP1 = routesPool1.get(routeP1name);
+			for (String routeP2name : routesPool2.keySet()) {
+				String routeFromP2 = routesPool2.get(routeP2name);
+				// hand over IDs to new crossed routes
+				// make route and transitSchedule and calculate stuff here (maybe store frequency in MRoute itself!)
+				System.out.println("Now trying to cross routes:  "+routeFromP1+ " & " + routeFromP2);
+				String[] crossedRoutes = new String[] {routeFromP1+routeFromP2,routeFromP2+routeFromP1};
+				if (crossedRoutes != null) {
+					System.out.println("Success - new Route A = "+crossedRoutes[0]);
+					System.out.println("Success - new Route B = "+crossedRoutes[1]);
+					routesOut1.put(crossedRoutes[0], crossedRoutes[0]);
+					routesOut2.put(crossedRoutes[1], crossedRoutes[1]);
+					continue Loop1;
+				}
+			}
+			// this will come in place if inner loop has not found a feasible crossing and has therefore not broken inner loop to jump to outer loop
+			routesOut1.put(routeFromP1, routeFromP1);	
+		}
+		for (Integer routeFromP2 : routesPool2.values()) { // add all routesFromP2 that could not be crossed with any routesFromP1
+			if (routesOut2.containsKey(routeFromP2)==false) {
+				routesOut2.put(routeFromP2, routeFromP2);
+			}
+		}
+		
+	// %%%%%%%%%%%%%%%%%%%% SCORES PLOTTER %%%%%%%%%%%%%%%%%%%%
+
+		/*int generationsToPlot = 6-1;	// always one less than last generation (bc last evolution is not simulated)
+		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/networkTravelTimesEvolution.png");
+		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");*/
 		
 	// %%%%%%%%%%%%%%%%%%%% CROSSOVER TESTER %%%%%%%%%%%%%%%%%%%%
 
@@ -41,7 +61,7 @@ public class Demo {
 						//	    |       |	
 						//	   12       15
 		
-		Config config = ConfigUtils.createConfig();
+		/*Config config = ConfigUtils.createConfig();
 		Scenario scenario0 = ScenarioUtils.loadScenario(config);
 		Network network = scenario0.getNetwork();
 		NetworkFactory nf = network.getFactory();
@@ -194,11 +214,11 @@ public class Demo {
 		System.out.println("EliteNetwork="+eliteNetwork);
 
 		
-		String vehicleTypeName = "metro";  double maxVelocity = 70/3.6 /*[m/s]*/;
+		String vehicleTypeName = "metro";  double maxVelocity = 70/3.6;
 		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
 //		double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 7.5*60;
 //		int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
-		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
+		double stopTime = 30.0;  String defaultPtMode = "metro";  boolean blocksLane = false;
 		double metroOpsCostPerKM = 1000; double metroConstructionCostPerKmOverground = 1000000; double metroConstructionCostPerKmUnderground = 10000000;
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 		boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
@@ -265,7 +285,7 @@ public class Demo {
 		}
 		
 		evoNetworksToProcessPlans = newPopulation;
-	}
+	}*/
 	
 		
 	// %%%%%%%%%%%%%%%%%%%% MODIFYING MAP WHILE LOOPING IT --> TEMP_MAP %%%%%%%%%%%%%%%%%%%%

@@ -58,7 +58,9 @@ public class MNetwork implements Serializable{
 		double b = 18000000.0;
 		double c = -0.266;
 		double d = 0.764;
-		this.overallScore = Math.exp((this.averageTravelTime-60)/(-a1))  +  this.totalMetroPersonKM/100000 * (c+Math.exp((this.drivenKM)/(b)-d));	// CostPerMetroKM = C(m) = c+exp(this.drivenKM/b-d)
+//		this.overallScore = Math.exp((this.averageTravelTime-60)/(-a1))  +  this.totalMetroPersonKM/100000 * (c+Math.exp((this.drivenKM)/(b)-d));	// CostPerMetroKM = C(m) = c+exp(this.drivenKM/b-d)
+		this.overallScore = 				0.0						     +  this.totalMetroPersonKM/100000 * (c+Math.exp((this.drivenKM)/(b)-d));	// CostPerMetroKM = C(m) = c+exp(this.drivenKM/b-d)
+
 //		double a1 = 100.0;  double b = 18000000.0;  double c = -0.266;  double d = 0.764;
 //		System.out.println("Math.exp((this.averageTravelTime-60)/(-a1))  +  this.totalMetroPersonKM/100000 * (c+Math.exp((this.drivenKM)/(b)-d)); = " + Math.exp((mnetwork.averageTravelTime-60)/(-a1)) +" + " +mnetwork.totalMetroPersonKM/100000 * (c+Math.exp((mnetwork.drivenKM)/(b)-d)));
 		

@@ -854,11 +854,11 @@ public class NetworkEvolutionImpl {
 		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
 		for (int g = 1; g <= lastGeneration; g++) {
 			double averageNetworkScoreThisGeneration = 0.0;
-			double bestNetworkScoreThisGeneration = Double.MAX_VALUE;
+			double bestNetworkScoreThisGeneration = 0.0;
 			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
 					generationPath + g + "/networkScoreMap.xml");
 			for (NetworkScoreLog nsl : networkScores.values()) {
-				if (nsl.overallScore < bestNetworkScoreThisGeneration) {
+				if (nsl.overallScore > bestNetworkScoreThisGeneration) {
 					bestNetworkScoreThisGeneration = nsl.overallScore;
 				}
 				averageNetworkScoreThisGeneration += nsl.overallScore / networkScores.size();
@@ -1052,6 +1052,13 @@ public class NetworkEvolutionImpl {
 			Log.write("   >>> Putting back removed ELITE NETWORK = " + eliteNetwork);
 		}
 		Log.write("   >>> Processed Networks = " + processedNetworks.toString());
+		for (MNetwork mn : newPopulation.networkMap.values()) {
+			for (String mString:mn.routeMap.keySet()){
+				 MRoute mr=mn.routeMap.get(mString);
+				 Log.writeAndDisplay("   >>> "+mString+" = "+mr.linkList.subList(0, mr.linkList.size()/2).toString());
+				 }
+
+		}
 		// Read out all final network routes
 		/*for(MNetwork mnetwork : newPopulation.networkMap.values()) {
 			for (String mr : mnetwork.routeMap.keySet()) {
@@ -1074,31 +1081,38 @@ public class NetworkEvolutionImpl {
 	public static MNetwork[] crossMNetworks(Network globalNetwork, MNetwork parentMNetwork1, MNetwork parentMNetwork2, String vehicleTypeName, double vehicleLength, double maxVelocity, 
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, double metroConstructionCostPerKmOverground,
 			double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM, int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes) throws IOException {
-		Map<String, MRoute> routesPool1 = parentMNetwork1.routeMap;
-		Map<String, MRoute> routesPool2 = parentMNetwork2.routeMap;
+		
+		Map<String, MRoute> routesPool1 = parentMNetwork1.getRouteMap();
+		Map<String, MRoute> routesPool2 = parentMNetwork2.getRouteMap();
 		Map<String, MRoute> routesOut1 = new HashMap<String, MRoute>();
 		Map<String, MRoute> routesOut2 = new HashMap<String, MRoute>();
+		
+		Iterator<Entry<String, MRoute>> iter1 = routesPool1.entrySet().iterator();
 		Loop1:
-		for (String routeP1name : routesPool1.keySet()) {
-			MRoute routeFromP1 = routesPool1.get(routeP1name);
-			for (String routeP2name : routesPool2.keySet()) {
-				MRoute routeFromP2 = routesPool2.get(routeP2name);
-				// hand over IDs to new crossed routes
-				// make route and transitSchedule and calculate stuff here (maybe store frequency in MRoute itself!)
-				System.out.println("Now trying to cross route A: "+routeFromP1.linkList.toString());
-				System.out.println("Now trying to cross route B: "+routeFromP2.linkList.toString());
+		while (iter1.hasNext()) {
+			Entry<String, MRoute> entry1 = iter1.next();
+			String routeP1name = entry1.getKey();
+			MRoute routeFromP1 = entry1.getValue();
+			Iterator<Entry<String, MRoute>> iter2 = routesPool2.entrySet().iterator();
+			while (iter2.hasNext()) {
+				Entry<String, MRoute> entry2 = iter2.next();
+				String routeP2name = entry2.getKey();
+				MRoute routeFromP2 = entry2.getValue();
 				MRoute[] crossedRoutes = crossMRoutes(routeFromP1, routeFromP2, globalNetwork);
 				if (crossedRoutes != null) {
 					Log.writeAndDisplay("   >>> MRoute Cross Success:  " + routeP1name + " X " + routeP2name);
-					System.out.println("Success - new Route A = "+crossedRoutes[0].linkList.toString());
-					System.out.println("Success - new Route B = "+crossedRoutes[1].linkList.toString());
+
 					routesOut1.put(crossedRoutes[0].routeID, crossedRoutes[0]);
 					routesOut2.put(crossedRoutes[1].routeID, crossedRoutes[1]);
+					iter2.remove();
+					iter1.remove();
 					continue Loop1;
 				}
+				else {Log.writeAndDisplay("   >>> MRoute Cross FAIL:  " + routeP1name + " X " + routeP2name);}
 			}
 			// this will come in place if inner loop has not found a feasible crossing and has therefore not broken inner loop to jump to outer loop
 			routesOut1.put(routeFromP1.routeID, routeFromP1);	
+			iter1.remove();
 		}
 		for (MRoute routeFromP2 : routesPool2.values()) { // add all routesFromP2 that could not be crossed with any routesFromP1
 			if (routesOut2.containsKey(routeFromP2.routeID)==false) {
@@ -1108,8 +1122,8 @@ public class NetworkEvolutionImpl {
 		
 		MNetwork mnetworkOut1 = new MNetwork(parentMNetwork1.networkID);
 		MNetwork mnetworkOut2 = new MNetwork(parentMNetwork2.networkID);
-		System.out.println("Out routes1 are: "+routesOut1.keySet().toString());
-		System.out.println("Out routes2 are: "+routesOut1.keySet().toString());
+//		System.out.println("Out routes1 are: "+routesOut1.keySet().toString());
+//		System.out.println("Out routes2 are: "+routesOut1.keySet().toString());
 		mnetworkOut1.routeMap = routesOut1;
 		mnetworkOut2.routeMap = routesOut2;
 		MNetwork[] mNetworksOut = new MNetwork[] {mnetworkOut1, mnetworkOut2};
@@ -1366,7 +1380,7 @@ public class NetworkEvolutionImpl {
 			}
 			// make a separate network of all these mRoutes for visualization purposes
 			NetworkEvolutionImpl.MRoutesToNetwork(mn.getRouteMap(), globalNetwork, 
-					Sets.newHashSet("pt"), historyFileLocation+"/mRoutesNetwork.xml");
+					Sets.newHashSet("pt"), historyFileLocation+"/MRoutes"+mn.networkID+".xml");
 		}
 	}
 	

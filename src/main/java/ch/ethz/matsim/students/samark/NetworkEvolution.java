@@ -17,7 +17,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 /*
  * PRIO 
- * TODO Why can A cross with same B for several times?! Or are A & B swapped?
+ * TODO Fails to build a schedule/vehicle fleet (is it maybe wiped out?) for certain networks --> Maybe make 
  * TODO MUTATIONS in EvoLoop
  * TODO delete uncheckedNetworksTestLines after test run (--> check if it makes sense!)
  * TODO Check Theory and Questions for Network Approach Optimization -> IVT
@@ -223,11 +223,11 @@ public class NetworkEvolution {
 				NetworkScoreLog nsl = new NetworkScoreLog();
 				nsl.NetworkScore2LogMap(mnetwork);			// copy network parameters to network score log for storing evolution
 				networkScoreMap.put(networkName, nsl);		// network score map is finally stored
-				Log.writeAndDisplay("   >>> "+mnetwork.networkID+" Score Stats: Number Metro Users = " + mnetwork.nMetroUsers);
-				Log.writeAndDisplay("   >>> "+mnetwork.networkID+" Score Stats: Average Travel Time = " + mnetwork.averageTravelTime);
-				Log.writeAndDisplay("   >>> "+mnetwork.networkID+" Score Stats: Total Metro Passengers KM = " + mnetwork.totalMetroPersonKM);
-				Log.writeAndDisplay("   >>> "+mnetwork.networkID+" Score Stats: Total Driven KM = " + mnetwork.drivenKM);
-				Log.writeAndDisplay("   >>> "+mnetwork.networkID+" Score Stats: OVERALL SCORE = " + mnetwork.overallScore);
+				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": OVERALL SCORE = " + mnetwork.overallScore);
+				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Number Metro Users = " + mnetwork.nMetroUsers);
+				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Average Travel Time = " + mnetwork.averageTravelTime);
+				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Total Metro Passengers KM = " + mnetwork.totalMetroPersonKM);
+				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Total Driven KM = " + mnetwork.drivenKM);
 				
 				// mnetwork.network = null;		// set to null before storing to file bc would use up too much storage and is not needed (network can be created from other data)
 				// CAUTION: Do this for continuous loops! // XMLOps.writeToFileMNetwork(mnetwork, historyFileLocation+"/"+mnetwork.networkID+".xml");
@@ -262,7 +262,7 @@ public class NetworkEvolution {
 		}
 
 	// Plot Score Evolution
-		int generationsToPlot = nEvolutions;
+		int generationsToPlot = nEvolutions-1;
 		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/networkTravelTimesEvolution.png");
 		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");
 			//NetworkEvolutionImpl.writeChartAverageGenerationNetworkAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/scoreEvolutionAverageOfGeneration.png");
