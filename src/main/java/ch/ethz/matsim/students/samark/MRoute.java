@@ -43,6 +43,7 @@ public class MRoute implements Serializable{
 		this.undergroundPercentage = 0.0;
 		this.personMetroKM = 0.0;
 		this.nBoardings = 0;
+		
 	}
 	
 	

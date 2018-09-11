@@ -11,13 +11,19 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 
+	// Simple Maths
+		 int a =  (int) Math.round(0.5*(0.5+0.3));
+		 int b = (int) Math.round(0.5*(0.5+1.3));
+		 System.out.println(a);
+		 System.out.println(b);
+		
 	// Clone Tester
 		
-		Set<String> l1 = new HashSet<String>();
+		/*Set<String> l1 = new HashSet<String>();
 		l1.add("hello");
 		l1.add("hope it works");
 		Set<String> l2 = Clone.set(l1);
-		System.out.println(l2.toString());
+		System.out.println(l2.toString());*/
 		
 	// MRoute Dynamic map during loop tester
 		
@@ -42,9 +48,9 @@ public class Demo {
 			
 	// %%%%%%%%%%%%%%%%%%%% SCORES PLOTTER %%%%%%%%%%%%%%%%%%%%
 
-		/*int generationsToPlot = 6-1;	// always one less than last generation (bc last evolution is not simulated)
+		int generationsToPlot = 4-1;	// always one less than last generation (bc last evolution is not simulated)
 		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/networkTravelTimesEvolution.png");
-		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");*/
+		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");
 		
 	// %%%%%%%%%%%%%%%%%%%% CROSSOVER TESTER %%%%%%%%%%%%%%%%%%%%
 

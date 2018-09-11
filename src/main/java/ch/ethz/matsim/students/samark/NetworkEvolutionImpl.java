@@ -604,8 +604,8 @@ public class NetworkEvolutionImpl {
 						continue OuterNetworkRouteLoop;
 				}
 				List<Id<Link>> linkList = nodeListToNetworkLinkList(newMetroNetwork, nodeList);
-				linkList.addAll(OppositeLinkListOf(linkList)); // extend linkList with its opposite direction for PT transportation!
 				Log.write("Created Random-Links NetworkRoute with Links: "+"\r\n"+linkList.toString());
+				linkList.addAll(OppositeLinkListOf(linkList)); // extend linkList with its opposite direction for PT transportation!
 				NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, newMetroNetwork);
 
 //				System.out.println("The new networkRoute is: [Length="+(networkRoute.getLinkIds().size()+2)+"] - " + networkRoute.toString());
@@ -975,8 +975,9 @@ public class NetworkEvolutionImpl {
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes) throws IOException {
 		
 		// Copy oldPopulation (evoNetworksToProcessPlans) to new one to fill in gradually with new offspring afterwards
-		MNetworkPop newPopulation = new MNetworkPop(evoNetworksToProcessPlans.populationId);
-		newPopulation.networkMap = evoNetworksToProcessPlans.getNetworks();
+		MNetworkPop newPopulation = Clone.mNetworkPop(evoNetworksToProcessPlans);
+//		MNetworkPop newPopulation = new MNetworkPop(evoNetworksToProcessPlans.populationId);
+//		newPopulation.networkMap = evoNetworksToProcessPlans.getNetworks();
 		int nOldPop = newPopulation.networkMap.size();
 		
 		// List<MRoute> offspringRoutes = new ArrayList<MRoute>();
@@ -1001,9 +1002,6 @@ public class NetworkEvolutionImpl {
 		Log.writeAndDisplay("  >> Crossing over nCrossOverCandidates="+nCrossOverCandidates);
 		
 		List<String> processedNetworks = new ArrayList<String>();
-//		for (String networkName : evoNetworksToProcessPlans.networkMap.keySet()) {
-//			notProcessedNetworks.add(networkName);	// every time one of these networks is processed, it will be removed from this list
-//		}
 		
 		for (int n=0; n<nCrossOverCandidates; n++) {
 			Random r = new Random();
@@ -1017,18 +1015,17 @@ public class NetworkEvolutionImpl {
 					System.out.println("ParentName 2="+nameParent2);
 				}while(nameParent1.equals(nameParent2));
 				Log.writeAndDisplay("  >> Crossing:  " + nameParent1 + " X " + nameParent2);
-				MNetwork parentMNetwork1 = evoNetworksToProcessPlans.getNetworks().get(nameParent1);
-				MNetwork parentMNetwork2 = evoNetworksToProcessPlans.getNetworks().get(nameParent2);
+//				MNetwork parentMNetwork1 = evoNetworksToProcessPlans.getNetworks().get(nameParent1);
+//				MNetwork parentMNetwork2 = evoNetworksToProcessPlans.getNetworks().get(nameParent2);				
+				MNetwork parentMNetwork1 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent1));
+				MNetwork parentMNetwork2 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent2));
 				MNetwork[] offspringMNetworks = NetworkEvolutionImpl.crossMNetworks(globalNetwork, parentMNetwork1, parentMNetwork2,
 						vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
 						stopTime, blocksLane, metroConstructionCostPerKmOverground,
 						metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork,
 						useOdPairsForInitialRoutes); // (make sure IDs are same as parent Networks to remove old network adding to newPopulation)
 				newOffspring.add(offspringMNetworks[0]);
-				System.out.println("Added new offspring="+newOffspring.get(0).routeMap.keySet().toString());
 				newOffspring.add(offspringMNetworks[1]);
-				System.out.println("Added new offspring="+newOffspring.get(1).routeMap.keySet().toString());
-
 			}
 		}
 		int nNewOffspring = newOffspring.size();
@@ -1038,16 +1035,16 @@ public class NetworkEvolutionImpl {
 			processedNetworks.addAll(deletedNetworkNames);
 			Log.write("  >> nNewOffspring=" + nNewOffspring + " --> Remove weakest networks: " + deletedNetworkNames.toString());
 			System.out.println("deletedNetworkNames="+deletedNetworkNames.toString());
-			do {
-				RenameOffspring(deletedNetworkNames.get(0), newOffspring.get(0));	// renaming offspring with its MNetworkId and the Id of all its MRoutes
-				newPopulation.networkMap.put(newOffspring.get(0).networkID, newOffspring.get(0));
-				Log.write("   >>> Putting New Offspring Network = " + newOffspring.get(0).networkID);
-				deletedNetworkNames.remove(0);
-				newOffspring.remove(0);
-			}while(deletedNetworkNames.size()>0);
+			for (int i=0; i<newOffspring.size(); i++) {
+				RenameOffspring(deletedNetworkNames.get(i), newOffspring.get(i));	// renaming offspring with its MNetworkId and the Id of all its MRoutes
+				newPopulation.addNetwork(newOffspring.get(i));
+				Log.write("   >>> Putting New Offspring Network = " + newOffspring.get(i).networkID);
+//				deletedNetworkNames.remove(0);
+//				newOffspring.remove(0);
+			}
 		}
 		if (nNewOffspring == nOldPop) {										// check with this condition if all old networks have been deleted for new offspring
-			newPopulation.networkMap.put(eliteNetwork, eliteMNetwork);		// if also elite network has been deleted, add manually again (it will replace the new one with the same name)
+			newPopulation.addNetwork(eliteMNetwork);		// if also elite network has been deleted, add manually again (it will replace the new one with the same name)
 			processedNetworks.remove(eliteNetwork);							// because this network remains unchanged for this generation as if it were not processed
 			Log.write("   >>> Putting back removed ELITE NETWORK = " + eliteNetwork);
 		}
@@ -1061,12 +1058,6 @@ public class NetworkEvolutionImpl {
 				}
 			}
 		}
-		// Read out all final network routes
-		/*for(MNetwork mnetwork : newPopulation.networkMap.values()) {
-			for (String mr : mnetwork.routeMap.keySet()) {
-				System.out.println("Network="+mnetwork.networkID+"   |   Route="+mnetwork.routeMap.get(mr).linkList.toString());
-			}
-		}*/
 		
 		// MUTATIONS
 		// ...
@@ -1083,19 +1074,20 @@ public class NetworkEvolutionImpl {
 	public static MNetwork[] crossMNetworks(Network globalNetwork, MNetwork parentMNetwork1, MNetwork parentMNetwork2, String vehicleTypeName, double vehicleLength, double maxVelocity, 
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, double metroConstructionCostPerKmOverground,
 			double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM, int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes) throws IOException {
-		
-		Map<String, MRoute> routesPool1 = Clone.mRouteMap(parentMNetwork1.getRouteMap());
-		Map<String, MRoute> routesPool2 = Clone.mRouteMap(parentMNetwork2.getRouteMap());
+			
+			
+		Map<String, MRoute> routesParent1 = Clone.mRouteMap(parentMNetwork1.getRouteMap());
+		Map<String, MRoute> routesParent2 = Clone.mRouteMap(parentMNetwork2.getRouteMap());
 		Map<String, MRoute> routesOut1 = new HashMap<String, MRoute>();
 		Map<String, MRoute> routesOut2 = new HashMap<String, MRoute>();
 		
-		Iterator<Entry<String, MRoute>> iter1 = routesPool1.entrySet().iterator();
+		Iterator<Entry<String, MRoute>> iter1 = routesParent1.entrySet().iterator();
 		Loop1:
 		while (iter1.hasNext()) {
 			Entry<String, MRoute> entry1 = iter1.next();
 			String routeP1name = entry1.getKey();
 			MRoute routeFromP1 = entry1.getValue();
-			Iterator<Entry<String, MRoute>> iter2 = routesPool2.entrySet().iterator();
+			Iterator<Entry<String, MRoute>> iter2 = routesParent2.entrySet().iterator();
 			while (iter2.hasNext()) {
 				Entry<String, MRoute> entry2 = iter2.next();
 				String routeP2name = entry2.getKey();
@@ -1116,7 +1108,7 @@ public class NetworkEvolutionImpl {
 			routesOut1.put(routeFromP1.routeID, routeFromP1);	
 			iter1.remove();
 		}
-		for (MRoute routeFromP2 : routesPool2.values()) { // add all routesFromP2 that could not be crossed with any routesFromP1
+		for (MRoute routeFromP2 : routesParent2.values()) { // add all routesFromP2 that could not be crossed with any routesFromP1
 			if (routesOut2.containsKey(routeFromP2.routeID)==false) {
 				routesOut2.put(routeFromP2.routeID, routeFromP2);
 			}
@@ -1124,13 +1116,11 @@ public class NetworkEvolutionImpl {
 		
 		MNetwork mnetworkOut1 = new MNetwork(parentMNetwork1.networkID);
 		MNetwork mnetworkOut2 = new MNetwork(parentMNetwork2.networkID);
-//		System.out.println("Out routes1 are: "+routesOut1.keySet().toString());
-//		System.out.println("Out routes2 are: "+routesOut1.keySet().toString());
 		mnetworkOut1.routeMap = routesOut1;
 		mnetworkOut2.routeMap = routesOut2;
 		MNetwork[] mNetworksOut = new MNetwork[] {mnetworkOut1, mnetworkOut2};
 
-		
+
 		Config originalConfig = ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml");
 		Scenario originalScenario = ScenarioUtils.loadScenario(originalConfig);
 		originalScenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class, new DefaultEnrichedTransitRouteFactory());
@@ -1138,7 +1128,6 @@ public class NetworkEvolutionImpl {
 		TransitSchedule originalTransitSchedule = originalScenario.getTransitSchedule();
 		
 		for (MNetwork mNetwork : mNetworksOut) {
-			System.out.println("This network is: "+mNetwork.networkID);
 			// Transit Schedule Implementations
 			Config newConfig = ConfigUtils.createConfig();
 			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
@@ -1150,7 +1139,8 @@ public class NetworkEvolutionImpl {
 			
 			// Generate TransitLines and Schedules on NetworkRoutes --> Add to Transit Schedule
 			int lineNr = 0;
-			for (MRoute mRoute : mNetwork.routeMap.values()) {
+			for (String mRouteName : mNetwork.routeMap.keySet()) {
+				MRoute mRoute = mNetwork.routeMap.get(mRouteName);
 				lineNr++;
 				// Create an array of stops along new networkRoute on the center of each of its individual links
 				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(newSchedule, globalNetwork, mRoute.networkRoute, defaultPtMode, stopTime, maxVelocity, blocksLane);
@@ -1158,13 +1148,13 @@ public class NetworkEvolutionImpl {
 				TransitRoute transitRoute = newScheduleFactory.createTransitRoute(Id.create(mNetwork.networkID+"_Route"+lineNr, TransitRoute.class ), mRoute.networkRoute, stopArray, defaultPtMode);
 				double totalRouteTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
 				String vehicleFileLocation = ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/Vehicles.xml"); // Add (nDepartures) departures to TransitRoute
+
 				transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(newScenario, newSchedule, transitRoute, 
 						mRoute.nDepartures, mRoute.firstDeparture, mRoute.departureSpacing, totalRouteTravelTime, newVehicleType, vehicleFileLocation);
 				// Build TransitLine from TrasitRoute
 				TransitLine transitLine = newScheduleFactory.createTransitLine(Id.create("TransitLine_Nr" + lineNr, TransitLine.class));
 				transitLine.addRoute(transitRoute);
 				// Add new line to schedule
-				System.out.println(newSchedule.getTransitLines().keySet().toString());
 				newSchedule.addTransitLine(transitLine);
 				mRoute.setTransitLine(transitLine);
 				mRoute.setLinkList(NetworkRoute2LinkIdList(mRoute.networkRoute));
@@ -1215,11 +1205,9 @@ public class NetworkEvolutionImpl {
 
 
 
-	public static MRoute[] crossMRoutes(MRoute routeFromP1, MRoute routeFromP2, Network globalNetwork) {
+	public static MRoute[] crossMRoutes(MRoute routeFromP1, MRoute routeFromP2, Network globalNetwork) throws IOException {
 		List<Id<Link>> route1LinkListOneway = routeFromP1.linkList.subList(0, routeFromP1.linkList.size()/2);
 		List<Id<Link>> route2LinkListOneway = routeFromP2.linkList.subList(0, routeFromP2.linkList.size()/2);
-		System.out.println("Entire route is: "+routeFromP1.linkList.toString());
-		System.out.println("Half route is: "+route1LinkListOneway.toString());
 		
 		MRoute mRouteNew1 = new MRoute(routeFromP1.routeID);
 		MRoute mRouteNew2 = new MRoute(routeFromP2.routeID);
@@ -1232,23 +1220,20 @@ public class NetworkEvolutionImpl {
 				break;
 			}
 			Node fromNode1 = globalNetwork.getLinks().get(linkFrom1).getFromNode();
-			System.out.println("now trying FromNode in route1: "+fromNode1.getId().toString());
 			for (Id<Link> linkFrom2 : route2LinkListOneway) {
 				Node fromNode2 = globalNetwork.getLinks().get(linkFrom2).getFromNode();
-				System.out.println("trying: "+fromNode1.getId().toString()+" against: "+fromNode2.getId().toString());
 				if (fromNode1.getId().toString().equals(fromNode2.getId().toString())) {
 					crossingFound = true;
 					crossLink1 = linkFrom1;		// crossing takes place at from link!
 					crossLink2 = linkFrom2;		// crossing takes place at from link!
-					System.out.println("YES - FromNode found in route2: "+fromNode1.getId().toString());
+					//System.out.println("YES - FromNode found in route2: "+fromNode1.getId().toString());
 					break;
 				}
-				System.out.println("NO - FromNode not found in route2: "+fromNode1.getId().toString());
+				//System.out.println("NO - FromNode not found in route2: "+fromNode1.getId().toString());
 			}
 		}
 		
 		if(crossingFound) {
-			System.out.println("Starting this loop: for successful crossing found");
 			List<Id<Link>> crossLinkList1 = new ArrayList<Id<Link>>();
 			List<Id<Link>> crossLinkList2 = new ArrayList<Id<Link>>();
 			crossLinkList1.addAll(route1LinkListOneway.subList(0, route1LinkListOneway.indexOf(crossLink1)));								// route1 part before crossing ...
@@ -1265,12 +1250,12 @@ public class NetworkEvolutionImpl {
 			mRouteNew1.linkList = crossLinkList1;
 			mRouteNew2.linkList = crossLinkList2;
 			mRouteNew2.networkRoute = networkRoute2;
-			mRouteNew1.firstDeparture = 0.5*Math.round(routeFromP1.firstDeparture+routeFromP2.firstDeparture);
-			mRouteNew2.firstDeparture = 0.5*Math.round(routeFromP1.firstDeparture+routeFromP2.firstDeparture);
-			mRouteNew1.departureSpacing = 0.5*Math.round(routeFromP1.departureSpacing+routeFromP2.departureSpacing);
-			mRouteNew2.departureSpacing = 0.5*Math.round(routeFromP1.departureSpacing+routeFromP2.departureSpacing);
-			mRouteNew1.nDepartures = (int) 0.5*Math.round(routeFromP1.nDepartures+routeFromP2.nDepartures);
-			mRouteNew2.nDepartures = (int) 0.5*Math.round(routeFromP1.nDepartures+routeFromP2.nDepartures);
+			mRouteNew1.firstDeparture = (int) Math.round(0.5*(routeFromP1.firstDeparture+routeFromP2.firstDeparture));
+			mRouteNew2.firstDeparture = (int) Math.round(0.5*(routeFromP1.firstDeparture+routeFromP2.firstDeparture));
+			mRouteNew1.departureSpacing = (int) Math.round(0.5*(routeFromP1.departureSpacing+routeFromP2.departureSpacing));
+			mRouteNew2.departureSpacing = (int) Math.round(0.5*(routeFromP1.departureSpacing+routeFromP2.departureSpacing));
+			mRouteNew1.nDepartures = (int) Math.round(0.5*(routeFromP1.nDepartures+routeFromP2.nDepartures));
+			mRouteNew2.nDepartures = (int) Math.round(0.5*(routeFromP1.nDepartures+routeFromP2.nDepartures));
 			crossedRoutes[0] = mRouteNew1;
 			crossedRoutes[1] = mRouteNew2;
 			return crossedRoutes;
@@ -1310,8 +1295,9 @@ public class NetworkEvolutionImpl {
 		Map<String, MRoute> newRoutesMap = new HashMap<String, MRoute>();
 		int counter = 1;
 		for (MRoute mRoute : mNetwork.routeMap.values()) {
-			mRoute.routeID = newNetworkName+"_Route"+counter;
-			newRoutesMap.put(mRoute.routeID, mRoute);
+			MRoute mrTemp = Clone.mRoute(mRoute);
+			mrTemp.routeID = newNetworkName+"_Route"+counter;
+			newRoutesMap.put(mrTemp.routeID, mrTemp);
 			counter++;
 		}
 		mNetwork.routeMap = newRoutesMap;

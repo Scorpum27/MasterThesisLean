@@ -14,6 +14,7 @@ import org.matsim.api.core.v01.network.NetworkFactory;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.pt.transitSchedule.api.Departure;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
@@ -63,13 +64,14 @@ public class Clone {
 		return copy;
 	}
 
-	private static MRoute mRoute(MRoute o) {
+	public static MRoute mRoute(MRoute o) {
 		MRoute copy = new MRoute();
 		copy.routeID = o.routeID;
 		copy.networkRoute = o.networkRoute.clone();
 		copy.nodeList = Clone.nodeList(o.nodeList);
 		copy.linkList = Clone.linkList(o.linkList);
-		//copy.transitLine = o.transitLine;
+		
+		copy.transitLine = Clone.transitLine(o.transitLine, ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule().getFactory());
 		copy.routeLength = o.routeLength;
 		
 		copy.eventsFile = o.eventsFile;
@@ -107,12 +109,19 @@ public class Clone {
 		TransitLine copy = tsf.createTransitLine(o.getId());
 		for (Id<TransitRoute> tr : o.getRoutes().keySet()) {
 			TransitRoute TR = o.getRoutes().get(tr);
-			copy.addRoute(tsf.createTransitRoute(tr, TR.getRoute().clone(), Clone.list(TR.getStops()), TR.getTransportMode()));
+			TransitRoute TRR = tsf.createTransitRoute(tr, TR.getRoute().clone(), Clone.list(TR.getStops()), TR.getTransportMode());
+			for (Departure d : TR.getDepartures().values()){				
+				TRR.addDeparture(d);
+			}
+			copy.addRoute(TRR);
 		}
 		return copy;
 	}
 	
 	public static Network network(Network o) {
+		if(o==null) {
+			return null;
+		}
 		Network copy = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
 		NetworkFactory networkFactory = copy.getFactory();
 		// connectingLinkToToNode.setAllowedModes(transportModes);
