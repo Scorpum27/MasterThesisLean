@@ -973,7 +973,8 @@ public class NetworkEvolutionImpl {
 	public static MNetworkPop developGeneration(Network globalNetwork, Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop evoNetworksToProcessPlans, String populationName,
 			Double alpha, Double pCrossOver, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM,
 			int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes, String vehicleTypeName, double vehicleLength, double maxVelocity, 
-			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes) throws IOException {
+			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
+			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
 		
 		MNetworkPop newPopulation = Clone.mNetworkPop(evoNetworksToProcessPlans);
 		int nOldPop = newPopulation.networkMap.size();
@@ -1017,13 +1018,13 @@ public class NetworkEvolutionImpl {
 				Log.writeAndDisplay("  >> Crossing:  " + nameParent1 + " X " + nameParent2);
 				MNetwork parentMNetwork1 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent1));
 				MNetwork parentMNetwork2 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent2));
-				MNetwork[] offspringMNetworks = NetworkEvolutionImpl.crossMNetworks(globalNetwork, parentMNetwork1, parentMNetwork2,
+				MNetwork[] childrenMNetworks = NetworkEvolutionImpl.crossMNetworks(globalNetwork, parentMNetwork1, parentMNetwork2,
 						vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
 						stopTime, blocksLane, metroConstructionCostPerKmOverground,
 						metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork,
-						useOdPairsForInitialRoutes);
-				newOffspring.add(offspringMNetworks[0]);
-				newOffspring.add(offspringMNetworks[1]);
+						useOdPairsForInitialRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
+				newOffspring.add(childrenMNetworks[0]);
+				newOffspring.add(childrenMNetworks[1]);
 			}
 		}
 		int nNewOffspring = newOffspring.size();
@@ -1061,8 +1062,23 @@ public class NetworkEvolutionImpl {
 		// ...
 		// ...
 		
+		// APPLY UPDATED PT TO MNetworks
+		NetworkEvolutionImpl.applyPT(newPopulation, globalNetwork, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
+				stopTime, blocksLane, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork,
+				useOdPairsForInitialRoutes);
+		
 		// SAVE DATA TO FILES
 		newPopulation.modifiedNetworksInLastEvolution = processedNetworks;		// store which networks have not been changed and must therefore not be simulated again in next simulation loop!!
+		return newPopulation;
+	}
+
+
+	public static MNetworkPop applyPT(MNetworkPop newPopulation, Network globalNetwork, String vehicleTypeName,
+			double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom, String defaultPtMode,
+			double stopTime, boolean blocksLane, double metroConstructionCostPerKmOverground,
+			double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM, int iterationToReadOriginalNetwork,
+			boolean useOdPairsForInitialRoutes) {
+		
 		return newPopulation;
 	}
 
@@ -1079,7 +1095,8 @@ public class NetworkEvolutionImpl {
 
 	public static MNetwork[] crossMNetworks(Network globalNetwork, MNetwork parentMNetwork1, MNetwork parentMNetwork2, String vehicleTypeName, double vehicleLength, double maxVelocity, 
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, double metroConstructionCostPerKmOverground,
-			double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM, int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes) throws IOException {
+			double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM, int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes,
+			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
 			
 			
 		Map<String, MRoute> routesParent1 = Clone.mRouteMap(parentMNetwork1.getRouteMap());
@@ -1098,17 +1115,16 @@ public class NetworkEvolutionImpl {
 				Entry<String, MRoute> entry2 = iter2.next();
 				String routeP2name = entry2.getKey();
 				MRoute routeFromP2 = entry2.getValue();
-				MRoute[] crossedRoutes = crossMRoutes(routeFromP1, routeFromP2, globalNetwork);
+				MRoute[] crossedRoutes = crossMRoutes(routeFromP1, routeFromP2, globalNetwork, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
 				if (crossedRoutes != null) {
-					Log.writeAndDisplay("   >>> MRoute Cross Success:  " + routeP1name + " X " + routeP2name);
-
+					//Log.writeAndDisplay("   >>> MRoute Cross Success:  " + routeP1name + " X " + routeP2name);
 					routesOut1.put(crossedRoutes[0].routeID, crossedRoutes[0]);
 					routesOut2.put(crossedRoutes[1].routeID, crossedRoutes[1]);
 					iter2.remove();
 					iter1.remove();
 					continue Loop1;
 				}
-				else {Log.writeAndDisplay("   >>> MRoute Cross FAIL:  " + routeP1name + " X " + routeP2name);}
+				//else {Log.writeAndDisplay("   >>> MRoute Cross FAIL:  " + routeP1name + " X " + routeP2name);}
 			}
 			// this will come in place if inner loop has not found a feasible crossing and has therefore not broken inner loop to jump to outer loop
 			routesOut1.put(routeFromP1.routeID, routeFromP1);	
@@ -1211,39 +1227,100 @@ public class NetworkEvolutionImpl {
 
 
 
-	public static MRoute[] crossMRoutes(MRoute routeFromP1, MRoute routeFromP2, Network globalNetwork) throws IOException {
-		List<Id<Link>> route1LinkListOneway = routeFromP1.linkList.subList(0, routeFromP1.linkList.size()/2);
-		List<Id<Link>> route2LinkListOneway = routeFromP2.linkList.subList(0, routeFromP2.linkList.size()/2);
+	public static MRoute[] crossMRoutes(MRoute routeFromP1, MRoute routeFromP2, Network globalNetwork,
+			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
 		
+		List<Id<Link>> route1LinkListOneway = new ArrayList<Id<Link>>();
+		List<Id<Link>> route2LinkListOneway = new ArrayList<Id<Link>>();
+		Map<Integer, List<Id<Link>>> routesCandidates1 = new HashMap<Integer, List<Id<Link>>>();
+		Map<Integer, List<Id<Link>>> routesCandidates2 = new HashMap<Integer, List<Id<Link>>>();
+		routesCandidates1.put(0, routeFromP1.linkList.subList(0, routeFromP1.linkList.size()/2));
+		routesCandidates2.put(0, routeFromP2.linkList.subList(0, routeFromP2.linkList.size()/2));		
+		routesCandidates1.put(1, routeFromP1.linkList.subList(routeFromP1.linkList.size()/2, routeFromP1.linkList.size()));
+		routesCandidates2.put(1, routeFromP2.linkList.subList(0, routeFromP2.linkList.size()/2));
+		routesCandidates1.put(2, routeFromP1.linkList.subList(0, routeFromP1.linkList.size()/2));
+		routesCandidates2.put(2, routeFromP2.linkList.subList(routeFromP2.linkList.size()/2, routeFromP2.linkList.size()));
+		routesCandidates1.put(3, routeFromP1.linkList.subList(routeFromP1.linkList.size()/2, routeFromP1.linkList.size()));
+		routesCandidates2.put(3, routeFromP2.linkList.subList(routeFromP2.linkList.size()/2, routeFromP2.linkList.size()));
+		
+		// Consider both ways here for merging the two routes - choose one or other direction with probability 0.5
+//		Random r1 = new Random();
+//		if(0.5 < r1.nextDouble()) {
+//			route1LinkListOneway = routeFromP1.linkList.subList(0, routeFromP1.linkList.size()/2);			
+//		}
+//		else {
+//			route1LinkListOneway = routeFromP1.linkList.subList(routeFromP1.linkList.size()/2, routeFromP1.linkList.size());
+//		}
+//		Random r2 = new Random();
+//		if(0.5 < r2.nextDouble()) {
+//			route2LinkListOneway = routeFromP2.linkList.subList(0, routeFromP2.linkList.size()/2);			
+//		}
+//		else {
+//			route2LinkListOneway = routeFromP2.linkList.subList(routeFromP2.linkList.size()/2, routeFromP2.linkList.size());
+//		}
 		MRoute mRouteNew1 = new MRoute(routeFromP1.routeID);
 		MRoute mRouteNew2 = new MRoute(routeFromP2.routeID);
 		MRoute[] crossedRoutes = new MRoute[2];
 		Id<Link> crossLink1 = null;
 		Id<Link> crossLink2 = null;
 		boolean crossingFound = false;
-		int routeLength1 = route1LinkListOneway.size();
-		int routeLength2 = route2LinkListOneway.size();
-		if( routeLength1 < 2 || routeLength2 < 2 ) {
-			System.out.println("One of the MRoute parents has length<2xlinks. Crossing is prohibited.");
-			return null;
-		}
-		for (Id<Link> linkFrom1 : route1LinkListOneway.subList((int) Math.floor((1.0/3.0)*routeLength1), (int) Math.ceil((2.0/3.0)*routeLength1))) {
-			if (crossingFound) {
-				break;
+		
+		Link link1BeforeNode;
+		Link link1AfterNode;
+		Link link2BeforeNode;
+		Link link2AfterNode;
+		
+		OUTERLOOP:
+		while(routesCandidates1.size() > 0 && crossingFound == false) {
+			int ri;
+			do {
+			Random r = new Random();
+			ri = r.nextInt(4);
+			}while(routesCandidates1.keySet().contains(ri)==false);
+			route1LinkListOneway = routesCandidates1.remove(ri); 
+			route2LinkListOneway = routesCandidates2.remove(ri);
+			int routeLength1 = route1LinkListOneway.size();
+			int routeLength2 = route2LinkListOneway.size();
+			if( routeLength1 < 2 || routeLength2 < 2 ) {
+				System.out.println("One of the MRoute parents has length<2xlinks. Crossing is prohibited.");
+				continue;
 			}
-			Node fromNode1 = globalNetwork.getLinks().get(linkFrom1).getFromNode();
-			for (Id<Link> linkFrom2 : route2LinkListOneway.subList((int) Math.floor((1.0/3.0)*routeLength2), (int) Math.ceil((2.0/3.0)*routeLength2))) {
-				Node fromNode2 = globalNetwork.getLinks().get(linkFrom2).getFromNode();
-				if (fromNode1.getId().toString().equals(fromNode2.getId().toString())) {
-					crossingFound = true;
-					crossLink1 = linkFrom1;		// crossing takes place at from link!
-					crossLink2 = linkFrom2;		// crossing takes place at from link!
-					//System.out.println("YES - FromNode found in route2: "+fromNode1.getId().toString());
-					break;
+			for (Id<Link> linkFrom1 : route1LinkListOneway.subList((int) Math.floor((minCrossingDistanceFactorFromRouteEnd)*routeLength1), (int) Math.ceil((1-minCrossingDistanceFactorFromRouteEnd)*routeLength1))) {
+				Node fromNode1 = globalNetwork.getLinks().get(linkFrom1).getFromNode();
+				for (Id<Link> linkFrom2 : route2LinkListOneway.subList((int) Math.floor((minCrossingDistanceFactorFromRouteEnd)*routeLength2), (int) Math.ceil((1-minCrossingDistanceFactorFromRouteEnd)*routeLength2))) {
+					Node fromNode2 = globalNetwork.getLinks().get(linkFrom2).getFromNode();
+					if (fromNode1.getId().toString().equals(fromNode2.getId().toString())) {
+						link1AfterNode = globalNetwork.getLinks().get(linkFrom1);
+						link2AfterNode = globalNetwork.getLinks().get(linkFrom2);
+						if (route1LinkListOneway.indexOf(linkFrom1)==0) {
+							link1BeforeNode = link2AfterNode; // this is not per se true, but this is only for taking the direction of the links (and we want direction of link2AfterNode)
+						}
+						else {
+							link1BeforeNode = globalNetwork.getLinks().get(route1LinkListOneway.get(route1LinkListOneway.indexOf(linkFrom1)-1));
+						}
+						if (route2LinkListOneway.indexOf(linkFrom2)==0) {
+							link2BeforeNode = link1AfterNode; // this is not per se true, but this is only for taking the direction of the links (and we want direction of link1AfterNode)
+						}
+						else {
+							link2BeforeNode = globalNetwork.getLinks().get(route2LinkListOneway.get(route2LinkListOneway.indexOf(linkFrom2)-1));
+						}
+						//Log.write("Angles were: "+GeomDistance.angleBetweenLinks(link1BeforeNode,link2AfterNode)+"  ||   "+GeomDistance.angleBetweenLinks(link2BeforeNode,link1AfterNode));
+						if (GeomDistance.angleBetweenLinks(link1BeforeNode,link2AfterNode) > maxCrossingAngle || GeomDistance.angleBetweenLinks(link2BeforeNode,link1AfterNode) > maxCrossingAngle) {
+							continue;
+						}
+						else {
+							crossingFound = true;
+							crossLink1 = linkFrom1;		// crossing takes place at from link!
+							crossLink2 = linkFrom2;		// crossing takes place at from link!
+							//System.out.println("YES - FromNode found in route2: "+fromNode1.getId().toString());
+							continue OUTERLOOP;
+						}
+					}
+					//System.out.println("NO - FromNode not found in route2: "+fromNode1.getId().toString());
 				}
-				//System.out.println("NO - FromNode not found in route2: "+fromNode1.getId().toString());
 			}
 		}
+		// OLD Version: Check BEFORE 11.09.2018 - 12:00
 		
 		if(crossingFound) {
 			List<Id<Link>> crossLinkList1 = new ArrayList<Id<Link>>();
@@ -1370,15 +1447,49 @@ public class NetworkEvolutionImpl {
 		return routesNetwork;
 	}
 
+	public static Network MRouteToNetwork(MRoute mRoute, Network network, Set<String> networkRouteModes, String fileName) {
+		// Store all new networkRoutes in a separate network file for visualization
+		// Usually Set<String> networkRouteModes = Sets.newHashSet("pt")
+		Network routesNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
+		NetworkFactory networkFactory = routesNetwork.getFactory();
+		NetworkRoute nR = mRoute.networkRoute;
+		List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
+		routeLinkList.add(nR.getStartLinkId());
+		routeLinkList.addAll(nR.getLinkIds());
+		routeLinkList.add(nR.getEndLinkId());
+		for (Id<Link> linkID : routeLinkList) {
+			Node tempToNode = networkFactory.createNode(network.getLinks().get(linkID).getToNode().getId(),
+					network.getLinks().get(linkID).getToNode().getCoord());
+			Node tempFromNode = networkFactory.createNode(network.getLinks().get(linkID).getFromNode().getId(),
+					network.getLinks().get(linkID).getFromNode().getCoord());
+			Link tempLink = networkFactory.createLink(network.getLinks().get(linkID).getId(), tempFromNode, tempToNode);
+			tempLink.setAllowedModes(networkRouteModes);
+			if (routesNetwork.getNodes().containsKey(tempToNode.getId()) == false) {
+				routesNetwork.addNode(tempToNode);
+			}
+			if (routesNetwork.getNodes().containsKey(tempFromNode.getId()) == false) {
+				routesNetwork.addNode(tempFromNode);
+			}
+			if (routesNetwork.getLinks().containsKey(tempLink.getId()) == false) {
+				routesNetwork.addLink(tempLink);
+			}
+		}
+		NetworkWriter initialRoutesNetworkWriter = new NetworkWriter(routesNetwork);
+		initialRoutesNetworkWriter.write(fileName);
+		
+		return routesNetwork;
+	}
 
 	public static void saveCurrentMRoutes2HistoryLog(MNetworkPop latestPopulation, int generationNr, Network globalNetwork) throws FileNotFoundException {
 		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr-1)+"/MRoutes";
 		new File(historyFileLocation).mkdirs();
 		for (MNetwork mn : latestPopulation.getNetworks().values()) {
 			for (MRoute mr : mn.getRouteMap().values()) {
-				XMLOps.writeToFile(mr, historyFileLocation+"/"+mr.routeID+".xml");
+				XMLOps.writeToFile(mr, historyFileLocation+"/"+mr.routeID+"_RoutesFile.xml");
+				// make a separate network of all these individual mRoutes for visualization purposes (individual routes)
+				NetworkEvolutionImpl.MRouteToNetwork(mr, globalNetwork,  Sets.newHashSet("pt"), historyFileLocation+"/"+mr.routeID+"_NetworkFile.xml");
 			}
-			// make a separate network of all these mRoutes for visualization purposes
+			// make a separate network of all mRoutes of one network for visualization purposes (all routes of a network)
 			NetworkEvolutionImpl.MRoutesToNetwork(mn.getRouteMap(), globalNetwork, 
 					Sets.newHashSet("pt"), historyFileLocation+"/MRoutes"+mn.networkID+".xml");
 		}

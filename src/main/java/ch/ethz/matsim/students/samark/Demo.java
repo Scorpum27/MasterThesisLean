@@ -11,8 +11,13 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 
+	// Geometry
+		
+		System.out.println(GeomDistance.angleBetweenPoints(-0.0,-0.0, 0.5,-1.0 ,0.0,0.0, -1.0,1.0));
+		System.out.println(GeomDistance.absoluteAngle(0.0,0.5,0.0,-1.0));
+		
 	// Short Routes
-		List<String> list = new ArrayList<String>();
+		/*List<String> list = new ArrayList<String>();
 		list.add("1");
 		list.add("2");
 		list.add("3");
@@ -24,6 +29,11 @@ public class Demo {
 		list.add("9");
 		list.add("10");
 		System.out.println(list.subList((int) Math.floor((1.0/3.0)*list.size()), (int) Math.ceil((2.0/3.0)*list.size())));
+		System.out.println(list.subList(0, list.size()/2));
+		System.out.println(list.subList(list.size()/2, list.size()));
+		//list.remove("5");
+		System.out.println(list.toString());*/
+		
 		
 	// Simple Maths
 		 /*int a =  (int) Math.round(0.5*(0.5+0.3));
