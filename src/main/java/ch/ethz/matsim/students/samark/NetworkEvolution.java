@@ -17,12 +17,11 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 /*
  * PRIO 
+ * TODO Avoid identical network crossings!
  * TODO MUTATIONS in EvoLoop
- * TODO Add min crossing length constraints
  * TODO Check Theory and Questions for Network Approach Optimization -> IVT
  * TODO Make frequency optimization !
  * TODO Check, where VC fails --> The population is zero from the start (also check event handlers for their naming and if they can be detected by algorithm!) --- VC - also store global network that one can refer to when merging together new routes!
- * TODO Introduce more randomness in MRoutesMerger
  * 
  * DIVERSE
  *  - TODO What happens if I delete very short links (are they really worth using as feasible links or are they just a product of a crossing bottleneck?)
@@ -106,7 +105,7 @@ public class NetworkEvolution {
 		double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
 		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
-		int nMostFrequentLinks = 120;												// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
+		int nMostFrequentLinks = 100;												// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
 		double maxNewMetroLinkDistance = 0.40*metroCityRadius;						// DEFAULT = 0.40*metroCityRadius
 		double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
 																					// DEFAULT = 0.20*metroCityRadius for RandomRoutes
@@ -162,7 +161,7 @@ public class NetworkEvolution {
 			int finalGeneration = generationNr;
 			
 		// - SIMULATION LOOP:
-			int lastIteration = 4; // 1+(generationNr-1)*5; // 1*generationNr;
+			int lastIteration = 1; // 1+(generationNr-1)*5; // 1*generationNr;
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
@@ -242,7 +241,7 @@ public class NetworkEvolution {
 			// If PerformanceGoal not yet achieved, change routes and network here according to their scores!
 			double alpha = 10.0;		// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability
 										// to choose a weak netwok more than linearly -> linearly would be p_i = Score_i/Score_tot)
-			Double pCrossOver = 0.5; 	// 0.25;
+			Double pCrossOver = 0.25; 	// 0.25;
 			boolean logEntireRoutes = false;
 			
 			latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,

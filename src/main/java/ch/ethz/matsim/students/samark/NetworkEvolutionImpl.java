@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -974,14 +975,10 @@ public class NetworkEvolutionImpl {
 			int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes, String vehicleTypeName, double vehicleLength, double maxVelocity, 
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes) throws IOException {
 		
-		// Copy oldPopulation (evoNetworksToProcessPlans) to new one to fill in gradually with new offspring afterwards
 		MNetworkPop newPopulation = Clone.mNetworkPop(evoNetworksToProcessPlans);
-//		MNetworkPop newPopulation = new MNetworkPop(evoNetworksToProcessPlans.populationId);
-//		newPopulation.networkMap = evoNetworksToProcessPlans.getNetworks();
 		int nOldPop = newPopulation.networkMap.size();
 		
-		// List<MRoute> offspringRoutes = new ArrayList<MRoute>();
-		// find and store Elite network
+		// Find and conserve Elite network
 		String eliteNetwork = "NoEliteNetworkYet";
 		if (networkScoreMap.size() == 0) {		System.out.println("CAUTION: NetworkScoreMapSize is zero!");	}
 		double maxNetworkScore = -Double.MAX_VALUE;
@@ -1002,28 +999,29 @@ public class NetworkEvolutionImpl {
 		Log.writeAndDisplay("  >> Crossing over nCrossOverCandidates="+nCrossOverCandidates);
 		
 		List<String> processedNetworks = new ArrayList<String>();
-		
+		Map<Integer, List<String>> executedMergers = new HashMap<Integer, List<String>>();
 		for (int n=0; n<nCrossOverCandidates; n++) {
 			Random r = new Random();
 			if (r.nextDouble()<pCrossOver) {
 				String nameParent1;
 				String nameParent2;
-				nameParent1 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap);
-				System.out.println("ParentName 1="+nameParent1);
-				do{
-					nameParent2 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap);
-					System.out.println("ParentName 2="+nameParent2);
-				}while(nameParent1.equals(nameParent2));
+				do {
+					nameParent1 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap);
+					System.out.println("ParentName 1="+nameParent1);
+					do{
+						nameParent2 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap);
+						System.out.println("ParentName 2="+nameParent2);
+					}while(nameParent1.equals(nameParent2));
+				}while(NetworkEvolutionImpl.mergerHasBeenExecutedPreviously(executedMergers, nameParent1, nameParent2));
+				executedMergers.put(n, Arrays.asList(nameParent1, nameParent2));
 				Log.writeAndDisplay("  >> Crossing:  " + nameParent1 + " X " + nameParent2);
-//				MNetwork parentMNetwork1 = evoNetworksToProcessPlans.getNetworks().get(nameParent1);
-//				MNetwork parentMNetwork2 = evoNetworksToProcessPlans.getNetworks().get(nameParent2);				
 				MNetwork parentMNetwork1 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent1));
 				MNetwork parentMNetwork2 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent2));
 				MNetwork[] offspringMNetworks = NetworkEvolutionImpl.crossMNetworks(globalNetwork, parentMNetwork1, parentMNetwork2,
 						vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
 						stopTime, blocksLane, metroConstructionCostPerKmOverground,
 						metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork,
-						useOdPairsForInitialRoutes); // (make sure IDs are same as parent Networks to remove old network adding to newPopulation)
+						useOdPairsForInitialRoutes);
 				newOffspring.add(offspringMNetworks[0]);
 				newOffspring.add(offspringMNetworks[1]);
 			}
@@ -1039,12 +1037,10 @@ public class NetworkEvolutionImpl {
 				RenameOffspring(deletedNetworkNames.get(i), newOffspring.get(i));	// renaming offspring with its MNetworkId and the Id of all its MRoutes
 				newPopulation.addNetwork(newOffspring.get(i));
 				Log.write("   >>> Putting New Offspring Network = " + newOffspring.get(i).networkID);
-//				deletedNetworkNames.remove(0);
-//				newOffspring.remove(0);
 			}
 		}
 		if (nNewOffspring == nOldPop) {										// check with this condition if all old networks have been deleted for new offspring
-			newPopulation.addNetwork(eliteMNetwork);		// if also elite network has been deleted, add manually again (it will replace the new one with the same name)
+			newPopulation.addNetwork(eliteMNetwork);						// if also elite network has been deleted, add manually again (it will replace the new one with the same name)
 			processedNetworks.remove(eliteNetwork);							// because this network remains unchanged for this generation as if it were not processed
 			Log.write("   >>> Putting back removed ELITE NETWORK = " + eliteNetwork);
 		}
@@ -1068,6 +1064,16 @@ public class NetworkEvolutionImpl {
 		// SAVE DATA TO FILES
 		newPopulation.modifiedNetworksInLastEvolution = processedNetworks;		// store which networks have not been changed and must therefore not be simulated again in next simulation loop!!
 		return newPopulation;
+	}
+
+
+	public static boolean mergerHasBeenExecutedPreviously(Map<Integer, List<String>> executedMergers, String nameParent1, String nameParent2) {
+		for (List<String> mergedNetworks : executedMergers.values()) {
+			if (mergedNetworks.contains(nameParent1) && mergedNetworks.contains(nameParent2)) {
+				return true;
+			}
+		}
+		return false;
 	}
 
 
@@ -1215,12 +1221,18 @@ public class NetworkEvolutionImpl {
 		Id<Link> crossLink1 = null;
 		Id<Link> crossLink2 = null;
 		boolean crossingFound = false;
-		for (Id<Link> linkFrom1 : route1LinkListOneway) {
+		int routeLength1 = route1LinkListOneway.size();
+		int routeLength2 = route2LinkListOneway.size();
+		if( routeLength1 < 2 || routeLength2 < 2 ) {
+			System.out.println("One of the MRoute parents has length<2xlinks. Crossing is prohibited.");
+			return null;
+		}
+		for (Id<Link> linkFrom1 : route1LinkListOneway.subList((int) Math.floor((1.0/3.0)*routeLength1), (int) Math.ceil((2.0/3.0)*routeLength1))) {
 			if (crossingFound) {
 				break;
 			}
 			Node fromNode1 = globalNetwork.getLinks().get(linkFrom1).getFromNode();
-			for (Id<Link> linkFrom2 : route2LinkListOneway) {
+			for (Id<Link> linkFrom2 : route2LinkListOneway.subList((int) Math.floor((1.0/3.0)*routeLength2), (int) Math.ceil((2.0/3.0)*routeLength2))) {
 				Node fromNode2 = globalNetwork.getLinks().get(linkFrom2).getFromNode();
 				if (fromNode1.getId().toString().equals(fromNode2.getId().toString())) {
 					crossingFound = true;

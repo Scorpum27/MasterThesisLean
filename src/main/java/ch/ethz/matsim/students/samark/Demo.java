@@ -11,11 +11,25 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 
+	// Short Routes
+		List<String> list = new ArrayList<String>();
+		list.add("1");
+		list.add("2");
+		list.add("3");
+		list.add("4");
+		list.add("5");
+		list.add("6");
+		list.add("7");
+		list.add("8");
+		list.add("9");
+		list.add("10");
+		System.out.println(list.subList((int) Math.floor((1.0/3.0)*list.size()), (int) Math.ceil((2.0/3.0)*list.size())));
+		
 	// Simple Maths
-		 int a =  (int) Math.round(0.5*(0.5+0.3));
+		 /*int a =  (int) Math.round(0.5*(0.5+0.3));
 		 int b = (int) Math.round(0.5*(0.5+1.3));
 		 System.out.println(a);
-		 System.out.println(b);
+		 System.out.println(b);*/
 		
 	// Clone Tester
 		
@@ -48,9 +62,9 @@ public class Demo {
 			
 	// %%%%%%%%%%%%%%%%%%%% SCORES PLOTTER %%%%%%%%%%%%%%%%%%%%
 
-		int generationsToPlot = 4-1;	// always one less than last generation (bc last evolution is not simulated)
+		/*int generationsToPlot = 4-1;	// always one less than last generation (bc last evolution is not simulated)
 		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/networkTravelTimesEvolution.png");
-		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");
+		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");*/
 		
 	// %%%%%%%%%%%%%%%%%%%% CROSSOVER TESTER %%%%%%%%%%%%%%%%%%%%
 
