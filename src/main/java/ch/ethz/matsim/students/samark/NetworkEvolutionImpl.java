@@ -1096,7 +1096,6 @@ public class NetworkEvolutionImpl {
 		List<String> mutatedNetworks = new ArrayList<String>();
 		List<Id<Link>> linkListMutate;
 		for (String mNetworkName : newPopulation.networkMap.keySet()) {
-			Log.write("Starting Mutation On: "+mNetworkName);
 			boolean hasHadMutation = false;
 			if (mNetworkName.equals(eliteNetworkName)) {
 				continue;
@@ -1107,11 +1106,10 @@ public class NetworkEvolutionImpl {
 				averageRouletteScore +=  (mRoute.personMetroKM/mRoute.drivenKM)/mNetwork.routeMap.size();
 			}
 			for (MRoute mRoute : mNetwork.routeMap.values()) {
-				Log.write("Checking for Mutation - "+mRoute.routeID);				
 				Random rMutation = new Random();
 				if (rMutation.nextDouble() < pMutation) {
 					linkListMutate = mRoute.linkList.subList(0, mRoute.linkList.size()/2);
-					Log.write("Mutating route: "+linkListMutate.toString());
+					Log.write("Mutating route  "+mRoute.getId()+" = "+linkListMutate.toString());
 					// make mutation of this route
 					Random rBig = new Random();
 					if (rBig.nextDouble() < pBigChange) { // make big change
@@ -1152,6 +1150,7 @@ public class NetworkEvolutionImpl {
 											}
 											if(GeomDistance.angleBetweenLinks(connectingLink, nextAfterOpenLink) < maxCrossingAngle) {	// can make this condition harder!!
 												feasibleCutLinkFound = true;
+												Log.write("Modifying route at link = "+openCutLinkId.toString());
 												linkListMutateComplete.addAll(linkListMutate.subList(0, linkListMutate.indexOf(openCutLinkId)));
 												linkListMutateComplete.add(outLinkFrom.getId());
 												linkListMutateComplete.add(connectingLinkId);

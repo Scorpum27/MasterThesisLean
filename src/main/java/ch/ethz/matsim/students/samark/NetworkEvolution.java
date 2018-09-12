@@ -151,7 +151,7 @@ public class NetworkEvolution {
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/GlobalMetroNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
-		int nEvolutions = 3;
+		int nEvolutions = 5;
 		double averageTravelTimePerformanceGoal = 40.0;
 		MNetwork successfulNetwork = null;
 		double successfulAverageTravelTime = 0.0;
@@ -161,7 +161,7 @@ public class NetworkEvolution {
 			int finalGeneration = generationNr;
 			
 		// - SIMULATION LOOP:
-			int lastIteration = 1; // 1+(generationNr-1)*5; // 1*generationNr;
+			int lastIteration = 4; // 1+(generationNr-1)*5; // 1*generationNr;
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
@@ -241,7 +241,7 @@ public class NetworkEvolution {
 			// If PerformanceGoal not yet achieved, change routes and network here according to their scores!
 			double alpha = 10.0;					// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability
 													// to choose a weak netwok more than linearly -> linearly would be p_i = Score_i/Score_tot)
-			double pCrossOver = 0.25; 				// DEFAULT = 0.35;
+			double pCrossOver = 0.35; 				// DEFAULT = 0.35;
 			double minCrossingDistanceFactorFromRouteEnd = 0.3; // DEFAULT=0.3; MINIMUM=0.25
 			boolean logEntireRoutes = false;
 			double maxCrossingAngle = 110; 			// DEFAULT = 110;
