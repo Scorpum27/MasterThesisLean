@@ -2,19 +2,22 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
+import java.util.Random;
 
 
 public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 
+	// Random operations
+		Random r = new Random();
+		System.out.println(r.nextInt(10));
+		
 	// Geometry
 		
-		System.out.println(GeomDistance.angleBetweenPoints(-0.0,-0.0, 0.5,-1.0 ,0.0,0.0, -1.0,1.0));
-		System.out.println(GeomDistance.absoluteAngle(0.0,0.5,0.0,-1.0));
+		/*System.out.println(GeomDistance.angleBetweenPoints(-0.0,-0.0, 0.5,-1.0 ,0.0,0.0, -1.0,1.0));
+		System.out.println(GeomDistance.absoluteAngle(0.0,0.5,0.0,-1.0));*/
 		
 	// Short Routes
 		/*List<String> list = new ArrayList<String>();

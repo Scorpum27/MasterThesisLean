@@ -34,6 +34,13 @@ public class Log {
 		aWriter.close();
 	}
 	
+	public static void writeSameLine(String f, String comment) throws IOException {
+		FileWriter aWriter = new FileWriter(f, true);
+		// aWriter.write(currentTime + " " + s + "\n");
+		aWriter.write(comment);
+		aWriter.flush();
+		aWriter.close();
+	}
 	
 	public static void write1(String comment) {
 		
@@ -58,6 +65,10 @@ public class Log {
 		}
 
 		//logger.info("Hi How r u?");
+	}
+
+	public static void writeSameLine(String comment) throws IOException {
+		writeSameLine(defaultLogFile, comment);
 	}
 
 }

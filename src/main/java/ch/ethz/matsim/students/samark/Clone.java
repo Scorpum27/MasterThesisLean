@@ -68,10 +68,15 @@ public class Clone {
 		MRoute copy = new MRoute();
 		copy.routeID = o.routeID;
 		copy.networkRoute = o.networkRoute.clone();
-		copy.nodeList = Clone.nodeList(o.nodeList);
-		copy.linkList = Clone.linkList(o.linkList);
-		
-		copy.transitLine = Clone.transitLine(o.transitLine, ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule().getFactory());
+		if (o.nodeList != null) {
+			copy.nodeList = Clone.nodeList(o.nodeList);
+		}
+		if(o.linkList != null) {
+			copy.linkList = Clone.linkList(o.linkList);
+		}
+		if(o.transitLine != null) {
+			copy.transitLine = Clone.transitLine(o.transitLine, ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule().getFactory());
+		}
 		copy.routeLength = o.routeLength;
 		
 		copy.eventsFile = o.eventsFile;

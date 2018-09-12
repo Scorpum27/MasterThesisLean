@@ -64,6 +64,9 @@ public class Metro_TransitScheduleImpl {
 		for (Id<Link> linkID : routeLinkList) {
 			// place the stop facilities always on the FromNode of the RefLink; this way, the new facilities will have the same coords as the original network's facilities!
 			Link currentLink = network.getLinks().get(linkID);
+			// CAUTION XXXXXXXXXXXXXX If the following line gives an error, then it is prob. that currentLink=null because line above
+			//                        linkID cannot be found in network. Please check network and make sure network choice is corrcet,
+			//						  link name is correct, no new link has been added to network!
 			TransitStopFacility transitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+linkID.toString(), TransitStopFacility.class), currentLink.getFromNode().getCoord(), blocksLane);
 			transitStopFacility.setName("MetroStopRefLink_"+linkID.toString());
 			transitStopFacility.setLinkId(linkID);

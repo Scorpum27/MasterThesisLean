@@ -38,12 +38,20 @@ public class MRoute implements Serializable{
 	public MRoute() {
 	}
 	
-	public MRoute(String name) {	
+	public MRoute(String name) {
+		this.routeLength = Double.MAX_VALUE;
+		this.eventsFile = "";
 		this.routeID = name;
 		this.undergroundPercentage = 0.0;
 		this.personMetroKM = 0.0;
 		this.nBoardings = 0;
-		
+		this.nDepartures = 0;
+		this.departureSpacing = 0.0;
+		this.firstDeparture = 0.0;
+		this.transitScheduleFile = "";
+		this.drivenKM = 0.0;
+		this.opsCost = Double.MAX_VALUE;
+		this.constrCost = Double.MAX_VALUE;
 	}
 	
 	

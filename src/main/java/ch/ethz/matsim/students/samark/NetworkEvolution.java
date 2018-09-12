@@ -19,7 +19,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  * PRIO 
  * TODO MUTATIONS in EvoLoop
  * TODO Make frequency optimization !
- * TODO Extend current SBahn network with constraints
+ * TODO Extend current SBahn network with constraints --> To new feasible links (maybe reward for choosing existing link or make prob higher of choosing one! Maybe in Djikstra)
  * TODO Check Theory and Questions for Network Approach Optimization -> IVT
  * TODO Check, where VC fails --> The population is zero from the start (also check event handlers for their naming and if they can be detected by algorithm!) --- VC - also store global network that one can refer to when merging together new routes!
  * 
@@ -69,7 +69,7 @@ public class NetworkEvolution {
  * Parameters: Tune well, may use default
  * For OD: minTerminalRadiusFromCenter = 0.00*metroCityRadius
  * Do not use "noModificationInLastEvolution" if lastIteration changes over evolutions, because this would give another result from the simulations
- *  
+ * minCrossingDistanceFactorFromRouteEnd must have a MINIMUM=0.25
  */
 
 	
@@ -151,7 +151,7 @@ public class NetworkEvolution {
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/GlobalMetroNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
-		int nEvolutions = 2;
+		int nEvolutions = 3;
 		double averageTravelTimePerformanceGoal = 40.0;
 		MNetwork successfulNetwork = null;
 		double successfulAverageTravelTime = 0.0;
@@ -161,7 +161,7 @@ public class NetworkEvolution {
 			int finalGeneration = generationNr;
 			
 		// - SIMULATION LOOP:
-			int lastIteration = 0; // 1+(generationNr-1)*5; // 1*generationNr;
+			int lastIteration = 1; // 1+(generationNr-1)*5; // 1*generationNr;
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
@@ -239,25 +239,28 @@ public class NetworkEvolution {
 			
 			Log.write("NEW POPULATION at the end of GEN"+generationNr+":");
 			// If PerformanceGoal not yet achieved, change routes and network here according to their scores!
-			double alpha = 10.0;		// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability
-										// to choose a weak netwok more than linearly -> linearly would be p_i = Score_i/Score_tot)
-			double pCrossOver = 0.5; 	// 0.25;
-			double minCrossingDistanceFactorFromRouteEnd = 0.3;
+			double alpha = 10.0;					// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability
+													// to choose a weak netwok more than linearly -> linearly would be p_i = Score_i/Score_tot)
+			double pCrossOver = 0.25; 				// DEFAULT = 0.35;
+			double minCrossingDistanceFactorFromRouteEnd = 0.3; // DEFAULT=0.3; MINIMUM=0.25
 			boolean logEntireRoutes = false;
-			double maxCrossingAngle = 110;
-			
+			double maxCrossingAngle = 110; 			// DEFAULT = 110;
+			double pMutation = 0.15;				// DEFAULT = 0.15
+			double pBigChange = 0.2;				// DEFAULT = 0.20
+			double pSmallChange = 1.0-pBigChange;
 			latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,
 					metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork, 
 					useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, 
-					logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
+					logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, pMutation, pBigChange, pSmallChange);
 			
-			// choose by roulette wheel (overall network score) four times two parents to yield four offspring
+			// choose by Roulette wheel (overall network score) four times two parents to yield four offspring
 				// offspring by merging the two networks in all identical node cross-over --> CONSTRAINTS
 				// make new schedule for each route with start parameters (take existing and make new for new routes)
 			// for every new offspring choose if it shall replace old worst network (p=1/nOffspring) and replace worst one
 			// mutation: p=0.15
 				// with p=1/3 kill node
 				// with p=1/3 
+
 		}
 
 	// Plot Score Evolution
