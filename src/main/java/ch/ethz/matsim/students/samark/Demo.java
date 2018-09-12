@@ -11,8 +11,8 @@ public class Demo {
 	public static void main(String[] args) throws IOException {
 
 	// Random operations
-		Random r = new Random();
-		System.out.println(r.nextInt(10));
+		NetworkEvolutionImpl.writeChartAverageTravelTimes(5, 6, 5, 4, "zurich_1pm/Evolution/Population/networkTravelTimesEvolution.png");
+		NetworkEvolutionImpl.writeChartNetworkScore(5, 6, 5, 4, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");
 		
 	// Geometry
 		

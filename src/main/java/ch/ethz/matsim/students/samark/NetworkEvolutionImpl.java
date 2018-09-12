@@ -848,7 +848,7 @@ public class NetworkEvolutionImpl {
 // %%%%%%%%%%%%% Plot Makers %%%%%%%%%%%%%%%%%%%%%
 
 	@SuppressWarnings("unchecked")
-	public static void writeChartNetworkScore(int lastGeneration, String fileName) throws FileNotFoundException {
+	public static void writeChartNetworkScore(int lastGeneration, int populationSize, int routesPerNetwork, int lastIteration, String fileName) throws FileNotFoundException {
 		Map<Integer, Double> generationsAverageNetworkScore = new HashMap<Integer, Double>();
 		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
 		Map<Integer, Double> generationsBestNetworkScore = new HashMap<Integer, Double>();
@@ -868,14 +868,14 @@ public class NetworkEvolutionImpl {
 			generationsAverageNetworkScore.put(g, averageNetworkScoreThisGeneration);
 			generationsBestNetworkScore.put(g, bestNetworkScoreThisGeneration);
 		}
-		XYLineChart chart = new XYLineChart("Evolution of Network Performance", "Generation", "Score");
+		XYLineChart chart = new XYLineChart("Perform. Evol. [nNetw="+populationSize+"], [nSimIter="+lastIteration+"], [nInitRoutes/Netw="+routesPerNetwork+"]", "Generation", "Score");
 		chart.addSeries("Average Network Score", generationsAverageNetworkScore);
 		chart.addSeries("Best Network Score in Generation", generationsBestNetworkScore);
 		chart.saveAsPng(fileName, 800, 600);
 	}
 			
 	@SuppressWarnings("unchecked")
-	public static void writeChartAverageTravelTimes(int lastGeneration, String fileName) throws FileNotFoundException { 	// Average and Best Scores
+	public static void writeChartAverageTravelTimes(int lastGeneration, int populationSize, int routesPerNetwork, int lastIteration, String fileName) throws FileNotFoundException { 	// Average and Best Scores
 		Map<Integer, Double> generationsAverageTravelTime = new HashMap<Integer, Double>();
 		Map<Integer, Double> generationsAverageTravelTimeStdDev = new HashMap<Integer, Double>();
 		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
@@ -899,7 +899,7 @@ public class NetworkEvolutionImpl {
 			generationsAverageTravelTimeStdDev.put(g, averageTravelTimeStdDevThisGeneration);
 			generationsBestTravelTime.put(g, bestAverageTravelTimeThisGeneration);
 		}
-		XYLineChart chart = new XYLineChart("Evolution of Network Performance", "Generation", "Score");
+		XYLineChart chart = new XYLineChart("Perform. Evol. [nNetw="+populationSize+"], [nSimIter="+lastIteration+"], [nInitRoutes/Netw="+routesPerNetwork+"]", "Generation", "Score");
 		chart.addSeries("Average Travel Time [min]", generationsAverageTravelTime);
 		chart.addSeries("Average Travel Time - Std Deviation [min]", generationsAverageTravelTimeStdDev);
 		chart.addSeries("Best Average Travel Time [min]", generationsBestTravelTime);

@@ -17,10 +17,11 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 /*
  * PRIO 
- * TODO MUTATIONS in EvoLoop
- * TODO Make frequency optimization !
+ * TODO Make frequency optimization
  * TODO Extend current SBahn network with constraints --> To new feasible links (maybe reward for choosing existing link or make prob higher of choosing one! Maybe in Djikstra)
+ * TODO Different Scoring functions (all roulette wheels, proportional choices, metro cost etc.)
  * TODO Check Theory and Questions for Network Approach Optimization -> IVT
+ * TODO OD-Route improvements
  * TODO Check, where VC fails --> The population is zero from the start (also check event handlers for their naming and if they can be detected by algorithm!) --- VC - also store global network that one can refer to when merging together new routes!
  * 
  * DIVERSE
@@ -74,23 +75,17 @@ public class NetworkEvolution {
 
 	
 	public static void main(String[] args) throws ConfigurationException, IOException {
-		PrintWriter pw = new PrintWriter("zurich_1pm/Evolution/Population/PopulationEvolutionLog.txt");		pw.close();		// Prepare empty log file for simulation
+		PrintWriter pw = new PrintWriter("zurich_1pm/Evolution/Population/PopulationEvolutionLog.txt");	pw.close();		// Prepare empty log file for run
 		
 	// INITIALIZATION
-	// !! Run RunScenario First to have simulation output that can be analyzed !!
-		// if desired, process raw existing network for its performance for reference
-		// NetworkScoreLog rawNetworkPerformance = NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240);		
-		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240);
-		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput_BACKUP__10/output_plans.xml.gz", 240);
-		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Evolution/Population/Network1/Simulation_Output/output_plans.xml.gz", 240);
-		
-		
-	// - Initiate N=16 networks to make a population
+		// if desired, process raw existing network for its performance for reference : NetworkScoreLog rawNetworkPerformance = NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240);		
+		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240); or ("zurich_1pm/Zurich_1pm_SimulationOutput_BACKUP__10/output_plans.xml.gz", 240); or ("zurich_1pm/Evolution/Population/Network1/Simulation_Output/output_plans.xml.gz", 240);
+	// - Initiate N networks to make a population
 		// % Parameters for Population: %
 		int populationSize = 6;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int routesPerNetwork = 5;													// how many initial routes should be placed in every network
-		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
+		String initialRouteType = "OD";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 		boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
 		int iterationToReadOriginalNetwork = 100;									// This is the iteration for the simulation output of the original network
@@ -107,7 +102,7 @@ public class NetworkEvolution {
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
 		int nMostFrequentLinks = 80;												// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
 		double maxNewMetroLinkDistance = 0.40*metroCityRadius;						// DEFAULT = 0.40*metroCityRadius
-		double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
+		double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
 																					// DEFAULT = 0.20*metroCityRadius for RandomRoutes
 		double maxTerminalRadiusFromCenter = maxMetroRadiusFromCenter;				// DEFAULT = maxMetroRadiusFromCenter
 		double minTerminalDistance = 0.70*maxMetroRadiusFromCenter;					// DEFAULT = 0.70*maxMetroRadiusFromCenter
@@ -117,7 +112,7 @@ public class NetworkEvolution {
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
 		String vehicleTypeName = "metro";  double maxVelocity = 70/3.6 /*[m/s]*/;
 		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
-		double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 7.5*60;
+		double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 15*60.0;
 		int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
 		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		double metroOpsCostPerKM = 1000; double metroConstructionCostPerKmOverground = 1000000; double metroConstructionCostPerKmUnderground = 10000000;
@@ -151,17 +146,18 @@ public class NetworkEvolution {
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/GlobalMetroNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
-		int nEvolutions = 5;
+		int nEvolutions = 3;
 		double averageTravelTimePerformanceGoal = 40.0;
 		MNetwork successfulNetwork = null;
 		double successfulAverageTravelTime = 0.0;
+		int lastIteration = 0;							// DEFAULT=0
 		for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
 			Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "GENERATION - " + generationNr + " - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 			NetworkEvolutionImpl.saveCurrentMRoutes2HistoryLog(latestPopulation, generationNr, globalNetwork);
 			int finalGeneration = generationNr;
 			
 		// - SIMULATION LOOP:
-			int lastIteration = 4; // 1+(generationNr-1)*5; // 1*generationNr;
+			lastIteration = 1; // 1+(generationNr-1)*5; // 1*generationNr;
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
@@ -252,55 +248,49 @@ public class NetworkEvolution {
 					metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork, 
 					useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, 
 					logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, pMutation, pBigChange, pSmallChange);
-			
-			// choose by Roulette wheel (overall network score) four times two parents to yield four offspring
-				// offspring by merging the two networks in all identical node cross-over --> CONSTRAINTS
-				// make new schedule for each route with start parameters (take existing and make new for new routes)
-			// for every new offspring choose if it shall replace old worst network (p=1/nOffspring) and replace worst one
-			// mutation: p=0.15
-				// with p=1/3 kill node
-				// with p=1/3 
-
 		}
 
 	// Plot Score Evolution
 		int generationsToPlot = nEvolutions-1;
-		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, "zurich_1pm/Evolution/Population/networkTravelTimesEvolution.png");
-		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");
+		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, populationSize, routesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png");
+		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, populationSize, routesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkScoreEvo.png");
 		
 	
-	// INITIALIZATION
-		// - Initiate N=16 networks to make a population
-		// - Fill in N=10 fixed Random/OD initial routes into every network
-		// - Initialize all MRoutes/MNetworks with the corresponding info (linkList etc.)
-		// - TODO Process all routes for their		
-			/* - Apply to all routes the calculator
-			 * - length
-			 * - nVehicles
-			 * - nDepartures = nRides
-			 * - drivenKM = length * nRides
-			 * - undergroundPercentage (at a later stage)
-			 */
-			
-	// EVOLUTIONARY PROCESS
-			
-		// SIMULATION LOOP:
-		// - For each network
-		// - Simulate network in MATSim with plans
-		// - Process events in NetworkPerformanceHandler and save to corresponding network of population
-		// - Maybe hand over score to a separate score map for sorting scores
-	
-		// EVOLUTION
-		// - Make evolutionary operations
-		// - Update population
-		// - Log files to save development
-		//		- MNetwork (with its MRoutes, but without NetworkFile!)
-		//		- Iteration
-		//		- ScoreMap for each network (and routes?)
-		// --> Simulation loop
+
 		
 	
 	
 	} // end Main Method
 
 } // end NetworkEvolution Class
+
+
+// INITIALIZATION
+// - Initiate N=16 networks to make a population
+// - Fill in N=10 fixed Random/OD initial routes into every network
+// - Initialize all MRoutes/MNetworks with the corresponding info (linkList etc.)
+// - TODO Process all routes for their		
+	/* - Apply to all routes the calculator
+	 * - length
+	 * - nVehicles
+	 * - nDepartures = nRides
+	 * - drivenKM = length * nRides
+	 * - undergroundPercentage (at a later stage)
+	 */
+	
+// EVOLUTIONARY PROCESS
+	
+// SIMULATION LOOP:
+// - For each network
+// - Simulate network in MATSim with plans
+// - Process events in NetworkPerformanceHandler and save to corresponding network of population
+// - Maybe hand over score to a separate score map for sorting scores
+
+// EVOLUTION
+// - Make evolutionary operations
+// - Update population
+// - Log files to save development
+//		- MNetwork (with its MRoutes, but without NetworkFile!)
+//		- Iteration
+//		- ScoreMap for each network (and routes?)
+// --> Simulation loop
