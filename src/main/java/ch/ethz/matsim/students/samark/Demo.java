@@ -11,8 +11,12 @@ public class Demo {
 	public static void main(String[] args) throws IOException {
 
 	// Random operations
-		NetworkEvolutionImpl.writeChartAverageTravelTimes(5, 6, 5, 4, "zurich_1pm/Evolution/Population/networkTravelTimesEvolution.png");
-		NetworkEvolutionImpl.writeChartNetworkScore(5, 6, 5, 4, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");
+		System.out.println(Math.ceil(0.0/0));
+		System.out.println(Math.floor((1.0+1.0)/2));
+
+
+		// NetworkEvolutionImpl.writeChartAverageTravelTimes(5, 6, 5, 4, "zurich_1pm/Evolution/Population/networkTravelTimesEvolution.png");
+		// NetworkEvolutionImpl.writeChartNetworkScore(5, 6, 5, 4, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");
 		
 	// Geometry
 		
@@ -20,7 +24,7 @@ public class Demo {
 		System.out.println(GeomDistance.absoluteAngle(0.0,0.5,0.0,-1.0));*/
 		
 	// Short Routes
-		/*List<String> list = new ArrayList<String>();
+		List<String> list = new ArrayList<String>();
 		list.add("1");
 		list.add("2");
 		list.add("3");
@@ -35,8 +39,8 @@ public class Demo {
 		System.out.println(list.subList(0, list.size()/2));
 		System.out.println(list.subList(list.size()/2, list.size()));
 		//list.remove("5");
-		System.out.println(list.toString());*/
-		
+		System.out.println(list.toString());
+		System.out.println(list.subList(0, 0).toString());		
 		
 	// Simple Maths
 		 /*int a =  (int) Math.round(0.5*(0.5+0.3));

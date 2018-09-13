@@ -290,7 +290,6 @@ public class OD_ProcessorImpl {
 			twowayLinkList.add(onewayRoute.getEndLinkId());
 			twowayLinkList.addAll(OppositeLinkListOf(twowayLinkList));
 			NetworkRoute twowayRoute = RouteUtils.createNetworkRoute(twowayLinkList, metroNetwork);
-			Log.write("Created OD-Links NetworkRoute with Links: "+"\r\n"+twowayLinkList.toString());
 			networkRouteArray.add(twowayRoute);
 			// nr++;
 			// For displaying single routes:

@@ -40,7 +40,7 @@ public class NetworkEvolutionRunSim {
 	public static void run(String[] args, MNetwork mNetwork, String initialRouteType, 
 			String initialConfig, int lastIteration) throws ConfigurationException, IOException  {
 		
-		Log.write("  >> Running MATSim simulation on Network = : "+mNetwork.networkID);
+		Log.write("  >> Running MATSim simulation on:  "+mNetwork.networkID);
 		
 		CommandLine cmd = new CommandLine.Builder(args)
 				.allowOptions("model-type", "fallback-behaviour")
@@ -125,7 +125,7 @@ public class NetworkEvolutionRunSim {
 			if(networkPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
 				continue;
 			}
-			Log.write("  >> Running Events Processing on Network = : "+mNetwork.networkID);
+			Log.write("  >> Running Events Processing on:  "+mNetwork.networkID);
 			String networkName = mNetwork.networkID;
 
 			

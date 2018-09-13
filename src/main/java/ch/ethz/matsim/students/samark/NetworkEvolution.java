@@ -17,6 +17,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 /*
  * PRIO 
+ * delete route if it has 0 remaining vehicles
  * TODO Make frequency optimization
  * TODO Extend current SBahn network with constraints --> To new feasible links (maybe reward for choosing existing link or make prob higher of choosing one! Maybe in Djikstra)
  * TODO Different Scoring functions (all roulette wheels, proportional choices, metro cost etc.)
@@ -84,8 +85,8 @@ public class NetworkEvolution {
 		// % Parameters for Population: %
 		int populationSize = 6;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		int routesPerNetwork = 5;													// how many initial routes should be placed in every network
-		String initialRouteType = "OD";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
+		int initialRoutesPerNetwork = 5;
+		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 		boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
 		int iterationToReadOriginalNetwork = 100;									// This is the iteration for the simulation output of the original network
@@ -110,32 +111,31 @@ public class NetworkEvolution {
 		double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing routes)
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
-		String vehicleTypeName = "metro";  double maxVelocity = 70/3.6 /*[m/s]*/;
+		String vehicleTypeName = "metro";  double maxVelocity = 80/3.6 /*[m/s]*/;
 		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
-		double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60;  double depSpacing = 15*60.0;
-		int nDepartures = (int) ((tLastDep-tFirstDep)/depSpacing);
+		double initialDepSpacing = 7.5*60.0; double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60; 
 		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		double metroOpsCostPerKM = 1000; double metroConstructionCostPerKmOverground = 1000000; double metroConstructionCostPerKmUnderground = 10000000;
 		
 		
-		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		// Log.write("NETWORK CREATION - START");
 		MNetworkPop networkPopulation = new MNetworkPop(populationName, populationSize);			// Initialize population of networks
 		for (int N=1; N<=populationSize; N++) {														// Make individual networks one by one in loop
 			String thisNewNetworkName = ("Network"+N);												// Name networks by their number [1;populationSize]
 			MNetwork mNetwork = NetworkEvolutionImpl.createMNetworkRoutes(							// Make a list of routes that will be added to this network
-					thisNewNetworkName, routesPerNetwork, initialRouteType, iterationToReadOriginalNetwork,
+					thisNewNetworkName, initialRoutesPerNetwork, initialRouteType, iterationToReadOriginalNetwork,
 					minMetroRadiusFromCenter, maxMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
 					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, proximityRadius, odConsiderationThreshold,
 					xOffset, yOffset, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
-					defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, depSpacing, nDepartures,
+					defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing,
 					metroOpsCostPerKM, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground);
 			networkPopulation.addNetwork(mNetwork);
 			networkPopulation.modifiedNetworksInLastEvolution.add(thisNewNetworkName);	// do this so EVO/SIM loop knows to consider these networks for processing
 			// For network Evolution log:
 			// XMLOps.writeToFileMNetwork(mNetwork, zeroLog +"/"+mNetwork.networkID);
 		}
-		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - END" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - END" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		MNetworkPop latestPopulation = networkPopulation;
 			// for isolated code running:
 			// XMLOps.writeToFileMNetworkPop(networkPopulation, "zurich_1pm/Evolution/Population/"+networkPopulation.populationId+".xml");
@@ -146,18 +146,16 @@ public class NetworkEvolution {
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/GlobalMetroNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
-		int nEvolutions = 3;
+		int nEvolutions = 5;
 		double averageTravelTimePerformanceGoal = 40.0;
-		MNetwork successfulNetwork = null;
-		double successfulAverageTravelTime = 0.0;
 		int lastIteration = 0;							// DEFAULT=0
 		for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
-			Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "GENERATION - " + generationNr + " - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+			Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "GENERATION - " + generationNr + " - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 			NetworkEvolutionImpl.saveCurrentMRoutes2HistoryLog(latestPopulation, generationNr, globalNetwork);
 			int finalGeneration = generationNr;
 			
 		// - SIMULATION LOOP:
-			lastIteration = 1; // 1+(generationNr-1)*5; // 1*generationNr;
+			lastIteration = 4;
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
@@ -174,7 +172,7 @@ public class NetworkEvolution {
 			} // End Network Simulation Loop 
 	
 		// - EVENTS PROCESSING: 
-			Log.write("EVENTS PROCESSING of GEN"+generationNr+":");
+			Log.write("EVENTS PROCESSING of GEN"+generationNr+"");
 			int lastEventIteration = lastIteration; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
 			MNetworkPop evoNetworksToProcess = latestPopulation;  // for isolated code running: MNetworkPop evoNetworksToProcess = XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/"+populationName+".xml");
 			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration);
@@ -182,83 +180,54 @@ public class NetworkEvolution {
 					// XMLOps.writeToFileMNetworkPop(evoNetworksToProcess, "zurich_1pm/Evolution/Population/"+evoNetworksToProcess.populationId+".xml");
 			
 		// - PLANS PROCESSING:
-			Log.write("PLANS PROCESSING of GEN"+generationNr+": >DONE!");
+			Log.write("PLANS PROCESSING of GEN"+generationNr+"");
 			//MNetworkPop evoNetworksToProcessPlans = evoNetworksToProcess; 	// for isolated code running: XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/"+populationName+".xml");
 			int maxConsideredTravelTimeInMin = 240;
 			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInMin);
 			
-		// - TOTAL SCORE CALCULATOR & HISTORY LOGGER: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
+		// - TOTAL SCORE CALCULATOR & HISTORY LOGGER & SCORE CHECK: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
 			Log.write("LOGGING SCORES of GEN"+generationNr+":");
 			String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr;
-			new File(historyFileLocation).mkdirs();
+			String networkScoreMapGeneralLocation = "zurich_1pm/Evolution/Population/networkScoreMap.xml";
 			Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
-			boolean performanceGoalAccomplished = false;
-			for (String networkName : latestPopulation.getNetworks().keySet()) {
-				MNetwork mnetwork = latestPopulation.getNetworks().get(networkName);
-				if(latestPopulation.modifiedNetworksInLastEvolution.contains(mnetwork.getNetworkID())) {
-					mnetwork.calculateTotalRouteLength();
-					mnetwork.drivenKM = mnetwork.totalRouteLength*(2*nDepartures);
-					mnetwork.calculateNetworkScore();		// from internal scoring parameters calculate overall score according to internal function
-					if (performanceGoalAccomplished == false) {		// checking whether performance goal achieved
-						if (mnetwork.averageTravelTime < averageTravelTimePerformanceGoal) {
-							performanceGoalAccomplished = true;
-							successfulNetwork = mnetwork;
-							successfulAverageTravelTime = mnetwork.getAverageTravelTime();
-						}					
-					}
-					if (performanceGoalAccomplished == true) {		// this loop is for the case that performance goal is achieved by one network, but in same iteration another network has an even better score
-						if (mnetwork.averageTravelTime < successfulAverageTravelTime) {
-							successfulAverageTravelTime = mnetwork.getAverageTravelTime();
-							successfulNetwork = mnetwork;
-						}				
-					}
-				}	// do from here for all networks, also those who have not been modified!
-				NetworkScoreLog nsl = new NetworkScoreLog();
-				nsl.NetworkScore2LogMap(mnetwork);			// copy network parameters to network score log for storing evolution
-				networkScoreMap.put(networkName, nsl);		// network score map is finally stored
-				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": OVERALL SCORE = " + mnetwork.overallScore);
-				Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Total Metro Passengers KM = " + mnetwork.totalMetroPersonKM);
-				//Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Average Travel Time = " + mnetwork.averageTravelTime);
-				
-				// mnetwork.network = null;		// set to null before storing to file bc would use up too much storage and is not needed (network can be created from other data)
-				// CAUTION: Do this for continuous loops! // XMLOps.writeToFileMNetwork(mnetwork, historyFileLocation+"/"+mnetwork.networkID+".xml");
-			}
-			XMLOps.writeToFile(networkScoreMap, "zurich_1pm/Evolution/Population/networkScoreMap.xml");
-			XMLOps.writeToFile(networkScoreMap, historyFileLocation+"/networkScoreMap.xml");
-			
-		// - SCORE CHECK: If scores are good enough, stop evolution and give out a well-performing network
+			boolean performanceGoalAccomplished = NetworkEvolutionImpl.logResults(networkScoreMap, historyFileLocation, networkScoreMapGeneralLocation, 
+					latestPopulation, averageTravelTimePerformanceGoal, finalGeneration);
 			if(performanceGoalAccomplished == true) {		// 
-				System.out.println("Performance Goal has been achieved in Generation " +finalGeneration+ " by Network "+successfulNetwork.networkID+" at averageTravelTime "+successfulAverageTravelTime);			// display most important analyzed data here			
-				Log.write("PERFORMANCE GOAL ACHIEVED: in Generation " +finalGeneration+ " by Network "+successfulNetwork.networkID+" at averageTravelTime "+successfulAverageTravelTime);
 				break;
 			}
 			
-			Log.write("NEW POPULATION at the end of GEN"+generationNr+":");
-			// If PerformanceGoal not yet achieved, change routes and network here according to their scores!
-			double alpha = 10.0;					// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability
-													// to choose a weak netwok more than linearly -> linearly would be p_i = Score_i/Score_tot)
-			double pCrossOver = 0.35; 				// DEFAULT = 0.35;
-			double minCrossingDistanceFactorFromRouteEnd = 0.3; // DEFAULT=0.3; MINIMUM=0.25
+		// - EVOLUTION: If PerformanceGoal not yet achieved, change routes and network here according to their scores!
+			Log.write("EVOLUTION at the end of GEN"+generationNr+":");
+
+			// Frequency Modification: Redistribute vehicle fleet by scores and stochastics before mutating actual routes
+				// - first set all mRoute.nVehicle as a function of current fleet size and stochastics
+				// - applyPT: make functions for depSpacing = f(nVehicles, total route length) while total route length = f(linkList or stopArray)
+			
+			double alpha = 10.0;											// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability to choose a weak network more than linearly -> linearly would be p_i = Score_i/Score_tot)
+			double pCrossOver = 0.35; 										// DEFAULT = 0.35;
+			double minCrossingDistanceFactorFromRouteEnd = 0.3; 			// DEFAULT = 0.30; MINIMUM = 0.25
 			boolean logEntireRoutes = false;
-			double maxCrossingAngle = 110; 			// DEFAULT = 110;
-			double pMutation = 0.15;				// DEFAULT = 0.15
-			double pBigChange = 0.2;				// DEFAULT = 0.20
+			double maxCrossingAngle = 110; 									// DEFAULT = 110;
+			double pMutation = 0.15;										// DEFAULT = 0.15
+			double pBigChange = 0.2;										// DEFAULT = 0.20
 			double pSmallChange = 1.0-pBigChange;
 			latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,
 					metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork, 
 					useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, 
 					logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, pMutation, pBigChange, pSmallChange);
+			
+			for (MNetwork mn : latestPopulation.networkMap.values()) {
+				for (MRoute mr : mn.routeMap.values()) {
+					Log.write(mr.routeID+" has nVehicles="+mr.vehiclesNr);
+				}
+			}
+			
 		}
 
-	// Plot Score Evolution
+	// PLOT RESULTS
 		int generationsToPlot = nEvolutions-1;
-		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, populationSize, routesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png");
-		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, populationSize, routesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkScoreEvo.png");
-		
-	
-
-		
-	
+		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png");
+		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkScoreEvo.png");
 	
 	} // end Main Method
 
@@ -287,6 +256,18 @@ public class NetworkEvolution {
 // - Maybe hand over score to a separate score map for sorting scores
 
 // EVOLUTION
+// - Frequency & Departure Spacing
+//  - Initialization
+//		- Set initial Departure Spacing, firstDep & lastDep.
+//		- Calculate roundtripDuration
+//		- Calculate nVehicles
+//		- Fill in vehicles automatically according to addVehiclesAndDepartures
+//	- Evolution
+//		- Frequency opt: redistribute vehicles according to cost and previous vehicles 
+//		--> keep roundtripDuration, set nVehicles by new, set nDep to zero, keep firstDep/lastDep, the rest will be calculated when applyPT!
+//		- Crossovers: split vehicles according to average (floor lower nVeh, ceil higher nVeh)
+//		- Mutations: make mutation, %%%calculate new total length%%%, keep nVehicles the same
+//		- ApplyPT: take nVehicles, first/lastDep --> Calculate DepSpacing and fill in accordingly --> Calculate drivenKM thereafter.
 // - Make evolutionary operations
 // - Update population
 // - Log files to save development
@@ -294,3 +275,5 @@ public class NetworkEvolution {
 //		- Iteration
 //		- ScoreMap for each network (and routes?)
 // --> Simulation loop
+
+

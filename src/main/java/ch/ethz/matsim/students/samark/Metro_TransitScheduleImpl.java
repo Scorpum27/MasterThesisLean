@@ -1,5 +1,6 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -60,6 +61,9 @@ public class Metro_TransitScheduleImpl {
 		
 		List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
 		routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute));
+		double acceleration = 0.1*9.81;
+		double vMaxAccDistance = maxVehicleSpeed*maxVehicleSpeed/(2*acceleration);
+		double tAccVMax = maxVehicleSpeed/acceleration;
 
 		for (Id<Link> linkID : routeLinkList) {
 			// place the stop facilities always on the FromNode of the RefLink; this way, the new facilities will have the same coords as the original network's facilities!
@@ -72,7 +76,12 @@ public class Metro_TransitScheduleImpl {
 			transitStopFacility.setLinkId(linkID);
 			stopCount++;
 			if(stopCount>1) {
-				accumulatedDrivingTime += lastLink.getLength()/(maxVehicleSpeed);
+				if (lastLink.getLength() >= vMaxAccDistance) {
+					accumulatedDrivingTime += (2*tAccVMax + (lastLink.getLength()-vMaxAccDistance)/(maxVehicleSpeed));	// 2*AccTime for accelerating and braking and then the cruise time in between
+				}
+				else {
+					accumulatedDrivingTime += 2*Math.sqrt(2*lastLink.getLength()/acceleration); // 2*xxx for accelerating and then symmetric braking with const acceleration
+				}
 			}
 			double arrivalDelay = (stopCount-1)*stopTime + accumulatedDrivingTime;
 			double departureDelay = (stopCount)*stopTime + accumulatedDrivingTime;		// same as arrivalDelay + 1*stopTime
@@ -94,9 +103,7 @@ public class Metro_TransitScheduleImpl {
 		TransitRouteStop terminalTransitRouteStop = transitScheduleFactory.createTransitRouteStop(
 				stopArray.get(0).getStopFacility(), terminalArrivalOffset, terminalDepartureOffset);
 		stopArray.add(terminalTransitRouteStop);
-		/*for (int s=0; s<stopArray.size(); s++) {
-			System.out.println(stopArray.get(s).toString());
-		}*/
+		
 		return stopArray;
 	}
 	
@@ -114,46 +121,43 @@ public class Metro_TransitScheduleImpl {
 		return reverseId;
 	}
 	
-	public static TransitRoute addDeparturesAndVehiclesToTransitRoute(Scenario scenario, TransitSchedule transitSchedule, TransitRoute transitRoute, 
-			int nDepartures, double firstDepTime, double departureSpacing, double totalRouteTravelTime, VehicleType vehicleType, String vehicleFileLocation) {
+	public static TransitRoute addDeparturesAndVehiclesToTransitRoute(MRoute mRoute, Scenario scenario, TransitSchedule transitSchedule, TransitRoute transitRoute, 
+			VehicleType vehicleType, String vehicleFileLocation) throws IOException {
+		
+		mRoute.nDepartures = (int) Math.floor((mRoute.lastDeparture-mRoute.firstDeparture)/mRoute.departureSpacing);
 		double depTimeOffset = 0;
 		LinkedHashMap<Double, Id<Vehicle>> freeVehicles = new LinkedHashMap<>();
-		for (int d=0; d<nDepartures; d++) {
-			depTimeOffset = d*departureSpacing;
-			Departure departure = transitSchedule.getFactory().createDeparture(Id.create(transitRoute.getId().toString()+"_Departure_"+d+"_"+(firstDepTime+depTimeOffset), 
-					Departure.class), firstDepTime+depTimeOffset); // TODO specify departureX with better name
+		int nVehicles = 0;
+		for (int d=0; d<mRoute.nDepartures; d++) {
+			depTimeOffset = d*mRoute.departureSpacing;
+			Departure departure = transitSchedule.getFactory().createDeparture(Id.create(transitRoute.getId().toString()+"_Departure_"+d+"_"+(mRoute.firstDeparture+depTimeOffset), 
+					Departure.class), mRoute.firstDeparture+depTimeOffset); // TODO specify departureX with better name
 			Vehicle vehicle;
 			if (freeVehicles.isEmpty()==false) {
 				Iterator<Double> depOffsetIter = freeVehicles.keySet().iterator();
-				Double earliestFreeArrival = depOffsetIter.next();
-//				System.out.println("d = "+d);
-//				System.out.println("depTimeOffset = "+depTimeOffset);
-//				System.out.println("earliestFreeArrival = "+earliestFreeArrival);
-				if(earliestFreeArrival < depTimeOffset) {
-					vehicle = scenario.getTransitVehicles().getVehicles().get(freeVehicles.get(earliestFreeArrival));
-					freeVehicles.remove(earliestFreeArrival);
+				Double earliestFreeDeparture = depOffsetIter.next();
+				if(earliestFreeDeparture < depTimeOffset) {
+					vehicle = scenario.getTransitVehicles().getVehicles().get(freeVehicles.get(earliestFreeDeparture));
+					freeVehicles.remove(earliestFreeDeparture);
 				}
 				else {
 					vehicle = scenario.getTransitVehicles().getFactory().createVehicle(Id.createVehicleId(transitRoute.getId().toString()+"_"+vehicleType.getId().toString()+"_"+d), vehicleType);
 				}
 			}
 			else {
+				nVehicles++;
 				vehicle = scenario.getTransitVehicles().getFactory().createVehicle(Id.createVehicleId(transitRoute.getId().toString()+"_"+vehicleType.getId().toString()+"_"+d), vehicleType);
 			}
-			freeVehicles.put(depTimeOffset+totalRouteTravelTime, vehicle.getId());
-//			System.out.println("VehicleName is = "+vehicle.getId().toString());
-			
-			// System.out.println(scenario.getVehicles().getVehicles().containsKey(vehicle.getId()));
+			freeVehicles.put(depTimeOffset+mRoute.roundtripTravelTime, vehicle.getId());
 			if (scenario.getTransitVehicles().getVehicles().containsKey(vehicle.getId())) {
 				scenario.getTransitVehicles().removeVehicle(vehicle.getId());
 			}
 			scenario.getTransitVehicles().addVehicle(vehicle);
 			departure.setVehicleId(vehicle.getId());
 			transitRoute.addDeparture(departure);
-			System.out.println("Departure:   Time="+departure.getDepartureTime()+", VehicleId="+departure.getVehicleId().toString()+", DepartureId="+departure.getId());				
-			System.out.println("Route Total Travel Time="+totalRouteTravelTime);				
-			System.out.println("Number of total vehicles="+scenario.getTransitVehicles().getVehicles().size());				
-
+		}
+		if(nVehicles > mRoute.vehiclesNr) {
+			Log.writeAndDisplay("CAUTION: Vehicles foreseen|added = "+mRoute.vehiclesNr+"|"+nVehicles);
 		}
 		VehicleWriterV1 vehicleWriter = new VehicleWriterV1(scenario.getTransitVehicles());
 		vehicleWriter.writeFile(vehicleFileLocation);

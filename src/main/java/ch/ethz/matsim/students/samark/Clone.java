@@ -78,6 +78,7 @@ public class Clone {
 			copy.transitLine = Clone.transitLine(o.transitLine, ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule().getFactory());
 		}
 		copy.routeLength = o.routeLength;
+		copy.vehiclesNr = o.vehiclesNr;
 		
 		copy.eventsFile = o.eventsFile;
 		copy.nBoardings = o.nBoardings;
@@ -86,6 +87,8 @@ public class Clone {
 		copy.nDepartures = o.nDepartures;
 		copy.departureSpacing = o.departureSpacing;
 		copy.firstDeparture = o.firstDeparture;
+		copy.lastDeparture = o.lastDeparture;
+		copy.roundtripTravelTime = o.roundtripTravelTime;
 		copy.transitScheduleFile = o.transitScheduleFile;
 		copy.drivenKM = o.drivenKM;
 		copy.opsCost = o.opsCost;
@@ -171,6 +174,7 @@ public class Clone {
 		copy.nMetroUsers = o.nMetroUsers;				// NetworkEvolutionRunSim.runEventsProcessing
 
 		copy.drivenKM = o.drivenKM;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
+		copy.totalVehiclesNr = o.totalVehiclesNr;
 		copy.opsCost = o.opsCost;					// to be implemented in NetworkEvolution
 		copy.constrCost = o.constrCost;				// to be implemented in NetworkEvolution
 

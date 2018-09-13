@@ -4,6 +4,7 @@ import java.util.List;
 
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.pt.transitSchedule.api.TransitLine;
@@ -13,6 +14,7 @@ public class MRoute implements Serializable{
 
 	private static final long serialVersionUID = 1L;
 
+	// CAUTION: When adding to MRoute, also add in Clone.mRoute!
 	String routeID;
 	NetworkRoute networkRoute;
 	List<Id<Node>> nodeList;
@@ -29,11 +31,14 @@ public class MRoute implements Serializable{
 	int nDepartures;
 	double departureSpacing;
 	double firstDeparture;
+	double lastDeparture;
+	double roundtripTravelTime;
 	String transitScheduleFile;
 	double drivenKM;
 	double opsCost;
 	double constrCost;
-	double undergroundPercentage;	
+	double undergroundPercentage;
+	int vehiclesNr;
 	
 	public MRoute() {
 	}
@@ -48,10 +53,13 @@ public class MRoute implements Serializable{
 		this.nDepartures = 0;
 		this.departureSpacing = 0.0;
 		this.firstDeparture = 0.0;
+		this.lastDeparture = 0.0;
 		this.transitScheduleFile = "";
 		this.drivenKM = 0.0;
 		this.opsCost = Double.MAX_VALUE;
 		this.constrCost = Double.MAX_VALUE;
+		this.vehiclesNr = 0;
+		this.roundtripTravelTime = Double.MAX_VALUE;
 	}
 	
 	
@@ -131,6 +139,14 @@ public class MRoute implements Serializable{
 	}
 	public void setRouteLength(double routeLength) {
 		this.routeLength = routeLength;
+	}
+	
+	public void setRouteLength(Network network) {
+		double totalLength = 0.00;
+		for (Id<Link> linkID : this.linkList) {
+			totalLength += network.getLinks().get(linkID).getLength();
+		}
+		this.routeLength = totalLength;
 	}
 
 	public TransitLine getTransitLine() {

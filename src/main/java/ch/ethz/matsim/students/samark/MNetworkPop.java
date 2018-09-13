@@ -10,6 +10,7 @@ public class MNetworkPop implements Serializable{
 
 	private static final long serialVersionUID = 1L;
 	
+	// CAUTION: When adding to MNetworkPop, also add in Clone.mNetworkPop!
 	String populationId;
 	Map<String, MNetwork> networkMap;
 	Map<String, String> mNetworkFileLocationMap;

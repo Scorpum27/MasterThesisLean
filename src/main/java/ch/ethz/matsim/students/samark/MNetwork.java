@@ -33,6 +33,8 @@ public class MNetwork implements Serializable{
 		this.constrCost = Double.MAX_VALUE;
 		this.evolutionGeneration = 0;
 		this.overallScore = 0.0;
+		this.totalVehiclesNr = 0;
+
 	}
 	
 	public MNetwork(String name) {
@@ -50,7 +52,9 @@ public class MNetwork implements Serializable{
 		this.constrCost = Double.MAX_VALUE;
 		this.evolutionGeneration = 0;
 		this.overallScore = 0.0;
-		this.totalRouteLength = 0.0;		
+		this.totalRouteLength = 0.0;	
+		this.totalVehiclesNr = 0;
+
 	}
 	
 	public void calculateNetworkScore() {
@@ -69,14 +73,18 @@ public class MNetwork implements Serializable{
 
 	}
 	
-	public void calculateTotalRouteLength() {
+	public void calculateTotalRouteLengthAndDrivenKM() {
 		double totalRouteLength = 0.0;
+		double totalDrivenKM = 0.0;
 		for (MRoute mroute : this.routeMap.values()) {
 			totalRouteLength += mroute.routeLength;
+			totalDrivenKM += mroute.drivenKM;
 		}
 		this.totalRouteLength = totalRouteLength;
+		this.drivenKM = totalDrivenKM;
 	}
 	
+	// CAUTION: When adding to MNetwork, also add in Clone.mNetwork!
 	Network network;
 	String networkFileLocation;
 	String networkID;
@@ -93,6 +101,7 @@ public class MNetwork implements Serializable{
 	double drivenKM;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
 	double opsCost;					// to be implemented in NetworkEvolution
 	double constrCost;				// to be implemented in NetworkEvolution
+	int totalVehiclesNr;
 	// from evolution loop
 	int evolutionGeneration;		// NetworkEvolution --> Evolutionary loop
 	double averageTravelTime;		// NetworkEvolutionRunSim.peoplePlansProcessingM
