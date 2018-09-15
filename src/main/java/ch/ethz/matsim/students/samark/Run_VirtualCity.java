@@ -3,6 +3,7 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -57,7 +58,7 @@ import ch.ethz.matsim.papers.mode_choice_paper.utils.LongPlanFilter;
 
 public class Run_VirtualCity {
 
-	static public void main(String[] args) throws FileNotFoundException, ConfigurationException {
+	static public void main(String[] args) throws ConfigurationException, IOException {
 		int populationSize = 2;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 
@@ -193,7 +194,7 @@ public class Run_VirtualCity {
 			int XMax, int YMax, int removalPercentage, int outerFramePercentage,
 			int minSpacingPercentage, String vehicleTypeName, double vehicleLength, double maxVelocity,
 			int vehicleSeats, int vehicleStandingRoom,String defaultPtMode, boolean blocksLane, double stopTime, double maxVehicleSpeed,
-			double tFirstDep, double tLastDep, double depSpacing, int nDepartures) {
+			double tFirstDep, double tLastDep, double depSpacing, int nDepartures) throws IOException {
 
 		MNetwork mNetwork = new MNetwork(thisNewNetworkName);
 		String mNetworkPath = "zurich_1pm/VirtualCity/Population/"+thisNewNetworkName;
@@ -258,8 +259,8 @@ public class Run_VirtualCity {
 			TransitRoute transitRoute = vcScheduleFactory.createTransitRoute(Id.create(thisNewNetworkName+"_Route"+lineNr, TransitRoute.class ), 
 					vcNetworkRoute, stopArray, defaultPtMode);
 			double totalRouteTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
-			transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(vcScenario, vcSchedule, transitRoute,
-					nDepartures, tFirstDep, depSpacing, totalRouteTravelTime, vcVehicleType, vehicleFileLocation); // Add (nDepartures) departures to TransitRoute
+			transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(mRoute, vcScenario, vcSchedule, transitRoute,
+					vcVehicleType, vehicleFileLocation); // Add (nDepartures) departures to TransitRoute
 								
 			// Build TransitLine from TrasitRoute
 			TransitLine transitLine = vcScheduleFactory.createTransitLine(Id.create("TransitLine_Nr"+lineNr, TransitLine.class));
@@ -384,7 +385,7 @@ public class Run_VirtualCity {
 	    modConfig.strategy().addStrategySettings(strategy);
 		
 	    Controler controler = new Controler(modScenario);
-		controler.addOverridingModule(new BaselineModule());
+		//controler.addOverridingModule(new BaselineModule());
 		controler.addOverridingModule(new BaselineTransitModule());
 		controler.addOverridingModule(new ZurichModule());
 		controler.addOverridingModule(new BaselineTrafficModule(3.0));

@@ -3,17 +3,89 @@ package ch.ethz.matsim.students.samark;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Random;
 
 
 public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 
-	// Random operations
-		System.out.println(Math.ceil(0.0/0));
-		System.out.println(Math.floor((1.0+1.0)/2));
-
+	// Extracting S-Bahn stops in ZH
+			
+		/*Config config = ConfigUtils.createConfig();
+		config.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/zurich_transit_schedule.xml.gz");
+		Scenario scenario = ScenarioUtils.loadScenario(config);
+		TransitSchedule ts = scenario.getTransitSchedule();
+		//		Network globalNetwork = scenario.getNetwork();
+		
+		Map<String,CustomRailStop> railStops = new HashMap<String,CustomRailStop>();
+		
+		for (TransitLine tl : ts.getTransitLines().values()) {
+			for (TransitRoute tr : tl.getRoutes().values()) {
+				if (tr.getTransportMode().toString().equals("rail")) {
+					for (TransitRouteStop trs : tr.getStops()) {
+						TransitStopFacility tsf = trs.getStopFacility();
+						String stopName = tsf.getId().toString().substring(0, tsf.getId().toString().indexOf("."));
+						if (railStops.keySet().contains(stopName) == false) {
+							railStops.put(stopName, new CustomRailStop(tsf.getName(), "rail", tsf.getCoord(), tsf.getLinkId()));							
+						}
+						else {
+							if (railStops.get(stopName).linkRefIds.contains(tsf.getLinkId())==false) {
+								railStops.get(stopName).linkRefIds.add(tsf.getLinkId());
+							}
+						}
+					}
+				}
+			}
+		}
+		
+		Iterator<Entry<String, CustomRailStop>> iter = railStops.entrySet().iterator();
+		int n=0;
+		while (iter.hasNext() && n<100) {
+			n++;
+			Entry<String, CustomRailStop> entry = iter.next();
+			if(entry.getValue().linkRefIds.size()>3) {
+			System.out.println(entry.getKey()+", Nr_LinkRefIds="+entry.getValue().linkRefIds.size());
+			}
+		}
+		
+		
+		double radius = 50000.0;
+		Coord zurich_NetworkCenterCoord = new Coord(2683000.00, 1247700.00);
+		Iterator<Entry<String, CustomRailStop>> stopEntryIter = railStops.entrySet().iterator();
+		while(stopEntryIter.hasNext()) {
+			Entry<String, CustomRailStop> stopEntry = stopEntryIter.next();
+			if(GeomDistance.calculate(zurich_NetworkCenterCoord, stopEntry.getValue().coord) > radius) {
+				stopEntryIter.remove();
+			}
+		}
+		
+		Iterator<Entry<String, CustomRailStop>> iterX = railStops.entrySet().iterator();
+		while (iterX.hasNext()) {
+			Entry<String, CustomRailStop> entryX = iterX.next();
+			System.out.println(entryX.getValue().name);
+		}
+		
+		
+		Network railNetwork = scenario.getNetwork();
+		NetworkFactory nf = railNetwork.getFactory();
+		for(String stop : railStops.keySet()) {
+			railNetwork.addNode(nf.createNode(Id.createNodeId(stop), railStops.get(stop).coord));
+		}
+		NetworkWriter nw = new NetworkWriter(railNetwork);
+		nw.write("zurich_1pm/zurich_networkRailStationsRadius"+((int) radius)+".xml");*/
+		
+		
+	// SORTING
+		
+		/*Map<String, Double> r = new HashMap<String, Double>();
+		r.put("two", 2.0);
+		r.put("four", 4.0);
+		r.put("three", 3.0);
+		r.put("one", 1.0);
+		
+		System.out.println(NetworkEvolutionImpl.sortMapByValueScore(r));*/
+		
+	// PLOTTING
 
 		// NetworkEvolutionImpl.writeChartAverageTravelTimes(5, 6, 5, 4, "zurich_1pm/Evolution/Population/networkTravelTimesEvolution.png");
 		// NetworkEvolutionImpl.writeChartNetworkScore(5, 6, 5, 4, "zurich_1pm/Evolution/Population/networkScoreEvolution.png");
@@ -24,7 +96,7 @@ public class Demo {
 		System.out.println(GeomDistance.absoluteAngle(0.0,0.5,0.0,-1.0));*/
 		
 	// Short Routes
-		List<String> list = new ArrayList<String>();
+		/*List<String> list = new ArrayList<String>();
 		list.add("1");
 		list.add("2");
 		list.add("3");
@@ -40,7 +112,7 @@ public class Demo {
 		System.out.println(list.subList(list.size()/2, list.size()));
 		//list.remove("5");
 		System.out.println(list.toString());
-		System.out.println(list.subList(0, 0).toString());		
+		System.out.println(list.subList(0, 0).toString());*/
 		
 	// Simple Maths
 		 /*int a =  (int) Math.round(0.5*(0.5+0.3));

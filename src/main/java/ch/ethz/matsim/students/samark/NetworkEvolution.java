@@ -17,13 +17,16 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 /*
  * PRIO 
- * delete route if it has 0 remaining vehicles
- * TODO Make frequency optimization
+ * TODO	Extract S-Bahn links and make separate network
+ * TODO Check vehicles amount for correctness.
+ * TODO Total Travel Distance people.
+ * TODO Factor: Average Speed
+ * TODO Check Theory and Questions for Network Approach Optimization -> IVT -> Make list of stuff that would make more realistic (e.g. topography, e.a.) and search literature for feasibility of developing networks and merging procedures (make a list)
  * TODO Extend current SBahn network with constraints --> To new feasible links (maybe reward for choosing existing link or make prob higher of choosing one! Maybe in Djikstra)
- * TODO Different Scoring functions (all roulette wheels, proportional choices, metro cost etc.)
- * TODO Check Theory and Questions for Network Approach Optimization -> IVT
+ * TODO Combining routes procedures when they come close etc...
+ * TODO Different Scoring functions (--> Literature as well) (all roulette wheels, proportional choices, metro cost etc.)
+ * TODO ABC Algo. as a reference !
  * TODO OD-Route improvements
- * TODO Check, where VC fails --> The population is zero from the start (also check event handlers for their naming and if they can be detected by algorithm!) --- VC - also store global network that one can refer to when merging together new routes!
  * 
  * DIVERSE
  *  - TODO What happens if I delete very short links (are they really worth using as feasible links or are they just a product of a crossing bottleneck?)
@@ -31,6 +34,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  *  - Total beeline distance in NetworkEvolutionRunSim (mNetwork.mPersonKMdirect = beelinedistances)
  *  - Make proper IDs to get objects
  *  - Make a GeographyProcessor that calculates the OG/UG percentage from given regions
+ *  - Check, where VC fails --> The population is zero from the start (also check event handlers for their naming and if they can be detected by algorithm!) --- VC - also store global network that one can refer to when merging together new routes!
  * 
  * OD-OPTIONS
  *  - TODO Make outer loop to connect existing routes that suddenly touch!
@@ -44,26 +48,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 public class NetworkEvolution {
 
-/* GENETIC STRUCTURE
- * Multiple networks = Population 	= Map<MNetwork.Id, MNetwork> = networkMap
- * Single Network = Chromosome 		= Map<MRoute.Id, MRoute> = routesMap
- * Single Route = Gene				= MRoute
- */
-	
-/* FRAMEWORK STRUCTURE
- * This NetworkEvolution manages the POPULATION.
- * - it compares score of each network and processes/develops them accordingly
- * - after modifying population it forwards each network individually to the inner MATSim loop
- * - it analyzes the MATSim events and writes the significant info to the individual networks and routes
- * - Make new class instead of Metro_TransitScheduleImpl for corresponding methods
- */
-	
-/* NETWORK ANALYSIS
- * double totalTravelTime
- * double personKM;
- * double personKMdirect;
- * int nPassengers
- */
+
 	
 
 /* CAUTION & NOTES
@@ -71,7 +56,7 @@ public class NetworkEvolution {
  * Parameters: Tune well, may use default
  * For OD: minTerminalRadiusFromCenter = 0.00*metroCityRadius
  * Do not use "noModificationInLastEvolution" if lastIteration changes over evolutions, because this would give another result from the simulations
- * minCrossingDistanceFactorFromRouteEnd must have a MINIMUM=0.25
+ * minCrossingDistanceFactorFromRouteEnd must have a MINIMUM = 0.25
  */
 
 	
@@ -83,7 +68,7 @@ public class NetworkEvolution {
 		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240); or ("zurich_1pm/Zurich_1pm_SimulationOutput_BACKUP__10/output_plans.xml.gz", 240); or ("zurich_1pm/Evolution/Population/Network1/Simulation_Output/output_plans.xml.gz", 240);
 	// - Initiate N networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 6;														// how many networks should be developed in parallel
+		int populationSize = 1;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
@@ -111,7 +96,7 @@ public class NetworkEvolution {
 		double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing routes)
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
-		String vehicleTypeName = "metro";  double maxVelocity = 80/3.6 /*[m/s]*/;
+		String vehicleTypeName = "metro";  double maxVelocity = 20/3.6 /*[m/s]*/;
 		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
 		double initialDepSpacing = 7.5*60.0; double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60; 
 		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
@@ -146,7 +131,7 @@ public class NetworkEvolution {
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/GlobalMetroNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
-		int nEvolutions = 5;
+		int nEvolutions = 4;
 		double averageTravelTimePerformanceGoal = 40.0;
 		int lastIteration = 0;							// DEFAULT=0
 		for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
@@ -204,23 +189,17 @@ public class NetworkEvolution {
 				// - applyPT: make functions for depSpacing = f(nVehicles, total route length) while total route length = f(linkList or stopArray)
 			
 			double alpha = 10.0;											// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability to choose a weak network more than linearly -> linearly would be p_i = Score_i/Score_tot)
-			double pCrossOver = 0.35; 										// DEFAULT = 0.35;
+			double pCrossOver = 0.20; 										// DEFAULT = 0.35;
 			double minCrossingDistanceFactorFromRouteEnd = 0.3; 			// DEFAULT = 0.30; MINIMUM = 0.25
 			boolean logEntireRoutes = false;
 			double maxCrossingAngle = 110; 									// DEFAULT = 110;
-			double pMutation = 0.15;										// DEFAULT = 0.15
+			double pMutation = 0.10;										// DEFAULT = 0.15
 			double pBigChange = 0.2;										// DEFAULT = 0.20
 			double pSmallChange = 1.0-pBigChange;
 			latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,
 					metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork, 
 					useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, 
 					logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, pMutation, pBigChange, pSmallChange);
-			
-			for (MNetwork mn : latestPopulation.networkMap.values()) {
-				for (MRoute mr : mn.routeMap.values()) {
-					Log.write(mr.routeID+" has nVehicles="+mr.vehiclesNr);
-				}
-			}
 			
 		}
 
@@ -233,6 +212,12 @@ public class NetworkEvolution {
 
 } // end NetworkEvolution Class
 
+
+/* GENETIC STRUCTURE
+ * Multiple networks = Population 	= Map<MNetwork.Id, MNetwork> = networkMap
+ * Single Network = Chromosome 		= Map<MRoute.Id, MRoute> = routesMap
+ * Single Route = Gene				= MRoute
+ */
 
 // INITIALIZATION
 // - Initiate N=16 networks to make a population
