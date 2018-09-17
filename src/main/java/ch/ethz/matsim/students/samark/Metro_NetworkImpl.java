@@ -244,7 +244,6 @@ public class Metro_NetworkImpl {
 				linkIterator.remove();
 			}
 		}
-		System.out.println("Size is: " + feasibleLinks.size());
 		if (fileName != null) {
 			createNetworkFromCustomLinks(feasibleLinks, network, fileName);
 		}
@@ -317,7 +316,6 @@ public class Metro_NetworkImpl {
 		return customMapCopy;
 	}
 
-	// XXX DONE
 	// REMEMBER: New nodes are named "MetroNodeLinkRef_"+linkID.toString()
 	public static ArrayList<NetworkRoute> createInitialRoutes(Network newMetroNetwork,
 			Map<Id<Link>, CustomLinkAttributes> links_MetroTerminalCandidates, int nRoutes, double minTerminalDistance) {
@@ -471,14 +469,20 @@ public class Metro_NetworkImpl {
 		return linkList;
 	}
 
-	public static Network copyNetworkToNetwork(Network fromNetwork, Network toNetwork) {
+	public static Network copyNetworkToNetwork(Network fromNetwork, Network toNetwork, Set<String> transportModes) {
 		NetworkFactory networkFactory = toNetwork.getFactory();
-		
+		// connectingLinkToToNode.setAllowedModes(transportModes);
 		for (Link link : fromNetwork.getLinks().values()) {
 			Node tempFromNode = networkFactory.createNode(Id.createNodeId(link.getFromNode().getId()), link.getFromNode().getCoord());
 			Node tempToNode = networkFactory.createNode(Id.createNodeId(link.getToNode().getId()), link.getToNode().getCoord());
 			Link tempLink = networkFactory.createLink(Id.createLinkId(link.getId()), tempFromNode, tempToNode);
-			tempLink.setAllowedModes(link.getAllowedModes());
+			
+			if (transportModes == null) {
+				tempLink.setAllowedModes(link.getAllowedModes());				
+			}
+			else {
+				tempLink.setAllowedModes(transportModes);
+			}
 			if (toNetwork.getNodes().keySet().contains(tempFromNode.getId())==false) {
 				toNetwork.addNode(tempFromNode);
 			}
@@ -542,15 +546,5 @@ public class Metro_NetworkImpl {
 			}
 			return totalTraffic/customLinkMap.size();
 		}
-		
-		// XXX !!! CAUTION !!! XXX this does not work due to casting failure from stop facility to activity facility
-		/*public static void allFeasibleStopFacilitiesToFile(Map<Id<Link>,CustomLinkAttributes> mostFeasibleLinks) {
-			List<TransitStopFacility> allTransitRouteStopFacilities = new ArrayList<TransitStopFacility>(mostFeasibleLinks.size());
-			for (Id<Link> linkID : mostFeasibleLinks.keySet()) {
-				allTransitRouteStopFacilities.add(mostFeasibleLinks.get(linkID).dominantStopFacility);
-			}
-			FacilitiesWriter facilitiesWriter = new FacilitiesWriter((ActivityFacilities) allTransitRouteStopFacilities); // !!! FAILS
-			facilitiesWriter.write("zurich_1pm/Metro/Input/Generated_PT_Files/newFacilities.xml");
-		}*/
 	
 }

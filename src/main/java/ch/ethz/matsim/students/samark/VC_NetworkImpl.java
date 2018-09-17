@@ -1,29 +1,49 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.FileNotFoundException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 import java.util.Set;
 
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.NetworkFactory;
 import org.matsim.api.core.v01.network.NetworkWriter;
 import org.matsim.api.core.v01.network.Node;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Plan;
+import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.api.core.v01.population.Population;
+import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
+import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.events.EventsUtils;
+import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.core.utils.charts.XYLineChart;
+import org.matsim.pt.transitSchedule.api.TransitRouteStop;
+import org.matsim.pt.transitSchedule.api.TransitSchedule;
+import org.matsim.pt.transitSchedule.api.TransitScheduleFactory;
+import org.matsim.pt.transitSchedule.api.TransitStopFacility;
+
+import com.google.common.collect.Sets;
 
 
 public class VC_NetworkImpl {
 
-	public static Network fill(int xmax, int ymax, Network networkIn) {
+	public static Network fill(int xmax, int ymax, Network networkIn, double unitLinkLength) {
 		Network network = fillNodes(xmax, ymax, networkIn);
 		network = fillNeighboringLinks(xmax, ymax, network);
-		network = addGeometricLinkLengths(network);
+		network = addGeometricLinkLengths(network, unitLinkLength);
 		return network;
 	}
 
@@ -52,33 +72,29 @@ public class VC_NetworkImpl {
 					 int nodeY = (int) centerNode.getCoord().getY();
 				
 					 int askIfNodeRight = xyCoordToNr(nodeX+1, nodeY, xmax);
-					 // System.out.println("right node ID is: "+Id.createNodeId(askIfNodeRight).toString());
-					 // System.out.println("network contains node ID above?: "+networkIn.getNodes().containsKey(Id.createNodeId(askIfNodeRight)));
-					 // System.out.println("exist method output: "+ exist(networkIn.getNodes().containsKey(Id.createNodeId(askIfNodeRight))));
 					 if (0 < nodeX+1 && nodeX+1 <= xmax && 0 < nodeY && nodeY <= ymax) {
 						 Link rightLink = networkIn.getFactory().createLink(Id.createLinkId(centerNode.getId().toString() + "_" + askIfNodeRight), centerNode, networkIn.getNodes().get(Id.createNodeId(askIfNodeRight)));
+						 rightLink.setAllowedModes(Sets.newHashSet("pt", "car"));
 						 networkIn.addLink(rightLink);
-						 // System.out.println("Added right link "+rightLink.getId().toString()+" to network.");
 					 }	 
 					 int askIfNodeTop = xyCoordToNr(nodeX, nodeY+1, xmax);
 					 if (0 < nodeX && nodeX <= xmax && 0 < nodeY+1 && nodeY+1 <= ymax) {
 						 Link topLink = networkIn.getFactory().createLink(Id.createLinkId(centerNode.getId().toString() + "_" + askIfNodeTop), centerNode, networkIn.getNodes().get(Id.createNodeId(askIfNodeTop)));
+						 topLink.setAllowedModes(Sets.newHashSet("pt", "car"));
 						 networkIn.addLink(topLink);
-						 // System.out.println("Added top link "+topLink.getId().toString()+" to network.");
 					 }	 
 					 int askIfNodeLeft = xyCoordToNr(nodeX-1, nodeY, xmax);
 					 if (0 < nodeX-1 && nodeX-1 <= xmax && 0 < nodeY && nodeY <= ymax) {
 						 Link leftLink = networkIn.getFactory().createLink(Id.createLinkId(centerNode.getId().toString() + "_" + askIfNodeLeft), centerNode, networkIn.getNodes().get(Id.createNodeId(askIfNodeLeft)));
+						 leftLink.setAllowedModes(Sets.newHashSet("pt", "car"));
 						 networkIn.addLink(leftLink);
-						 // System.out.println("Added left link "+leftLink.getId().toString()+" to network.");
 					 }	 
 					 int askIfNodeBottom = xyCoordToNr(nodeX, nodeY-1, xmax);
 					 if (0 < nodeX && nodeX <= xmax && 0 < nodeY-1 && nodeY-1 <= ymax) {
 						 Link bottomLink = networkIn.getFactory().createLink(Id.createLinkId(centerNode.getId().toString() + "_" + askIfNodeBottom), centerNode, networkIn.getNodes().get(Id.createNodeId(askIfNodeBottom)));
+						 bottomLink.setAllowedModes(Sets.newHashSet("pt", "car"));
 						 networkIn.addLink(bottomLink);
-						 // System.out.println("Added bottom link "+bottomLink.getId().toString()+" to network.");
 					 }
-		 
 				}
 		 }
 		 
@@ -86,9 +102,9 @@ public class VC_NetworkImpl {
 		 return networkOut;
 	}
 
-	public static Network addGeometricLinkLengths(Network network) {
+	public static Network addGeometricLinkLengths(Network network, double unitLinkLength) {
 		for (Id<Link> linkID : network.getLinks().keySet()) {
-			double linkLength = GeomDistance.calculate(network.getLinks().get(linkID).getFromNode().getCoord(), network.getLinks().get(linkID).getToNode().getCoord());
+			double linkLength = unitLinkLength*GeomDistance.calculate(network.getLinks().get(linkID).getFromNode().getCoord(), network.getLinks().get(linkID).getToNode().getCoord());
 			network.getLinks().get(linkID).setLength(linkLength);
 			// System.out.println("Length of link "+linkID.toString()+" is "+linkLength+".");
 		}
@@ -96,7 +112,7 @@ public class VC_NetworkImpl {
 	}
 
 
-	public static Network thin(Network network, int XMax, int YMax, int removalPercentage, boolean saveAsFile) {
+	public static Network thin(Network network, int XMax, int YMax, int removalPercentage, boolean saveAsFile, String fileName) {
 		Network nwThin = network;
 		int networkNodesNumber = nwThin.getNodes().size();
 		int nodeAmountRemove = (int) (networkNodesNumber*removalPercentage/100);
@@ -124,10 +140,9 @@ public class VC_NetworkImpl {
 
 		}
 		if (saveAsFile) {
-			String filepath = "zurich_1pm/VirtualCity/Input/Generated_Networks/Network_"+XMax+"x"+YMax+"_"+removalPercentage+"PercentLean.xml";
 			NetworkWriter nwT = new NetworkWriter(nwThin);
-			nwT.write(filepath);
-			System.out.println("Saved new (thinned) network as "+filepath);
+			nwT.write(fileName);
+			System.out.println("Saved new (thinned) network as "+fileName);
 		}
 		
 		// Display all (remaining) nodes of current desired network
@@ -140,10 +155,9 @@ public class VC_NetworkImpl {
 		return nwThin;
 	}
 
-	public static void writeToFile(int XMax, int YMax, Network network) {
+	public static void writeToFile(int XMax, int YMax, Network network, String fileName) {
 		NetworkWriter nw = new NetworkWriter(network);
-		String filepath = "zurich_1pm/VirtualCity/Input/Generated_Networks/Network_"+XMax+"x"+YMax+"_RAW.xml";
-		nw.write(filepath);
+		nw.write(fileName);
 	}
 
 
@@ -173,13 +187,6 @@ public class VC_NetworkImpl {
 		do{
 			routeNodeList = createRandomRoute(networkThin, XMax, YMax, outerFramePercentage, minSpacingPercentage); 		// makes random starting points in network in outer network regions
 		} while(routeNodeList==null);
-		
-				// iterate through nodes on resulting list
-				/* System.out.println("routeNodeListLength is: "+routeNodeList.size());	
-				ListIterator<Node> netRouteIter = routeNodeList.listIterator();
-				while(netRouteIter.hasNext()) {
-					System.out.println("Current node is: "+netRouteIter.next().getId().toString());	
-				} */
 		
 		NetworkRoute networkRoute = NodeListToNetworkRoute(networkThin, routeNodeList);			// convert from node list format to network route by connecting the corresponding links
 		return networkRoute;	
@@ -257,6 +264,79 @@ public class VC_NetworkImpl {
 		return dijkstraNodePath;
 	}
 	
+	public static List<TransitRouteStop> createAndAddNetworkRouteStops(TransitSchedule transitSchedule, Network network, NetworkRoute networkRoute, String defaultPtMode, double stopTime, double maxVehicleSpeed, boolean blocksLane){
+		TransitScheduleFactory transitScheduleFactory = transitSchedule.getFactory();
+		
+		List<TransitRouteStop> stopArray = new ArrayList<TransitRouteStop>();				// prepare an array for stop facilities on new networkRoute
+		
+		int stopCount = 0;
+		double accumulatedDrivingTime = 0;
+		Link lastLink = null;
+		
+		List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
+		routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute));
+		routeLinkList.addAll(OppositeLinkListOf(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute), network));	// TODO: Reverse Routes for this network
+		for (Id<Link> linkID : routeLinkList) {
+			// place the stop facilities always on the FromNode of the RefLink; this way, the new facilities will have the same coords as the original network's facilities!
+			Link currentLink = network.getLinks().get(linkID);
+			TransitStopFacility transitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+linkID.toString(), TransitStopFacility.class), currentLink.getFromNode().getCoord(), blocksLane);
+			transitStopFacility.setName("MetroStopRefLink_"+linkID.toString());
+			transitStopFacility.setLinkId(linkID);
+			stopCount++;
+			if(stopCount>1) {
+				accumulatedDrivingTime += lastLink.getLength()/(maxVehicleSpeed);
+			}
+			double arrivalDelay = (stopCount-1)*stopTime + accumulatedDrivingTime;
+			double departureDelay = (stopCount)*stopTime + accumulatedDrivingTime;		// same as arrivalDelay + 1*stopTime
+			TransitRouteStop transitRouteStop = transitScheduleFactory.createTransitRouteStop(transitStopFacility, arrivalDelay, departureDelay);
+			if (transitSchedule.getFacilities().containsKey(transitStopFacility.getId())==false) {
+				transitSchedule.addStopFacility(transitStopFacility);
+			}
+			stopArray.add(transitRouteStop);
+			lastLink = currentLink;
+		}
+		// do this to add last terminal link on way back, because the stops are always added at the fromNode location and the last link needs a stop at the final toNode!
+		Id<Link> terminalLink = stopArray.get(stopArray.size()-1).getStopFacility().getLinkId();
+		TransitStopFacility terminalTransitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+terminalLink.toString()+"_TerminalStop", TransitStopFacility.class), 
+				network.getLinks().get(terminalLink).getToNode().getCoord(), blocksLane);
+		terminalTransitStopFacility.setName("MetroStopRefLink_"+terminalLink.toString()+"_TerminalStop");
+		terminalTransitStopFacility.setLinkId(terminalLink);
+		double terminalArrivalOffset = stopArray.get(stopArray.size()-1).getDepartureOffset()+stopArray.get(1).getArrivalOffset();
+		double terminalDepartureOffset = terminalArrivalOffset+stopTime;
+		TransitRouteStop terminalTransitRouteStop = transitScheduleFactory.createTransitRouteStop(
+				stopArray.get(0).getStopFacility(), terminalArrivalOffset, terminalDepartureOffset);
+		stopArray.add(terminalTransitRouteStop);
+		/*for (int s=0; s<stopArray.size(); s++) {
+			System.out.println(stopArray.get(s).toString());
+		}*/
+		return stopArray;
+	}
+	
+	
+	public static List<Id<Link>> OppositeLinkListOf(List<Id<Link>> linkList, Network network){
+		List<Id<Link>> oppositeLinkList = new ArrayList<Id<Link>>(linkList.size());
+		for (int c=0; c<linkList.size(); c++) {
+			Id<Link> linkToBeReversed = linkList.get(linkList.size()-1-c);
+			oppositeLinkList.add(ReverseLink(linkToBeReversed, network));
+		}
+		return oppositeLinkList;
+	}
+	
+	public static Id<Link> ReverseLink(Id<Link> linkId, Network network){
+		Id<Link> reverseId = null;
+		Id<Node> fromNode = network.getLinks().get(linkId).getFromNode().getId();
+		Id<Node> toNode = network.getLinks().get(linkId).getToNode().getId();
+		for (Id<Link> thisLinkId : network.getLinks().keySet()) {
+			Link thisLink = network.getLinks().get(thisLinkId);
+			if (thisLink.getFromNode().getId() == toNode && thisLink.getToNode().getId() == fromNode) {
+				reverseId = thisLink.getId();
+				break;
+			}
+		}
+		return reverseId;
+	}
+	
+	
 	public static Node createStartOrEndNode(Network network, int XMax, int YMax, int outerFramePercentage) {
 		int xFrameWidth = (int) (XMax*outerFramePercentage/100) + 1 ;
 		int yFrameWidth = (int) (YMax*outerFramePercentage/100) + 1 ;
@@ -286,6 +366,177 @@ public class VC_NetworkImpl {
 		Node frameNode = network.getNodes().get(frameNodeID);
 		// System.out.println("Chosen node is "+frameNode.getId().toString());
 		return frameNode;
+	}
+	
+	public static void runEventsProcessing(MNetworkPop networkPopulation, int lastIteration) {
+		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
+			String networkName = mNetwork.networkID;
+			
+			// read and handle events
+			String eventsFile = "zurich_1pm/VirtualCity/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
+			MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
+			EventsManager eventsManager = EventsUtils.createEventsManager();
+			eventsManager.addHandler(mPassengerHandler);
+			MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
+			eventsReader.readFile(eventsFile);
+			
+			// read out travel stats and display important indicators to console
+			Map<String, Map<String, Double>> travelStats = mPassengerHandler.travelStats;				// Map< PersonID, Map<RouteName,TravelDistance>>
+			Map<String, Integer> routeBoardingCounter = mPassengerHandler.routeBoardingCounter;			// Map<RouteName, nBoardingsOnThatRoute>
+			// double totalBeelineDistance = mPassengerHandler.totalBeelineKM;
+			Map<String, Double> personKMonRoutes = new HashMap<String, Double>();						// Map<RouteName, TotalPersonKM>
+			double totalMetroPersonKM = 0.0;
+			int nMetroUsers = travelStats.size(); 														// total number of persons who use the metro
+			//System.out.println("Number of Metro Users = " + nMetroUsers);
+			int nTotalBoardings = 0;
+			for (int i : routeBoardingCounter.values()) {
+				nTotalBoardings += i;
+			}
+			System.out.println("Total Metro Boardings = "+nTotalBoardings);
+			
+			for (Map<String, Double> routesStats : travelStats.values()) {
+				for (String route : routesStats.keySet()) {
+					if (personKMonRoutes.containsKey(route)) {
+						personKMonRoutes.put(route, personKMonRoutes.get(route)+routesStats.get(route));
+						//System.out.println("Putting on Route " +route+ " an additional " + routesStats.get(route) + " to a total of " + personKMonRoutes.get(route));  
+					}
+					else {
+						personKMonRoutes.put(route, routesStats.get(route));
+						//System.out.println("Putting on Route " +route+ " an initial " + personKMonRoutes.get(route)); 
+					}
+				}
+			}
+			
+			for (String route : personKMonRoutes.keySet()) {
+				totalMetroPersonKM += personKMonRoutes.get(route);
+			}
+			//System.out.println("Total Metro TransitKM = " + totalMetroPersonKM);
+
+			
+			// fill in performance indicators and scores in MRoutes
+			for (String routeId : mNetwork.routeMap.keySet()) {
+				if (personKMonRoutes.containsKey(routeId)) {					
+					MRoute mRoute = mNetwork.routeMap.get(routeId);
+					mRoute.personMetroKM = personKMonRoutes.get(routeId);
+					mRoute.nBoardings = routeBoardingCounter.get(routeId);
+					mNetwork.routeMap.put(routeId, mRoute);
+				}
+			}
+	
+			// fill in performance indicators and scores in MNetworks
+			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
+			mNetwork.totalMetroPersonKM = totalMetroPersonKM;
+			mNetwork.nMetroUsers = nMetroUsers;
+		}		// END of NETWORK Loop
+
+		// - Maybe hand over score to a separate score map for sorting scores
+	}
+	
+	public static void peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInMin) {
+		//System.out.println("Population name = "+networkPopulation.populationId);
+		//System.out.println("Population size = "+networkPopulation.networkMap.size());
+		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
+			// TEST			
+			String networkName = mNetwork.networkID;
+			//System.out.println("NetworkName = "+networkName);
+			String finalPlansFile = "zurich_1pm/VirtualCity/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";			
+			Config emptyConfig = ConfigUtils.createConfig();
+			emptyConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
+			Scenario emptyScenario = ScenarioUtils.loadScenario(emptyConfig);
+			Population finalPlansPopulation = emptyScenario.getPopulation();
+			//PopulationReader p = new PopulationReader(emptyScenario);
+			Double[] travelTimeBins = new Double[maxTravelTimeInMin+1];
+			for (int d=0; d<travelTimeBins.length; d++) {
+				travelTimeBins[d] = 0.0;
+			}
+			for (Person person : finalPlansPopulation.getPersons().values()) {
+				//System.out.println("Person = "+person.getId().toString());
+				double personTravelTime = 0.0;
+				Plan plan = person.getSelectedPlan();
+				for (PlanElement element : plan.getPlanElements()) {
+						if (element instanceof Leg) {
+							/*System.out.println("Plan Elements is: "+element.toString());
+							System.out.println("Plan Elements Attributes are: "+element.getAttributes().toString());
+							System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("mode"));
+							System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("travTime"));*/
+							String findString = "[travTime=";
+							int i1 = element.toString().indexOf(findString);
+							//System.out.println("i1 is: "+i1);
+							String travTime = element.toString().substring(i1+findString.length(), i1+findString.length()+8);
+							//System.out.println("Plan Elements Attribute travTime is: "+travTime);
+
+							//System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("trav_time"));
+							//System.out.println(element.getAttributes().getAttribute("travTime").getClass().getName());
+							String[] HourMinSec = travTime.split(":");
+							//System.out.println("Person Travel Time of this leg in [s] = "+travTime);
+							personTravelTime += (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
+							//System.out.println("Total Person Travel Time of this leg in [m] = "+personTravelTime);
+						}
+				}
+				if (personTravelTime>=maxTravelTimeInMin) {
+					travelTimeBins[maxTravelTimeInMin]++;
+				}
+				else {
+					travelTimeBins[(int) Math.ceil(personTravelTime)]++;
+				}
+			}
+			double totalTravelTime = 0.0;
+			int travels = 0;
+			for (int i=0; i<travelTimeBins.length; i++) {
+				totalTravelTime += i*travelTimeBins[i];
+				travels += travelTimeBins[i];
+			}
+			mNetwork.totalTravelTime = totalTravelTime;
+			mNetwork.averageTravelTime = totalTravelTime/travels;
+			double standardDeviationInnerSum = 0.0;
+			for (int i=0; i<travelTimeBins.length; i++) {
+				for (int j=0; j<travelTimeBins[i]; j++) {
+					standardDeviationInnerSum += Math.pow(i-mNetwork.averageTravelTime, 2);
+				}
+			}
+			double standardDeviation = Math.sqrt(standardDeviationInnerSum/(travels-1));
+			
+			mNetwork.stdDeviationTravelTime = standardDeviation;
+			//System.out.println("standardDeviation = " + mNetwork.stdDeviationTravelTime);
+			//System.out.println("averageTravelTime = " + mNetwork.averageTravelTime);
+			
+		}
+		for (MNetwork network : networkPopulation.networkMap.values()) {
+			System.out.println(network.networkID+" AverageTavelTime [min] = "+network.averageTravelTime+"   (StandardDeviation="+network.stdDeviationTravelTime+")");
+			System.out.println(network.networkID+" TotalTravelTime [min] = "+network.totalTravelTime);
+		}
+	}
+	
+	@SuppressWarnings("unchecked")
+	public static void writeChartAverageTravelTimes(int lastGeneration, String fileName) throws FileNotFoundException { 	// Average and Best Scores
+		Map<Integer, Double> generationsAverageTravelTime = new HashMap<Integer, Double>();
+		Map<Integer, Double> generationsAverageTravelTimeStdDev = new HashMap<Integer, Double>();
+		String generationPath = "zurich_1pm/VirtualCity/Population/HistoryLog/Generation";
+		Map<Integer, Double> generationsBestTravelTime = new HashMap<Integer, Double>();
+		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
+		for (int g = 1; g <= lastGeneration; g++) {
+			double averageTravelTimeThisGeneration = 0.0;
+			double averageTravelTimeStdDevThisGeneration = 0.0;
+			double bestAverageTravelTimeThisGeneration = Double.MAX_VALUE;
+			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
+					generationPath + g + "/networkScoreMap.xml");
+			for (NetworkScoreLog nsl : networkScores.values()) {
+				if (nsl.averageTravelTime < bestAverageTravelTimeThisGeneration) {
+					bestAverageTravelTimeThisGeneration = nsl.averageTravelTime;
+					System.out.println("bestAverageTravelTimeThisGeneration = " + bestAverageTravelTimeThisGeneration);
+				}
+				averageTravelTimeThisGeneration += nsl.averageTravelTime / networkScores.size();
+				averageTravelTimeStdDevThisGeneration += nsl.stdDeviationTravelTime / networkScores.size();
+			}
+			generationsAverageTravelTime.put(g, averageTravelTimeThisGeneration);
+			generationsAverageTravelTimeStdDev.put(g, averageTravelTimeStdDevThisGeneration);
+			generationsBestTravelTime.put(g, bestAverageTravelTimeThisGeneration);
+		}
+		XYLineChart chart = new XYLineChart("Evolution of Network Performance", "Generation", "Score");
+		chart.addSeries("Average Travel Time [min]", generationsAverageTravelTime);
+		chart.addSeries("Average Travel Time - Std Deviation [min]", generationsAverageTravelTimeStdDev);
+		chart.addSeries("Best Average Travel Time [min]", generationsBestTravelTime);
+		chart.saveAsPng(fileName, 800, 600);
 	}
 	
 }

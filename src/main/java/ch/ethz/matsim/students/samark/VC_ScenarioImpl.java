@@ -118,8 +118,10 @@ public class VC_ScenarioImpl {
 		// go back home
 			// TODO create leg
 			createAndAddHomeActivityToPlan(population, newPlan, "homeFinal", this.homeLink, this.homeCoord, 0.0, 0.0);
-			lastLink = this.homeLink;			
+			lastLink = this.homeLink;	
+			
 		}
+
 		this.homeLink = null;
 		this.homeCoord = null;
 		// System.out.println("home again");

@@ -50,28 +50,5 @@ public class Metro_HandlerPeopleTraffic implements PersonDepartureEventHandler, 
 	
 	
 	
-	/*@Override
-	public void handleEvent(PersonLeavesVeEvent event) {
-		if(event.getVehicleId().toString().contains("Metro")) {
-			System.out.println("Yes, vehicle ID contains /Metro/! Adding one Disembarking counter.");
-			Double newCount = statsMap.get("metroDisembarkingNr") + 1;
-			statsMap.put("metroDisembarkingNr", newCount);
-			System.out.println("New disembark count is: "+newCount);
-		}
-	}
-
-	@Override
-	public void handleEvent(PersonEntersVehicleEvent event) {
-		if(event.getVehicleId().toString().contains("metro")) {
-			event.getEventType()
-			System.out.println("Yes, vehicle ID contains /metro/! Adding one Boarding counter.");
-			Double newCount = statsMap.get("metroBoardingNr") + 1;
-			statsMap.put("metroBoardingNr", newCount);
-			System.out.println("New Boarding count is: "+newCount);
-		}
-	}*/
-	
-	
-	
 
 }
