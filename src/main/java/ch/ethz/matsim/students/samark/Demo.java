@@ -9,6 +9,9 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 
+	// Event reading
+		
+		
 	// Extracting S-Bahn stops in ZH
 			
 		/*Config config = ConfigUtils.createConfig();

@@ -48,7 +48,8 @@ public class NetworkEvolutionImpl {
 	public static MNetwork createMNetworkRoutes(String thisNewNetworkName, int initialRoutesPerNetwork, String initialRouteType, int iterationToReadOriginalNetwork,
 			double minMetroRadiusFromCenter, double maxMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
 			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter,
-			double minTerminalDistance, double proximityRadius, double odConsiderationThreshold, double xOffset, double yOffset,
+			double minTerminalDistance, double railway2metroCatchmentArea, double metro2metroCatchmentArea, double odConsiderationThreshold, 
+			double xOffset, double yOffset,
 			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom,String defaultPtMode, 
 			boolean blocksLane, double stopTime, double maxVehicleSpeed, double tFirstDep, double tLastDep, double initialDepSpacing,
 			double metroOpsCostPerKM, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground ) throws IOException {
@@ -64,7 +65,11 @@ public class NetworkEvolutionImpl {
 		originalScenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class, new DefaultEnrichedTransitRouteFactory());
 		Network originalNetwork = originalScenario.getNetwork();
 		TransitSchedule originalTransitSchedule = originalScenario.getTransitSchedule();
-
+		
+		// calculate average speed in Original Zurich TransitSchedule: Do this only once and put in commentaries afterwards
+		// NetworkEvolutionImpl.CalculateAverageNetworkSpeed(originalTransitSchedule, originalNetwork, "zurich_1pm/zurich_transit_schedule_meanSpeed.xml");
+		
+		
 		Map<String,CustomRailStop> railwayStations = getRailwayStations(maxMetroRadiusFromCenter, zurich_NetworkCenterCoord);
 		
 		// Initialize a customLinkMap with all links from original network
@@ -85,39 +90,43 @@ public class NetworkEvolutionImpl {
 				NetworkEvolutionImpl.findMostFrequentLinks(nMostFrequentLinks, links_withinRadius, originalNetwork, null);
 
 		// Set dominant transit stop facility in given network (from custom link list)
-		// TODO check if any links are left without stop facility at the end. Make loop at end of method and write to Log file!
+		// On these highly frequented links find for each the most dominant stop facility (by mode e.g. rail) attached to them
 		Map<Id<Link>, CustomLinkAttributes> links_mostFrequentInRadiusMainFacilitiesSet = NetworkEvolutionImpl.setMainFacilities(originalTransitSchedule, 
 				originalNetwork, links_mostFrequentInRadius, 
 				(mNetworkPath+"/2a_MostFrequentInRadius.xml"));
 				//null); // FOR SAVING: replace (null) by (mNetworkPath+"/2_MostFrequentInRadius.xml")
 		
-
-		// Merge close links and add their total traffic - this way different metro links are not squeezed next to each other
-		// TODO change dominant facility to a railway facility if any is close: make a proximity parameter here and hand railwayStations to method
-		// TODO in any way, set a reference railway facility if it is within bounds!
-		// Traveltime in roundtrip making stop facilities: Make facilities here by means of dom facility in these sections and 
-		// set new traveltime at terminals, where we dont travel to end link but to dom stop facility!!
+		// 1. Frequent link stop facilities within 150m range of a railway stop facility are replaced be the railway stop facility for economic reasons
+			// Take care, may add several custom links to one railway station --> have to merge them directly
+		// 2. Merge close frequent links and add their total traffic - this way different metro links are not squeezed unreasonably next to each other
+		// 3. Finally, for all, set a reference railway facility if it is within bounds!
 		Map<Id<Link>, CustomLinkAttributes> mergedLinks_mostFrequentInRadiusMainFacilitiesSet = NetworkEvolutionImpl.mergeLinksWithinBounds(
-				links_mostFrequentInRadiusMainFacilitiesSet, proximityRadius, originalNetwork,
+				links_mostFrequentInRadiusMainFacilitiesSet, railway2metroCatchmentArea, metro2metroCatchmentArea, railwayStations, originalNetwork,
 				(mNetworkPath+"/2b_MostFrequentInRadiusMERGED.xml"));
 				// null); // FOR SAVING: replace (null) by (mNetworkPath+"/1b_mergedWithinRadius" + ((int) Math.round(metroCityRadius)) + ".xml")
 		
-		// Create a metro network from candidate links/stopFaiclities
-		Network metroNetwork = NetworkEvolutionImpl.createMetroNetworkFromCandidates(
-				mergedLinks_mostFrequentInRadiusMainFacilitiesSet, maxNewMetroLinkDistance, originalNetwork, 
-				null); // FOR SAVING: replace (null) by (mNetworkPath+"/4_MetroNetwork.xml"))
-				
-		// STORE GLOBAL NETWORK WITH ALL METRO LINKS
-		Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(metroNetwork, originalNetwork,
-				Sets.newHashSet("pt"), "zurich_1pm/Evolution/Population/GlobalMetroNetwork.xml");				
-				
-		// %%% Everything in old system up to here %%% //
-		// CONVERSIONS:
+
+		// EVERYTHING IN OLD SYSTEM UP TO HERE
+		//  %%% CONVERSIONS %%%
 		// 	Get [new map] node from [old map] refLink: Node newMapNode = newNetwork.getNodes.get(Id.createNodeId("MetroNodeLinkRef_"+oldMapRefLink.toString()))
 		// 	---> Id<Node> metroNodeId = metroNodeFromOriginalLink(Id<Link> originalLinkRefID) 
 		// 	Get [old map] refLink from [new map] node: Link oldMapLink = newMapNode.parse
 		// 	---> Id<Link> originalLinkId = orginalLinkFromMetroNode(Id<Node> metroNodeId)
 
+		
+		// Create a metro network from candidate links
+		// NOTE: This NEW METRO NETWORK is constructed such that for each original dominant link stop facility a new metro node is placed exactly
+		// on the stop facility. These nodes are then interconnected by links (all possible connections with max length constraint).
+		// This way there is a stop facility at each node and therefore at each link start/end. These are therefore without exception original stop facilities.
+		Network metroNetwork = NetworkEvolutionImpl.createMetroNetworkFromCandidates(
+				mergedLinks_mostFrequentInRadiusMainFacilitiesSet, maxNewMetroLinkDistance, originalNetwork, 
+				mNetworkPath+"/3_MetroNetwork.xml");
+				//null); // FOR SAVING: replace (null) by (mNetworkPath+"/4_MetroNetwork.xml"))
+				
+		// STORE GLOBAL -NEW- NETWORK WITH ALL METRO LINKS
+		Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(metroNetwork, originalNetwork,
+				Sets.newHashSet("pt"), "zurich_1pm/Evolution/Population/GlobalMetroNetwork.xml");				
+				
 		boolean useOdPairsForInitialRoutes = false;
 		if (initialRouteType.equals("OD")) {
 			useOdPairsForInitialRoutes = true;
@@ -129,7 +138,8 @@ public class NetworkEvolutionImpl {
 			// Select all metro term. cand. by setting bounds on their loc. (dist. from center)
 			Map<Id<Link>, CustomLinkAttributes> links_MetroTerminalCandidates = NetworkEvolutionImpl.findLinksWithinBounds(mergedLinks_mostFrequentInRadiusMainFacilitiesSet, 
 					originalNetwork, zurich_NetworkCenterCoord, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, 
-					null); // FOR SAVING: replace (null) by (mNetworkPath+"/3_MetroTerminalCandidate.xml"));
+					(mNetworkPath+"/4_MetroTerminalCandidate.xml"));
+					//null); // FOR SAVING: replace (null) by (mNetworkPath+"/4_MetroTerminalCandidate.xml"));
 			initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork, links_MetroTerminalCandidates, initialRoutesPerNetwork, minTerminalDistance);			
 			separateRoutesNetwork = NetworkEvolutionImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork,
 					Sets.newHashSet("pt"), (mNetworkPath+"/0_MetroInitialRoutes_Random.xml"));
@@ -146,7 +156,7 @@ public class NetworkEvolutionImpl {
 				
 		// Load & Create Schedules and Factories
 		Config newConfig = ConfigUtils.createConfig();						// this is totally default and may be modified as required
-		Scenario newScenario = ScenarioUtils.createScenario(newConfig);
+		Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
 		TransitSchedule newSchedule = newScenario.getTransitSchedule();
 		TransitScheduleFactory metroScheduleFactory = newSchedule.getFactory();
 				
@@ -167,11 +177,13 @@ public class NetworkEvolutionImpl {
 			mRoute.setNetworkRoute(metroNetworkRoute);
 			mNetwork.addNetworkRoute(mRoute);
 			
-			// Create an array of stops along new networkRoute on the center of each of its individual links
+			// Create an array of stops along new networkRoute on the FromNode of each of its individual links (and ToNode for final terminal)
+			// The new network was constructed so that every node had a corresponding stop facility from the original zurich network on it.
 			List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
 							newSchedule, metroNetwork, metroNetworkRoute, defaultPtMode, stopTime, maxVehicleSpeed, blocksLane);
 			mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
 			mRoute.vehiclesNr = (int) Math.ceil(mRoute.roundtripTravelTime/mRoute.departureSpacing);		// set vehicles initially so they are not zero for evo loops
+			Log.writeAndDisplay("stopArray.size()="+stopArray.size());
 			
 			// Build TransitRoute from stops and NetworkRoute --> and add departures
 			String vehicleFileLocation = (mNetworkPath+"/Vehicles.xml");
@@ -228,6 +240,38 @@ public class NetworkEvolutionImpl {
 	}		
 		
 	
+	public static void CalculateAverageNetworkSpeed(TransitSchedule originalTransitSchedule, Network originalNetwork,
+			String fileName) throws FileNotFoundException {
+		double totalLength = 0.0;
+		double totalTime = 0.0;
+		for (TransitLine tl : originalTransitSchedule.getTransitLines().values()) {
+			for (TransitRoute tr : tl.getRoutes().values()) {
+				// may want to check from NetworkRoute>>LinkList which links are within linkRadius (or Zone110)
+				// in order to calculate average speed in city only
+				int nRouteDepartures = tr.getDepartures().size();
+				double routeTravelTime = tr.getStops().get(tr.getStops().size()-1).getArrivalOffset(); 
+				// if city: find last/first stop in city and go from there
+				double cumulatedRouteLength = transitRoute2TotalLength(tr, originalNetwork);
+				// if city: find last/first link in city and go from there
+				totalLength += cumulatedRouteLength*nRouteDepartures;
+				totalTime += routeTravelTime*nRouteDepartures;
+			}
+		}
+		double averageSpeedOriginalPtZH = totalLength/totalTime;
+		XMLOps.writeToFile(averageSpeedOriginalPtZH, fileName);
+	}
+
+
+	public static double transitRoute2TotalLength(TransitRoute tr, Network network) {
+		double length = 0.0;
+		List<Id<Link>> linkList = NetworkRoute2LinkIdList(tr.getRoute());
+		for (Id<Link> linkId : linkList) {
+			length += network.getLinks().get(linkId).getLength();
+		}		
+		return length;
+	}
+
+
 // %%%%%%%%%%%%%%%%%%%%%% HELPER METHODS STATIC %%%%%%%%%%%%%%%%%%%%%%%%%
 
 	// done
@@ -279,42 +323,71 @@ public class NetworkEvolutionImpl {
 		
 		
 		public static Map<Id<Link>, CustomLinkAttributes> mergeLinksWithinBounds( Map<Id<Link>, CustomLinkAttributes> links_withinRadius, 
-				double proximityRadius, Network originalNetwork, String fileName){
+				double railway2metroCatchmentArea,
+				double metro2metroCatchmentArea, Map<String, CustomRailStop> railwayStations, Network originalNetwork, String fileName) throws FileNotFoundException{
 			
-			Map<Id<Link>, CustomLinkAttributes> mergedLinks = new HashMap<Id<Link>, CustomLinkAttributes>();
-			do {	
+			
+			// SECTION 1: Merge links with dominant facilities in vicinity of existing railwayStop & set reference railwayStation (= closest railwayStation)
+			Map<Id<Link>, CustomLinkAttributes> metroRailwayMergedLinks = Clone.customLinkMap(links_withinRadius); // just a copy so that we can play around and remove entries
+			
+			Iterator<Entry<Id<Link>, CustomLinkAttributes>> linkIter = metroRailwayMergedLinks.entrySet().iterator();
+			while(linkIter.hasNext()) {
+				Entry<Id<Link>, CustomLinkAttributes> linkEntry = linkIter.next();
+				CustomLinkAttributes att = linkEntry.getValue();
+				for (String railwayStation : railwayStations.keySet()) {
+					double rail2linkDistance = GeomDistance.calculate(att.dominantStopFacility.getCoord(),
+							railwayStations.get(railwayStation).transitStopFacility.getCoord());
+					if(rail2linkDistance < att.distance2nextRailwayStopFacility){
+						// initial value = Double.MAX_VALUE; check if this value is less than max value and check if it is closer than previous railStop
+						att.nextRailwayStopFacility = railwayStations.get(railwayStation).transitStopFacility;
+						att.distance2nextRailwayStopFacility = rail2linkDistance;
+						// if it is even within close proximity of railwayStop (railway2metroCatchmentArea), replace domStopFacility by rail stop facility
+						if (rail2linkDistance < railway2metroCatchmentArea) {
+							att.dominantStopFacility = railwayStations.get(railwayStation).transitStopFacility;	// Ref. stop facility is exactly this one
+						}
+					}
+				}
+			}
+			
+			// SECTION 2: Merge close links into one (which one does not matter)
+			//Use this line if SECTION 1 is not activated:
+			//Map<Id<Link>, CustomLinkAttributes> metroRailwayMergedLinks = Clone.customLinkMap(links_withinRadius); // just a copy so that we can play around and remove entries
+			Map<Id<Link>, CustomLinkAttributes> metroRailwayMetroMergedLinks = new HashMap<Id<Link>, CustomLinkAttributes>();
+			
+			do {
 				List<Id<Link>> toBeDeletedLinks = new ArrayList<Id<Link>>();
-				Iterator<Id<Link>> intIter = links_withinRadius.keySet().iterator();
+				Iterator<Id<Link>> intIter = metroRailwayMergedLinks.keySet().iterator();
 				Id<Link> thisLink = intIter.next();
 				toBeDeletedLinks.add(thisLink);
 
-				mergedLinks.put(thisLink, links_withinRadius.get(thisLink));
-				for (Id<Link> otherLink : links_withinRadius.keySet()) {
+				metroRailwayMetroMergedLinks.put(thisLink, metroRailwayMergedLinks.get(thisLink));
+				for (Id<Link> otherLink : metroRailwayMergedLinks.keySet()) {
 					if(thisLink.equals(otherLink)) {
 						continue;
 					}
-//					Coord centerCoordThis = GeomDistance.coordBetweenNodes(originalNetwork.getLinks().get(thisLink).getFromNode(), originalNetwork.getLinks().get(thisLink).getToNode());
-//					Coord centerCoordOther = GeomDistance.coordBetweenNodes(originalNetwork.getLinks().get(otherLink).getFromNode(), originalNetwork.getLinks().get(otherLink).getToNode());
-					Coord CoordThis = links_withinRadius.get(thisLink).getDominantStopFacility().getCoord();    //originalNetwork.getLinks().get(thisLink).getFromNode().getCoord();
-					Coord CoordOther = links_withinRadius.get(otherLink).getDominantStopFacility().getCoord();  //originalNetwork.getLinks().get(otherLink).getFromNode().getCoord();
-					if(Math.abs(GeomDistance.calculate(CoordThis, CoordOther))<proximityRadius) {
-						CustomLinkAttributes thisLinkAtt = links_withinRadius.get(thisLink);
-						thisLinkAtt.totalTraffic += links_withinRadius.get(otherLink).totalTraffic;
-						mergedLinks.put(thisLink, thisLinkAtt);
+					Coord CoordThis = metroRailwayMergedLinks.get(thisLink).getDominantStopFacility().getCoord();    //originalNetwork.getLinks().get(thisLink).getFromNode().getCoord();
+					Coord CoordOther = metroRailwayMergedLinks.get(otherLink).getDominantStopFacility().getCoord();  //originalNetwork.getLinks().get(otherLink).getFromNode().getCoord();
+					if(Math.abs(GeomDistance.calculate(CoordThis, CoordOther)) < metro2metroCatchmentArea) {
+						CustomLinkAttributes thisLinkAtt = metroRailwayMergedLinks.get(thisLink);
+						thisLinkAtt.totalTraffic += metroRailwayMergedLinks.get(otherLink).totalTraffic;
+						metroRailwayMetroMergedLinks.put(thisLink, thisLinkAtt);
 						toBeDeletedLinks.add(otherLink);
 					}				
 				}
 				for (Id<Link> l : toBeDeletedLinks) {
-					links_withinRadius.remove(l);
+					metroRailwayMergedLinks.remove(l);
 				}
-			}while(links_withinRadius.size()>0);
+			}while(metroRailwayMergedLinks.size()>0);
 			
+
 			if (fileName != null) {
-				createNetworkFromCustomLinks(mergedLinks, originalNetwork, fileName);
+				createNetworkFromCustomLinks(metroRailwayMetroMergedLinks, originalNetwork, fileName);
 			}
 			
-			return mergedLinks;
+			return metroRailwayMetroMergedLinks;
 		}
+		
+		
 
 		public static Map<Id<Link>, CustomLinkAttributes> findMostFrequentLinks(int nMostFrequentLinks,
 				Map<Id<Link>, CustomLinkAttributes> customLinkMap, Network network, String fileName) {
@@ -489,8 +562,8 @@ public class NetworkEvolutionImpl {
 			return feasibleLinks;
 		}
 
-		public static Network createMetroNetworkFromCandidates(Map<Id<Link>, CustomLinkAttributes> customLinkMap,
-				double maxNewMetroLinkDistance, Network mergerNetwork, String fileName) {
+		public static Network createMetroNetworkFromCandidates(Map<Id<Link>, CustomLinkAttributes> customLinkMap, double maxNewMetroLinkDistance, Network mergerNetwork, String fileName) 
+						throws FileNotFoundException {
 			Config config = ConfigUtils.createConfig();
 			Scenario scenario = ScenarioUtils.createScenario(config);
 			Network newNetwork = scenario.getNetwork();
@@ -507,13 +580,13 @@ public class NetworkEvolutionImpl {
 				/*System.out.println("Custom attributes dominant mode: "+customLinkMap.get(linkID).getDominantMode());
 				System.out.println("Custom attributes facility: "+customLinkMap.get(linkID).getDominantStopFacility().getName());
 				System.out.println("Custom attributes coord: "+customLinkMap.get(linkID).getDominantStopFacility().getCoord());*/
-				if (customLinkMap.get(linkID).getDominantStopFacility()==null) {
-					newNode = networkFactory.createNode(Id.createNodeId("MetroNodeLinkRef_" + linkID.toString()), 
-							mergerNetwork.getLinks().get(linkID).getFromNode().getCoord());
+				if (customLinkMap.get(linkID).getDominantStopFacility() != null) {
+					newNode = networkFactory.createNode(Id.createNodeId("MetroNodeLinkRef_" + linkID.toString()),
+							customLinkMap.get(linkID).dominantStopFacility.getCoord());	
 				}
 				else {
-					newNode = networkFactory.createNode(Id.createNodeId("MetroNodeLinkRef_" + linkID.toString()),
-							customLinkMap.get(linkID).dominantStopFacility.getCoord());					
+					newNode = networkFactory.createNode(Id.createNodeId("MetroNodeLinkRef_" + linkID.toString()), 
+							mergerNetwork.getLinks().get(linkID).getFromNode().getCoord());
 				}
 				metroNodeLinkReferences.put(newNode.getId(), linkID);
 				//System.out.println("New node is called: " + newNode.getId().toString());
@@ -552,7 +625,7 @@ public class NetworkEvolutionImpl {
 				NetworkWriter networkWriter = new NetworkWriter(newNetwork);
 				networkWriter.write(fileName);
 			}
-
+			
 			return newNetwork;
 		}
 
@@ -617,7 +690,7 @@ public class NetworkEvolutionImpl {
 				linkList.addAll(OppositeLinkListOf(linkList)); // extend linkList with its opposite direction for PT transportation!
 				NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, newMetroNetwork);
 
-//				System.out.println("The new networkRoute is: [Length="+(networkRoute.getLinkIds().size()+2)+"] - " + networkRoute.toString());
+				System.out.println("The new networkRoute is: [Length="+(networkRoute.getLinkIds().size()+2)+"] - " + networkRouteToLinkIdList(networkRoute).toString());
 				networkRouteArray.add(networkRoute);
 			}
 
@@ -988,7 +1061,7 @@ public class NetworkEvolutionImpl {
 	}
 	
 	
-	
+
 	
 	
 	public static MNetworkPop developGeneration(Network globalNetwork, Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop evoNetworksToProcessPlans, String populationName,
@@ -1113,6 +1186,10 @@ public class NetworkEvolutionImpl {
 			int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
 		int nOldPop = newPopulation.networkMap.size();
+		if (nOldPop<2) {
+			Log.write("Not enough network parents for crossover. Terminating...");
+			System.exit(0);
+		}
 		int nCrossOverCandidates = (int) Math.ceil(0.5*nOldPop);
 		List<MNetwork> newOffspring = new ArrayList<MNetwork>();
 		System.out.println("We will try nCrossOverCandidates="+nCrossOverCandidates);
@@ -1376,7 +1453,8 @@ public class NetworkEvolutionImpl {
 				MRoute mRoute = mNetwork.routeMap.get(mRouteName);
 				lineNr++;
 				// Create an array of stops along new networkRoute on the center of each of its individual links
-				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(newSchedule, globalNetwork, mRoute.networkRoute, defaultPtMode, stopTime, maxVelocity, blocksLane);
+				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
+						newSchedule, globalNetwork, mRoute.networkRoute, defaultPtMode, stopTime, maxVelocity, blocksLane);
 				mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
 				mRoute.departureSpacing = NetworkEvolutionImpl.depSpacingCalculator(mRoute.vehiclesNr, mRoute.roundtripTravelTime);
 				

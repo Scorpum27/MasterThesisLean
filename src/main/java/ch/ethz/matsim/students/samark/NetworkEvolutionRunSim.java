@@ -6,6 +6,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
@@ -23,6 +24,7 @@ import org.matsim.core.router.MainModeIdentifierImpl;
 import org.matsim.core.router.StageActivityTypesImpl;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.PtConstants;
+import org.matsim.pt.transitSchedule.api.TransitSchedule;
 
 import ch.ethz.matsim.baseline_scenario.BaselineModule;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine;
@@ -120,7 +122,8 @@ public class NetworkEvolutionRunSim {
 	}
 
 	
-	public static MNetworkPop runEventsProcessing(MNetworkPop networkPopulation, int lastIteration) throws IOException {
+	public static MNetworkPop runEventsProcessing(MNetworkPop networkPopulation, int lastIteration, 
+			Network globalNetwork) throws IOException {
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			if(networkPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
 				continue;
@@ -131,7 +134,12 @@ public class NetworkEvolutionRunSim {
 			
 			// read and handle events
 			String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
-			MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
+			
+			Config config = ConfigUtils.createConfig();
+			config.getModules().get("transit").addParam("transitScheduleFile", "zurich_1pm/Evolution/Population/"+networkName+"/MergedSchedule.xml");
+			TransitSchedule mergedTransitSchedule = ScenarioUtils.loadScenario(config).getTransitSchedule();
+			
+			MHandlerPassengers mPassengerHandler = new MHandlerPassengers(globalNetwork, mergedTransitSchedule);
 			EventsManager eventsManager = EventsUtils.createEventsManager();
 			eventsManager.addHandler(mPassengerHandler);
 			MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
@@ -183,7 +191,11 @@ public class NetworkEvolutionRunSim {
 			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
 			mNetwork.totalMetroPersonKM = totalMetroPersonKM;
 			mNetwork.nMetroUsers = nMetroUsers;
-		}		// END of NETWORK Loop
+			mNetwork.totalPtTransitPersonKM = mPassengerHandler.totalPtTransitPersonKM;
+			Log.write(mNetwork.networkID+" - totalPersonKM = "+totalMetroPersonKM);
+			Log.write(mNetwork.networkID+" - nMetroUsers = "+nMetroUsers);
+			Log.write(mNetwork.networkID+" - totalPtTransitPersonKM = "+mNetwork.totalPtTransitPersonKM);
+		}	// END of NETWORK Loop
 
 		// - Maybe hand over score to a separate score map for sorting scores
 		return networkPopulation;

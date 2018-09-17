@@ -34,6 +34,7 @@ public class MNetwork implements Serializable{
 		this.evolutionGeneration = 0;
 		this.overallScore = 0.0;
 		this.totalVehiclesNr = 0;
+		this.totalPtTransitPersonKM = 0.0;
 
 	}
 	
@@ -54,6 +55,7 @@ public class MNetwork implements Serializable{
 		this.overallScore = 0.0;
 		this.totalRouteLength = 0.0;	
 		this.totalVehiclesNr = 0;
+		this.totalPtTransitPersonKM = 0.0;
 
 	}
 	
@@ -97,6 +99,7 @@ public class MNetwork implements Serializable{
 	double totalMetroPersonKM;		// NetworkEvolutionRunSim.runEventsProcessing
 	double personKMdirect;			// to be implemented in: NetworkEvolutionRunSim.runEventsProcessing
 	int nMetroUsers;				// NetworkEvolutionRunSim.runEventsProcessing
+	double totalPtTransitPersonKM;
 	// from transitSchedule
 	double drivenKM;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
 	double opsCost;					// to be implemented in NetworkEvolution

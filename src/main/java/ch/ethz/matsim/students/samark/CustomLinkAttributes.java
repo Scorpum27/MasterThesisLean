@@ -10,14 +10,15 @@ public class CustomLinkAttributes {
 	//Double busTraffic;
 	String dominantMode;
 	TransitStopFacility dominantStopFacility;
+	TransitStopFacility nextRailwayStopFacility;
+	double distance2nextRailwayStopFacility;
 	
 	public CustomLinkAttributes() {
 		this.totalTraffic = 0.0;
-		//this.railTraffic = 0.0;
-		//this.tramTraffic = 0.0;
-		//this.busTraffic = 0.0;
 		this.dominantMode = null;
 		this.dominantStopFacility = null;
+		this.nextRailwayStopFacility = null;
+		this.distance2nextRailwayStopFacility = Double.MAX_VALUE;
 	}
 	
 	public double getTotalTraffic() {

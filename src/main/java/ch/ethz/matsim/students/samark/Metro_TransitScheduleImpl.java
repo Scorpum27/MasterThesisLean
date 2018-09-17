@@ -7,6 +7,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Set;
 
+import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
@@ -50,14 +51,21 @@ public class Metro_TransitScheduleImpl {
 		return vehicleType;
 	}
 	
-	public static List<TransitRouteStop> createAndAddNetworkRouteStops(TransitSchedule transitSchedule, Network network, NetworkRoute networkRoute, String defaultPtMode, double stopTime, double maxVehicleSpeed, boolean blocksLane){
+	public static List<TransitRouteStop> createAndAddNetworkRouteStops(TransitSchedule transitSchedule, Network network, 
+			NetworkRoute networkRoute, String defaultPtMode, double stopTime, double maxVehicleSpeed, boolean blocksLane) throws IOException{
+
+		Config conf = ConfigUtils.createConfig();
+		conf.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/zurich_transit_schedule.xml.gz");
+		TransitSchedule originalZurichTransitSchedule = ScenarioUtils.loadScenario(conf).getTransitSchedule();
+		// Use exactly the same facilities as in original network and originalZurichTransitSchedule (each node in new network has exactly one facilities)
+		// Always take the facility at the FromNode for the StopFacilities
+		// Add one terminal Stop for the last link so that route goes right to end (respectively right to the FromNode it started from on the way there)
+
 		TransitScheduleFactory transitScheduleFactory = transitSchedule.getFactory();
-		
 		List<TransitRouteStop> stopArray = new ArrayList<TransitRouteStop>();				// prepare an array for stop facilities on new networkRoute
 		
 		int stopCount = 0;
 		double accumulatedDrivingTime = 0;
-		Link lastLink = null;
 		
 		List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
 		routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute));
@@ -65,48 +73,68 @@ public class Metro_TransitScheduleImpl {
 		double vMaxAccDistance = maxVehicleSpeed*maxVehicleSpeed/(2*acceleration);
 		double tAccVMax = maxVehicleSpeed/acceleration;
 
-		for (Id<Link> linkID : routeLinkList) {
-			// place the stop facilities always on the FromNode of the RefLink; this way, the new facilities will have the same coords as the original network's facilities!
-			Link currentLink = network.getLinks().get(linkID);
-			// CAUTION XXXXXXXXXXXXXX If the following line gives an error, then it is prob. that currentLink=null because line above
-			//                        linkID cannot be found in network. Please check network and make sure network choice is corrcet,
-			//						  link name is correct, no new link has been added to network!
-			TransitStopFacility transitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+linkID.toString(), TransitStopFacility.class), currentLink.getFromNode().getCoord(), blocksLane);
-			transitStopFacility.setName("MetroStopRefLink_"+linkID.toString());
-			transitStopFacility.setLinkId(linkID);
+		for (Id<Link> currentLinkID : routeLinkList) {
+			Link currentLink = network.getLinks().get(currentLinkID);
+			if (currentLink.equals(null)) {
+				Log.writeAndDisplay("linkID cannot be found in network! Next line will give a NullPointer Exception.");
+				currentLink.getId().toString();
+				// If the above line gives an error, then it is prob. that currentLink=null because line above linkID cannot be found in network. 
+				// Please check network and make sure network choice is correct, link name is correct, no new link has been added to network!
+			}
+
 			stopCount++;
 			if(stopCount>1) {
-				if (lastLink.getLength() >= vMaxAccDistance) {
-					accumulatedDrivingTime += (2*tAccVMax + (lastLink.getLength()-vMaxAccDistance)/(maxVehicleSpeed));	// 2*AccTime for accelerating and braking and then the cruise time in between
+				if (currentLink.getLength() >= vMaxAccDistance) {
+					accumulatedDrivingTime += (2*tAccVMax + (currentLink.getLength()-vMaxAccDistance)/(maxVehicleSpeed));	// 2*AccTime for accelerating and braking and then the cruise time in between
 				}
 				else {
-					accumulatedDrivingTime += 2*Math.sqrt(2*lastLink.getLength()/acceleration); // 2*xxx for accelerating and then symmetric braking with const acceleration
+					accumulatedDrivingTime += 2*Math.sqrt(2*currentLink.getLength()/acceleration); // 2*xxx for accelerating and then symmetric braking with const acceleration
 				}
 			}
 			double arrivalDelay = (stopCount-1)*stopTime + accumulatedDrivingTime;
 			double departureDelay = (stopCount)*stopTime + accumulatedDrivingTime;		// same as arrivalDelay + 1*stopTime
+
+			// Starting from the corresponding original zurich dominant transitStopfacility. Making new tsf with same specs and adding _metro to its ID
+			TransitStopFacility origTSF = coord2Facility(originalZurichTransitSchedule, currentLink.getFromNode().getCoord());
+			TransitStopFacility transitStopFacility = transitScheduleFactory.createTransitStopFacility(
+					Id.create(origTSF.getId().toString()+"_metro", TransitStopFacility.class), origTSF.getCoord(), blocksLane);
+			transitStopFacility.setName(origTSF.getName().toString()+"_metro");
+			transitStopFacility.setLinkId(currentLinkID);
 			TransitRouteStop transitRouteStop = transitScheduleFactory.createTransitRouteStop(transitStopFacility, arrivalDelay, departureDelay);
 			if (transitSchedule.getFacilities().containsKey(transitStopFacility.getId())==false) {
 				transitSchedule.addStopFacility(transitStopFacility);
 			}
 			stopArray.add(transitRouteStop);
-			lastLink = currentLink;
 		}
-		// do this to add last terminal link on way back, because the stops are always added at the fromNode location and the last link needs a stop at the final toNode!
-		Id<Link> terminalLink = stopArray.get(stopArray.size()-1).getStopFacility().getLinkId();
-		TransitStopFacility terminalTransitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+terminalLink.toString()+"_TerminalStop", TransitStopFacility.class), 
-				network.getLinks().get(terminalLink).getToNode().getCoord(), blocksLane);
-		terminalTransitStopFacility.setName("MetroStopRefLink_"+terminalLink.toString()+"_TerminalStop");
-		terminalTransitStopFacility.setLinkId(terminalLink);
 		double terminalArrivalOffset = stopArray.get(stopArray.size()-1).getDepartureOffset()+stopArray.get(1).getArrivalOffset();
 		double terminalDepartureOffset = terminalArrivalOffset+stopTime;
-		TransitRouteStop terminalTransitRouteStop = transitScheduleFactory.createTransitRouteStop(
-				stopArray.get(0).getStopFacility(), terminalArrivalOffset, terminalDepartureOffset);
+		TransitRouteStop terminalTransitRouteStop = transitScheduleFactory.createTransitRouteStop(stopArray.get(0).getStopFacility(),
+				terminalArrivalOffset, terminalDepartureOffset);
 		stopArray.add(terminalTransitRouteStop);
+//		Id<Link> terminalLink = stopArray.get(stopArray.size()-1).getStopFacility().getLinkId();
+//		TransitStopFacility terminalTransitStopFacility = transitScheduleFactory.createTransitStopFacility(Id.create("MetroStopRefLink_"+terminalLink.toString()+"_TerminalStop", TransitStopFacility.class), 
+//				network.getLinks().get(terminalLink).getToNode().getCoord(), blocksLane);
+//		terminalTransitStopFacility.setName("MetroStopRefLink_"+terminalLink.toString()+"_TerminalStop");
+//		terminalTransitStopFacility.setLinkId(terminalLink);
+//		double terminalArrivalOffset = stopArray.get(stopArray.size()-1).getDepartureOffset()+stopArray.get(1).getArrivalOffset();
+//		double terminalDepartureOffset = terminalArrivalOffset+stopTime;
+//		TransitRouteStop terminalTransitRouteStop = transitScheduleFactory.createTransitRouteStop(
+//				stopArray.get(0).getStopFacility(), terminalArrivalOffset, terminalDepartureOffset);
+//		stopArray.add(terminalTransitRouteStop);
 		
 		return stopArray;
 	}
 	
+	public static TransitStopFacility coord2Facility(TransitSchedule ts, Coord coord) throws IOException {
+		for (TransitStopFacility tsf : ts.getFacilities().values()) {
+			if (coord.equals(tsf.getCoord())) {
+				return tsf;
+			}
+		}
+		Log.write("ERROR: No TransitStopFacility found at such coordinate location! Returning null ...");
+		return null;
+	}
+
 	public static List<Id<Link>> OppositeLinkListOf(List<Id<Link>> linkList){
 		List<Id<Link>> oppositeLinkList = new ArrayList<Id<Link>>(linkList.size());
 		for (int c=0; c<linkList.size(); c++) {
@@ -186,21 +214,32 @@ public class Metro_TransitScheduleImpl {
 		Scenario defaultScenario = ScenarioUtils.createScenario(defaultConfig);
 		TransitSchedule mergedSchedule = defaultScenario.getTransitSchedule();
 		
+		
 		// Add all TransitStopFacilities from both TransitSchedules
 		for (TransitStopFacility stopFacility : schedule1.getFacilities().values()) {
-			mergedSchedule.addStopFacility(stopFacility);
+			if (mergedSchedule.getFacilities().containsKey(stopFacility.getId())==false) {
+				mergedSchedule.addStopFacility(stopFacility);
+			}
 		}
 		for (TransitStopFacility stopFacility : schedule2.getFacilities().values()) {
-			mergedSchedule.addStopFacility(stopFacility);
-		}		
+			if (mergedSchedule.getFacilities().containsKey(stopFacility.getId())==false) {
+				mergedSchedule.addStopFacility(stopFacility);
+			}
+		}
+		
 
 		// Add all TransitLines from both TransitSchedules
 		for (TransitLine transitLine : schedule1.getTransitLines().values()) {
-			mergedSchedule.addTransitLine(transitLine);
+			if (mergedSchedule.getTransitLines().containsKey(transitLine.getId())==false) {
+				mergedSchedule.addTransitLine(transitLine);
+			}
 		}			
 		for (TransitLine transitLine : schedule2.getTransitLines().values()) {
-			mergedSchedule.addTransitLine(transitLine);
+			if (mergedSchedule.getTransitLines().containsKey(transitLine.getId())==false) {
+				mergedSchedule.addTransitLine(transitLine);
+			}
 		}
+		
 		
 		TransitScheduleWriter tsw = new TransitScheduleWriter(mergedSchedule);
 		tsw.writeFile(fileName);
@@ -212,6 +251,10 @@ public class Metro_TransitScheduleImpl {
 		Config defaultConfig = ConfigUtils.createConfig();
 		Scenario defaultScenario = ScenarioUtils.createScenario(defaultConfig);
 		Vehicles mergedTransitVehicles = defaultScenario.getTransitVehicles();
+	
+		
+		// CAUTION: May have to construct conditional loops as in schedule merger above if can't add new vehicles
+		// because they are already featured in vehicles bin
 		
 		// Add all VehicleTypes
 		for (VehicleType transitVehicleType : transitVehicles1.getVehicleTypes().values()) {
@@ -221,6 +264,9 @@ public class Metro_TransitScheduleImpl {
 			mergedTransitVehicles.addVehicleType(transitVehicleType);
 		}
 		
+		// CAUTION: May have to construct conditional loops as in schedule merger above if can't add new vehicles
+		// because they are already featured in vehicles bin
+
 		// Add all Vehicles
 		for (Vehicle transitVehicle : transitVehicles1.getVehicles().values()) {
 			mergedTransitVehicles.addVehicle(transitVehicle);

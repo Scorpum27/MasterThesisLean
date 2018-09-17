@@ -17,10 +17,6 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 /*
  * PRIO 
- * TODO	Extract S-Bahn links and make separate network
- * TODO Check vehicles amount for correctness.
- * TODO Total Travel Distance people.
- * TODO Factor: Average Speed
  * TODO Check Theory and Questions for Network Approach Optimization -> IVT -> Make list of stuff that would make more realistic (e.g. topography, e.a.) and search literature for feasibility of developing networks and merging procedures (make a list)
  * TODO Extend current SBahn network with constraints --> To new feasible links (maybe reward for choosing existing link or make prob higher of choosing one! Maybe in Djikstra)
  * TODO Combining routes procedures when they come close etc...
@@ -35,6 +31,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  *  - Make proper IDs to get objects
  *  - Make a GeographyProcessor that calculates the OG/UG percentage from given regions
  *  - Check, where VC fails --> The population is zero from the start (also check event handlers for their naming and if they can be detected by algorithm!) --- VC - also store global network that one can refer to when merging together new routes!
+ *  - Generics: Not all links of a route have a stop: Must mark links with stop and not make a stop for every link!
  * 
  * OD-OPTIONS
  *  - TODO Make outer loop to connect existing routes that suddenly touch!
@@ -68,7 +65,7 @@ public class NetworkEvolution {
 		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240); or ("zurich_1pm/Zurich_1pm_SimulationOutput_BACKUP__10/output_plans.xml.gz", 240); or ("zurich_1pm/Evolution/Population/Network1/Simulation_Output/output_plans.xml.gz", 240);
 	// - Initiate N networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 1;														// how many networks should be developed in parallel
+		int populationSize = 2;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
@@ -86,13 +83,14 @@ public class NetworkEvolution {
 		double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
 		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
-		int nMostFrequentLinks = 80;												// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
+		int nMostFrequentLinks = 120;												// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
 		double maxNewMetroLinkDistance = 0.40*metroCityRadius;						// DEFAULT = 0.40*metroCityRadius
-		double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
+		double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
 																					// DEFAULT = 0.20*metroCityRadius for RandomRoutes
 		double maxTerminalRadiusFromCenter = maxMetroRadiusFromCenter;				// DEFAULT = maxMetroRadiusFromCenter
 		double minTerminalDistance = 0.70*maxMetroRadiusFromCenter;					// DEFAULT = 0.70*maxMetroRadiusFromCenter
-		double proximityRadius = 400;												// DEFAULT = 400  (merge metro stops within 400 meters)
+		double railway2metroCatchmentArea = 150;									// DEFAULT 150 or metroProximityRadius/3
+		double metro2metroCatchmentArea = 400;										// DEFAULT = 400  (merge metro stops within 400 meters)
 		double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing routes)
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
@@ -111,9 +109,9 @@ public class NetworkEvolution {
 			MNetwork mNetwork = NetworkEvolutionImpl.createMNetworkRoutes(							// Make a list of routes that will be added to this network
 					thisNewNetworkName, initialRoutesPerNetwork, initialRouteType, iterationToReadOriginalNetwork,
 					minMetroRadiusFromCenter, maxMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
-					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, proximityRadius, odConsiderationThreshold,
-					xOffset, yOffset, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
-					defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing,
+					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, railway2metroCatchmentArea,
+					metro2metroCatchmentArea, odConsiderationThreshold, xOffset, yOffset, vehicleTypeName, vehicleLength, maxVelocity, 
+					vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing,
 					metroOpsCostPerKM, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground);
 			networkPopulation.addNetwork(mNetwork);
 			networkPopulation.modifiedNetworksInLastEvolution.add(thisNewNetworkName);	// do this so EVO/SIM loop knows to consider these networks for processing
@@ -131,7 +129,8 @@ public class NetworkEvolution {
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/GlobalMetroNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
-		int nEvolutions = 4;
+		
+		int nEvolutions = 3;
 		double averageTravelTimePerformanceGoal = 40.0;
 		int lastIteration = 0;							// DEFAULT=0
 		for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
@@ -140,7 +139,7 @@ public class NetworkEvolution {
 			int finalGeneration = generationNr;
 			
 		// - SIMULATION LOOP:
-			lastIteration = 4;
+			lastIteration = 1;
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
@@ -160,7 +159,7 @@ public class NetworkEvolution {
 			Log.write("EVENTS PROCESSING of GEN"+generationNr+"");
 			int lastEventIteration = lastIteration; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
 			MNetworkPop evoNetworksToProcess = latestPopulation;  // for isolated code running: MNetworkPop evoNetworksToProcess = XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/"+populationName+".xml");
-			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration);
+			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration, globalNetwork);
 					// only for isolated code running to store processed performance parameters:
 					// XMLOps.writeToFileMNetworkPop(evoNetworksToProcess, "zurich_1pm/Evolution/Population/"+evoNetworksToProcess.populationId+".xml");
 			

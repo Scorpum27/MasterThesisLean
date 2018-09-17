@@ -56,6 +56,24 @@ public class Clone {
 		return copy;
 	}
 	
+	public static Map<Id<Link>, CustomLinkAttributes> customLinkMap(Map<Id<Link>, CustomLinkAttributes> original){
+		 Map<Id<Link>, CustomLinkAttributes> copy = new HashMap<Id<Link>, CustomLinkAttributes>();
+		for (Id<Link> id: original.keySet()) {
+			copy.put(id, Clone.customLinkAttributes(original.get(id)));
+		}
+		return copy;
+	}
+	
+	public static CustomLinkAttributes customLinkAttributes(CustomLinkAttributes original) {
+		CustomLinkAttributes copy = new CustomLinkAttributes();
+		copy.dominantMode = original.dominantMode;
+		copy.totalTraffic = original.totalTraffic;
+		copy.dominantStopFacility = original.dominantStopFacility;
+		copy.nextRailwayStopFacility = original.nextRailwayStopFacility;
+		copy.distance2nextRailwayStopFacility = original.distance2nextRailwayStopFacility;
+		return copy;
+	}
+
 	public static Map<String, MNetwork> mNetworkMap(Map<String, MNetwork> original){
 		Map<String, MNetwork> copy = new HashMap<String, MNetwork>();
 		for (String s : original.keySet()) {
@@ -172,6 +190,7 @@ public class Clone {
 		copy.totalMetroPersonKM = o.totalMetroPersonKM;		// NetworkEvolutionRunSim.runEventsProcessing
 		copy.personKMdirect = o.personKMdirect;			// to be implemented in: NetworkEvolutionRunSim.runEventsProcessing
 		copy.nMetroUsers = o.nMetroUsers;				// NetworkEvolutionRunSim.runEventsProcessing
+		copy.totalPtTransitPersonKM = o.totalPtTransitPersonKM;
 
 		copy.drivenKM = o.drivenKM;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
 		copy.totalVehiclesNr = o.totalVehiclesNr;

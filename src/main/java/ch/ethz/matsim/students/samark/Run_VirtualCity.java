@@ -130,7 +130,7 @@ public class Run_VirtualCity {
 			// - EVENTS PROCESSING:
 			int lastEventIteration = lastIterationSim; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
 			MNetworkPop evoNetworksToProcess = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/VirtualCity/Population/"+populationName+".xml");
-			VC_NetworkImpl.runEventsProcessing(evoNetworksToProcess, lastEventIteration);
+			VC_NetworkImpl.runEventsProcessing(evoNetworksToProcess, lastEventIteration);  // TODO Hand over network + transitScheudle here
 			XMLOps.writeToFile(evoNetworksToProcess, "zurich_1pm/VirtualCity/Population/"+evoNetworksToProcess.populationId+".xml");
 			// - PLANS PROCESSING:
 			MNetworkPop vcNetworksToProcessPlans = XMLOps.readFromFile(new MNetworkPop().getClass(), "zurich_1pm/VirtualCity/Population/"+populationName+".xml");

@@ -24,9 +24,7 @@ public class Metro_HandlerGeneric implements GenericEventHandler {
 		if (event.getEventType().contains("pt_transit")) {
 			if(event.getAttributes().get("line").contains(ptLine)) {
 				counter++;
-				// System.out.println(event.getAttributes().get("line"));
 			}
-			// System.out.println(event.getAttributes().get("line"));
 		}
 	}
 

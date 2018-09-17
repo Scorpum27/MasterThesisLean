@@ -36,9 +36,7 @@ public class Metro_HandlerLinkTraffic implements LinkEnterEventHandler {
 				System.out.println("New metro link enter count is: "+newCount);
 			}
 		}
-		/*else {
-			System.out.println("Failed. Vehicle is: "+event.getVehicleId().toString());
-		}*/
+
 	}
 
 	
