@@ -84,9 +84,9 @@ public class NetworkEvolution {
 		int populationSize = 2;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
-		boolean mergeMetroWithRailway = false;
+		boolean mergeMetroWithRailway = true;
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
-		boolean useOdPairsForInitialRoutes = true;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
+		boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
 		int iterationToReadOriginalNetwork = 100;									// This is the iteration for the simulation output of the original network
 		String zeroLog = "zurich_1pm/Evolution/Population/HistoryLog/Generation0";	// Make string and directory to save to file first generation (Generation0)
@@ -112,7 +112,7 @@ public class NetworkEvolution {
 		double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing routes)
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
-		String vehicleTypeName = "metro";  double maxVelocity = 20/3.6 /*[m/s]*/;
+		String vehicleTypeName = "metro";  double maxVelocity = 80/3.6 /*[m/s]*/;
 		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
 		double initialDepSpacing = 7.5*60.0; double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60; 
 		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
@@ -149,7 +149,7 @@ public class NetworkEvolution {
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
 		
-		int nEvolutions = 2;
+		int nEvolutions = 3;
 		double averageTravelTimePerformanceGoal = 40.0;
 		int lastIteration = 0;							// DEFAULT=0
 		for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
@@ -158,7 +158,7 @@ public class NetworkEvolution {
 			int finalGeneration = generationNr;
 			
 		// - SIMULATION LOOP:
-			lastIteration = 1;
+			lastIteration = 3;
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());

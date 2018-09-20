@@ -108,6 +108,9 @@ public class Metro_TransitScheduleImpl {
 					}
 					stopArray.add(transitRouteStop);
 				}
+				else {
+					Log.write("No stop found on this link");
+				}
 			}
 			if (stopArray.get(0).getStopFacility().getId().equals(stopArray.get(stopArray.size()-1).getStopFacility().getId()) == false) {
 				double terminalArrivalOffset = stopArray.get(stopArray.size()-1).getDepartureOffset()+stopArray.get(1).getArrivalOffset();
@@ -322,5 +325,8 @@ public class Metro_TransitScheduleImpl {
 
 		return mergedTransitVehicles;
 	}
+
+	
+
 	
 }
