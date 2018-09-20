@@ -374,7 +374,7 @@ public class VC_NetworkImpl {
 			
 			// read and handle events
 			String eventsFile = "zurich_1pm/VirtualCity/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
-			MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
+			MHandlerPassengers mPassengerHandler = new MHandlerPassengers(null, null); // TODO Caution; Insert proper network & transitSchedule
 			EventsManager eventsManager = EventsUtils.createEventsManager();
 			eventsManager.addHandler(mPassengerHandler);
 			MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);

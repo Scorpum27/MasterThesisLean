@@ -4,12 +4,23 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
+import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.network.Network;
+import org.matsim.api.core.v01.network.NetworkFactory;
+import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.scenario.ScenarioUtils;
+
 
 public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 
 	// Event reading
+
+		System.out.println(NetworkEvolutionImpl.removeString("hello", "l"));
+		Network nw = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+		NetworkFactory nf = nw.getFactory();
+		nf.createLink(Id.createLinkId("testLink"), null, null);
 		
 		
 	// Extracting S-Bahn stops in ZH

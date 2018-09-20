@@ -497,6 +497,56 @@ public class Metro_NetworkImpl {
 		return toNetwork;
 	}
 	
+	public static Network mergeNetworks(Network Network1, Network Network2, Set<String> transportModes) {
+		Network outNetwork = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+		NetworkFactory networkFactory = outNetwork.getFactory();
+
+		for (Link link : Network1.getLinks().values()) {
+			Node tempFromNode = networkFactory.createNode(Id.createNodeId(link.getFromNode().getId()), link.getFromNode().getCoord());
+			Node tempToNode = networkFactory.createNode(Id.createNodeId(link.getToNode().getId()), link.getToNode().getCoord());
+			Link tempLink = networkFactory.createLink(Id.createLinkId(link.getId()), tempFromNode, tempToNode);
+			if (transportModes == null) {
+				tempLink.setAllowedModes(link.getAllowedModes());				
+			}
+			else {
+				tempLink.setAllowedModes(transportModes);
+			}
+			if (outNetwork.getNodes().keySet().contains(tempFromNode.getId())==false) {
+				outNetwork.addNode(tempFromNode);
+			}
+			if (outNetwork.getNodes().keySet().contains(tempToNode.getId())==false) {
+				outNetwork.addNode(tempToNode);
+			}
+			if (outNetwork.getLinks().keySet().contains(tempLink.getId())==false) {
+				outNetwork.addLink(tempLink);
+			}
+		}
+		
+		for (Link link : Network2.getLinks().values()) {
+			Node tempFromNode = networkFactory.createNode(Id.createNodeId(link.getFromNode().getId()), link.getFromNode().getCoord());
+			Node tempToNode = networkFactory.createNode(Id.createNodeId(link.getToNode().getId()), link.getToNode().getCoord());
+			Link tempLink = networkFactory.createLink(Id.createLinkId(link.getId()), tempFromNode, tempToNode);
+			if (transportModes == null) {
+				tempLink.setAllowedModes(link.getAllowedModes());				
+			}
+			else {
+				tempLink.setAllowedModes(transportModes);
+			}
+			if (outNetwork.getNodes().keySet().contains(tempFromNode.getId())==false) {
+				outNetwork.addNode(tempFromNode);
+			}
+			if (outNetwork.getNodes().keySet().contains(tempToNode.getId())==false) {
+				outNetwork.addNode(tempToNode);
+			}
+			if (outNetwork.getLinks().keySet().contains(tempLink.getId())==false) {
+				outNetwork.addLink(tempLink);
+			}
+		}
+		
+		Network2 = outNetwork;
+		return Network2;
+	}
+	
 	public static void createNetworkFromCustomLinks(Map<Id<Link>,CustomLinkAttributes> customLinkMap, Network oldNetwork, String linksString) {
 		// public static void createNetworkFromCustomLinks(Map<Id<Link>,CustomLinkAttributes> customLinkMap, Network oldNetwork, String linksString, String facilityNodesString) {	
 			

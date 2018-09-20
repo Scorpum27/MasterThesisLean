@@ -314,7 +314,7 @@ public class OD_ProcessorImpl {
 	
 	public static Id<Link> ReverseLink(Id<Link> linkId){
 		String[] linkIdStrings = linkId.toString().split("_");
-		Id<Link> reverseId = Id.createLinkId("MetroNodeLinkRef_"+linkIdStrings[3]+"_MetroNodeLinkRef_"+linkIdStrings[1]);
+		Id<Link> reverseId = Id.createLinkId(linkIdStrings[1]+"_"+linkIdStrings[0]);
 		return reverseId;
 	}
 	

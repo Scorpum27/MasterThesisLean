@@ -220,7 +220,8 @@ public class DijkstraOwn_I {
            Arrays.fill(Weight[i], Integer.MAX_VALUE);
        }
        for(Link l : links){
-    	   Weight[nodeLocationMap.get(l.getFromNode().getId())][nodeLocationMap.get(l.getToNode().getId())] = l.getLength();
+    	   Weight[nodeLocationMap.get(l.getFromNode().getId())][nodeLocationMap.get(l.getToNode().getId())] = 
+    			   GeomDistance.betweenNodes(l.getFromNode(), l.getToNode());//l.getLength();
        }
        return Weight;
    }
