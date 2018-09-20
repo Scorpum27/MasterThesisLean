@@ -162,11 +162,15 @@ public class Metro_TransitScheduleImpl {
 				double departureDelay = (stopCount)*stopTime + accumulatedDrivingTime;		// same as arrivalDelay + 1*stopTime
 
 				// Starting from the corresponding original zurich dominant transitStopfacility. Making new tsf with same specs and adding _metro to its ID
-				TransitStopFacility origTSF = coord2Facility(originalZurichTransitSchedule, currentLink.getFromNode().getCoord());
-				TransitStopFacility transitStopFacility = transitScheduleFactory.createTransitStopFacility(
-						Id.create(origTSF.getId().toString()+"_metro", TransitStopFacility.class), origTSF.getCoord(), blocksLane);
-				transitStopFacility.setName(origTSF.getName().toString()+"_metro");
-				transitStopFacility.setLinkId(currentLinkID);
+				TransitStopFacility transitStopFacility = Metro_TransitScheduleImpl.selectStopFacilityOnLink(metroLinkAttributes.get(currentLinkID));
+				if (transitStopFacility == null) {
+					Log.write("TSF = null ... making new facility ...");
+					TransitStopFacility origTSF = coord2Facility(originalZurichTransitSchedule, currentLink.getFromNode().getCoord());
+					transitStopFacility = transitScheduleFactory.createTransitStopFacility(
+							Id.create(origTSF.getId().toString()+"_metro", TransitStopFacility.class), origTSF.getCoord(), blocksLane);
+					transitStopFacility.setName(origTSF.getName().toString()+"_metro");					
+				}
+				transitStopFacility.setLinkId(currentLinkID); // KEEP THIS ONE IMPORTANT (Maybe ;))
 				TransitRouteStop transitRouteStop = transitScheduleFactory.createTransitRouteStop(transitStopFacility, arrivalDelay, departureDelay);
 				if (transitSchedule.getFacilities().containsKey(transitStopFacility.getId())==false) {
 					transitSchedule.addStopFacility(transitStopFacility);
