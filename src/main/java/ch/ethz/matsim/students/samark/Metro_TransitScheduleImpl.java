@@ -123,7 +123,6 @@ public class Metro_TransitScheduleImpl {
 
 			Config conf = ConfigUtils.createConfig();
 			conf.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/zurich_transit_schedule.xml.gz");
-			TransitSchedule originalZurichTransitSchedule = ScenarioUtils.loadScenario(conf).getTransitSchedule();
 			// Use exactly the same facilities as in original network and originalZurichTransitSchedule (each node in new network has exactly one facilities)
 			// Always take the facility at the FromNode for the StopFacilities
 			// Add one terminal Stop for the last link so that route goes right to end (respectively right to the FromNode it started from on the way there)
@@ -162,14 +161,15 @@ public class Metro_TransitScheduleImpl {
 				double departureDelay = (stopCount)*stopTime + accumulatedDrivingTime;		// same as arrivalDelay + 1*stopTime
 
 				// Starting from the corresponding original zurich dominant transitStopfacility. Making new tsf with same specs and adding _metro to its ID
-				TransitStopFacility transitStopFacility = Metro_TransitScheduleImpl.selectStopFacilityOnLink(metroLinkAttributes.get(currentLinkID));
+				TransitStopFacility transitStopFacility = Metro_TransitScheduleImpl.selectStopFacilityOnLink(metroLinkAttributes, currentLink, transitSchedule);
 				if (transitStopFacility == null) {
-					Log.write("TSF = null ... making new facility ...");
-					TransitStopFacility origTSF = coord2Facility(originalZurichTransitSchedule, currentLink.getFromNode().getCoord());
-					transitStopFacility = transitScheduleFactory.createTransitStopFacility(
-							Id.create(origTSF.getId().toString()+"_metro", TransitStopFacility.class), origTSF.getCoord(), blocksLane);
-					transitStopFacility.setName(origTSF.getName().toString()+"_metro");					
+					Log.write("TSF = null ... making new facility ... PROBLEM!");
 				}
+//					TransitStopFacility origTSF = coord2Facility(originalZurichTransitSchedule, currentLink.getFromNode().getCoord());
+//					transitStopFacility = transitScheduleFactory.createTransitStopFacility(
+//							Id.create(origTSF.getId().toString()+"_metro", TransitStopFacility.class), origTSF.getCoord(), blocksLane);
+//					transitStopFacility.setName(origTSF.getName().toString()+"_metro");					
+//				}
 				transitStopFacility.setLinkId(currentLinkID); // KEEP THIS ONE IMPORTANT (Maybe ;))
 				TransitRouteStop transitRouteStop = transitScheduleFactory.createTransitRouteStop(transitStopFacility, arrivalDelay, departureDelay);
 				if (transitSchedule.getFacilities().containsKey(transitStopFacility.getId())==false) {
@@ -200,8 +200,14 @@ public class Metro_TransitScheduleImpl {
 		return distance;
 	}
 
-	public static TransitStopFacility selectStopFacilityOnLink(CustomMetroLinkAttributes customMetroLinkAttributes) {
-		if (customMetroLinkAttributes.singleRefStopFacility != null) {
+	public static TransitStopFacility selectStopFacilityOnLink(Map<Id<Link>,CustomMetroLinkAttributes> metroLinkAttributes, Link currentLink, 
+			TransitSchedule transitSchedule) {
+		CustomMetroLinkAttributes customMetroLinkAttributes = metroLinkAttributes.get(currentLink.getId());
+		if (customMetroLinkAttributes == null) {
+			return transitSchedule.getFactory().createTransitStopFacility(Id.create("genericMetroStopLinkRef"+currentLink.getId().toString(),TransitStopFacility.class),
+					GeomDistance.coordBetweenNodes(currentLink.getFromNode(), currentLink.getToNode()), false);
+		}
+		else if (customMetroLinkAttributes.singleRefStopFacility != null) {
 			return customMetroLinkAttributes.singleRefStopFacility;
 		}
 		else if(customMetroLinkAttributes.fromNodeStopFacility != null) {

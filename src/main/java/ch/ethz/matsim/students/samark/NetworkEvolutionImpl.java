@@ -130,7 +130,7 @@ public class NetworkEvolutionImpl {
 				
 		Map<String, CustomStop> innerCityMetroStops = new HashMap<String, CustomStop>();	// to save all details of new cloned stops
 		Network innerCityMetroNetwork = NetworkEvolutionImpl.createMetroNetworkFromCandidates( mergedLinks_mostFrequentInRadiusMainFacilitiesSet,
-				railStops, innerCityMetroStops, metroLinkAttributes, maxNewMetroLinkDistance, originalNetwork, mNetworkPath+"/MetroSchedule.xml",
+				railStops, innerCityMetroStops, metroLinkAttributes, maxNewMetroLinkDistance, originalNetwork, mNetworkPath+"/MetroStopFacilities.xml",
 				mNetworkPath+"/3a_MetroNetworkInnerCity.xml");
 				//null); // FOR SAVING: replace (null) by (mNetworkPath+"/4_MetroNetwork.xml"))
 		
@@ -149,7 +149,7 @@ public class NetworkEvolutionImpl {
 //			Map<String, CustomStop> outerCityMetroStops = new HashMap<String, CustomStop>();		// to save all details of new stops
 //			Network outerCityMetroNetwork = null;
 //			outerCityMetroNetwork = NetworkEvolutionImpl.createMetroNetworkFromRailwayNetwork(
-//					railStops, outerCityMetroStops, metroLinkAttributes, originalNetwork, innerCityMetroNetwork, mNetworkPath+"/MetroSchedule.xml",
+//					railStops, outerCityMetroStops, metroLinkAttributes, originalNetwork, innerCityMetroNetwork, mNetworkPath+"/MetroStopFacilities.xml",
 //					mNetworkPath+"/3b_MetroNetworkOuterCity.xml");
 //					//null); // FOR SAVING: replace (null) by (mNetworkPath+"/4_MetroNetwork.xml"))
 //			// Merge innerCity newMetro network with outerCity (railway2newMetro) network if desired
@@ -176,7 +176,7 @@ public class NetworkEvolutionImpl {
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
 		if (useOdPairsForInitialRoutes==false) {								
 			List<TransitStopFacility> terminalFacilityCandidates = NetworkEvolutionImpl.findFacilitiesWithinBounds(
-					mNetworkPath + "/MetroSchedule.xml", zurich_NetworkCenterCoord, minTerminalRadiusFromCenter,
+					mNetworkPath + "/MetroStopFacilities.xml", zurich_NetworkCenterCoord, minTerminalRadiusFromCenter,
 					maxTerminalRadiusFromCenter, (mNetworkPath + "/4_MetroTerminalCandidateNodeLocations.xml"));
 					// null); // FOR SAVING: replace (null) by (mNetworkPath+"/4_MetroTerminalCandidate.xml"));
 			initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork,
@@ -207,8 +207,8 @@ public class NetworkEvolutionImpl {
 //		Config newConfig = ConfigUtils.createConfig();
 //		newConfig.getModules().get("transit").addParam("transitScheduleFile",mNetworkPath+"/MetroSchedule.xml");
 //		Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
-		TransitSchedule newSchedule = newScenario.getTransitSchedule();
-		TransitScheduleFactory metroScheduleFactory = newSchedule.getFactory();
+		TransitSchedule metroSchedule = newScenario.getTransitSchedule();
+		TransitScheduleFactory metroScheduleFactory = metroSchedule.getFactory();
 				
 		// Create a New Metro Vehicle
 		VehicleType metroVehicleType = Metro_TransitScheduleImpl.createNewVehicleType(vehicleTypeName, vehicleLength,
@@ -231,7 +231,7 @@ public class NetworkEvolutionImpl {
 			// Create an array of stops along new networkRoute on the FromNode of each of its individual links (and ToNode for final terminal)
 			// The new network was constructed so that every node had a corresponding stop facility from the original zurich network on it.
 			List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
-					metroLinkAttributes, newSchedule, metroNetwork, metroNetworkRoute, defaultPtMode, stopTime, maxVehicleSpeed, blocksLane);
+					metroLinkAttributes, metroSchedule, metroNetwork, metroNetworkRoute, defaultPtMode, stopTime, maxVehicleSpeed, blocksLane);
 			mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
 			mRoute.vehiclesNr = (int) Math.ceil(mRoute.roundtripTravelTime/mRoute.departureSpacing);		// set vehicles initially so they are not zero for evo loops
 			Log.writeAndDisplay("stopArray.size()="+stopArray.size());
@@ -241,7 +241,7 @@ public class NetworkEvolutionImpl {
 			TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create(thisNewNetworkName+"_Route"+lineNr, TransitRoute.class ), 
 					metroNetworkRoute, stopArray, defaultPtMode);
 			
-			transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(mRoute, newScenario, newSchedule, 
+			transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(mRoute, newScenario, metroSchedule, 
 					transitRoute, metroVehicleType, vehicleFileLocation); // Add departures to TransitRoute as a function of f=(DepSpacing, First/LastDeparture)
 								
 			// Build TransitLine from TrasitRoute
@@ -249,7 +249,7 @@ public class NetworkEvolutionImpl {
 			transitLine.addRoute(transitRoute);
 			
 			// Add new line to schedule
-			newSchedule.addTransitLine(transitLine);
+			metroSchedule.addTransitLine(transitLine);
 
 			mRoute.setTransitLine(transitLine);
 			mRoute.setLinkList(NetworkRoute2LinkIdList(metroNetworkRoute));
@@ -268,7 +268,7 @@ public class NetworkEvolutionImpl {
 		}	// end of TransitLine creator loop
 
 		// Write TransitSchedule to corresponding file
-		TransitScheduleWriter tsw = new TransitScheduleWriter(newSchedule);
+		TransitScheduleWriter tsw = new TransitScheduleWriter(metroSchedule);
 		tsw.writeFile(mNetworkPath+"/MetroSchedule.xml");
 				
 		String mergedNetworkFileName = "";
@@ -281,7 +281,7 @@ public class NetworkEvolutionImpl {
 		//Network mergedNetwork = ...
 				Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(separateRoutesNetwork, originalNetwork, Sets.newHashSet("pt"), mergedNetworkFileName);
 		//TransitSchedule mergedTransitSchedule = ...
-				Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(newSchedule, originalTransitSchedule, (mNetworkPath+"/MergedSchedule.xml"));
+				Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(metroSchedule, originalTransitSchedule, (mNetworkPath+"/MergedSchedule.xml"));
 		//Vehicles mergedVehicles = ...
 				Metro_TransitScheduleImpl.mergeAndWriteVehicles(newScenario.getTransitVehicles(), originalScenario.getTransitVehicles(), (mNetworkPath+"/MergedVehicles.xml"));
 		
@@ -1562,8 +1562,8 @@ public class NetworkEvolutionImpl {
 			// Transit Schedule Implementations
 			Config newConfig = ConfigUtils.createConfig();
 			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
-			TransitSchedule newSchedule = newScenario.getTransitSchedule();
-			TransitScheduleFactory newScheduleFactory = newSchedule.getFactory();
+			TransitSchedule metroSchedule = newScenario.getTransitSchedule();
+			TransitScheduleFactory metroScheduleFactory = metroSchedule.getFactory();
 			// Create a New Metro Vehicle
 			VehicleType newVehicleType = Metro_TransitScheduleImpl.createNewVehicleType(vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom);
 			newScenario.getTransitVehicles().addVehicleType(newVehicleType);
@@ -1575,22 +1575,23 @@ public class NetworkEvolutionImpl {
 				lineNr++;
 				// Create an array of stops along new networkRoute on the center of each of its individual links
 				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
-						metroLinkAttributes, newSchedule, globalNetwork, mRoute.networkRoute, defaultPtMode, stopTime, maxVelocity, blocksLane);
+						metroLinkAttributes, metroSchedule, globalNetwork, mRoute.networkRoute, defaultPtMode, stopTime, maxVelocity, blocksLane);
 				mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
 				mRoute.departureSpacing = NetworkEvolutionImpl.depSpacingCalculator(mRoute.vehiclesNr, mRoute.roundtripTravelTime);
 				
 				// Build TransitRoute from stops and NetworkRoute --> and add departures
-				TransitRoute transitRoute = newScheduleFactory.createTransitRoute(Id.create(mNetwork.networkID+"_Route"+lineNr, TransitRoute.class ), mRoute.networkRoute, stopArray, defaultPtMode);
+				TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create(mNetwork.networkID+"_Route"+lineNr, TransitRoute.class ), 
+						mRoute.networkRoute, stopArray, defaultPtMode);
 
 				String vehicleFileLocation = ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/Vehicles.xml");
 				// make sure mRoute.nDepartures and mRoute.depSpacing have been updated correctly during modifications
-				transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(mRoute, newScenario, newSchedule, transitRoute,
+				transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(mRoute, newScenario, metroSchedule, transitRoute,
 						newVehicleType, vehicleFileLocation);
 				// Build TransitLine from TrasitRoute
-				TransitLine transitLine = newScheduleFactory.createTransitLine(Id.create("TransitLine_Nr" + lineNr, TransitLine.class));
+				TransitLine transitLine = metroScheduleFactory.createTransitLine(Id.create("TransitLine_Nr" + lineNr, TransitLine.class));
 				transitLine.addRoute(transitRoute);
 				// Add new line to schedule
-				newSchedule.addTransitLine(transitLine);
+				metroSchedule.addTransitLine(transitLine);
 				mRoute.setTransitLine(transitLine);
 				mRoute.setLinkList(NetworkRoute2LinkIdList(mRoute.networkRoute));
 				mRoute.setNodeList(NetworkRoute2NodeIdList(mRoute.networkRoute, globalNetwork));
@@ -1608,7 +1609,7 @@ public class NetworkEvolutionImpl {
 			} // end of TransitLine creator loop
 		
 			// Write TransitSchedule to corresponding file
-			TransitScheduleWriter tsw = new TransitScheduleWriter(newSchedule);
+			TransitScheduleWriter tsw = new TransitScheduleWriter(metroSchedule);
 			tsw.writeFile("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MetroSchedule.xml");
 						
 			String mergedNetworkFileName = "";
@@ -1625,7 +1626,7 @@ public class NetworkEvolutionImpl {
 			// Network mergedNetwork = ...
 					Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(separateRoutesNetwork, originalNetwork, Sets.newHashSet("pt"), mergedNetworkFileName);
 			//TransitSchedule mergedTransitSchedule = ...
-					Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(newSchedule, originalTransitSchedule, ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml"));
+					Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(metroSchedule, originalTransitSchedule, ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml"));
 			//Vehicles mergedVehicles = ...
 					Metro_TransitScheduleImpl.mergeAndWriteVehicles(newScenario.getTransitVehicles(), originalScenario.getTransitVehicles(), ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml"));
 			
