@@ -202,9 +202,11 @@ public class NetworkEvolutionImpl {
 		
 		
 		// Load & Create Schedules and Factories
-		Config newConfig = ConfigUtils.createConfig();
-		newConfig.getModules().get("transit").addParam("transitScheduleFile",mNetworkPath+"/MetroSchedule.xml");
-		Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
+		Config newConfig = ConfigUtils.createConfig();						// this is totally default and may be modified as required
+		Scenario newScenario = ScenarioUtils.createScenario(newConfig);
+//		Config newConfig = ConfigUtils.createConfig();
+//		newConfig.getModules().get("transit").addParam("transitScheduleFile",mNetworkPath+"/MetroSchedule.xml");
+//		Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
 		TransitSchedule newSchedule = newScenario.getTransitSchedule();
 		TransitScheduleFactory metroScheduleFactory = newSchedule.getFactory();
 				
