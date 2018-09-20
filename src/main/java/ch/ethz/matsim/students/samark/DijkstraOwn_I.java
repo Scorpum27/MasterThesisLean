@@ -221,7 +221,7 @@ public class DijkstraOwn_I {
        }
        for(Link l : links){
     	   Weight[nodeLocationMap.get(l.getFromNode().getId())][nodeLocationMap.get(l.getToNode().getId())] = 
-    			   GeomDistance.betweenNodes(l.getFromNode(), l.getToNode());//l.getLength();
+    			   GeomDistance.betweenNodes(l.getFromNode(), l.getToNode());  //l.getLength();
        }
        return Weight;
    }

@@ -20,6 +20,15 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 /* Linux Terminal: java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT
  * PRIO 
  * 
+ * STABLE UP TO:
+ * - get railStopsZH
+ * -
+ * 
+ * 
+ * 
+ * 
+ * 
+ * 
  * TODO COST MODELS for metro (also wrt other pt modes)
  * TODO Tuning of EvoAlgo's
  * TODO Combining routes procedures when they come close etc...
@@ -48,6 +57,8 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  */
 
 
+
+
 public class NetworkEvolution {
 
 
@@ -57,7 +68,6 @@ public class NetworkEvolution {
  * Run RunScenario First to have simulation output that can be analyzed [up to iterationToReadOriginalNetwork]
  * Parameters: Tune well, may use default
  * For OD: minTerminalRadiusFromCenter = 0.00*metroCityRadius
- * for mergeMetroWithRailway = false: maxExtendedMetroRadiusFromCenter = 1*maxMetroRadiusFromCenter;
  * Do not use "noModificationInLastEvolution" if lastIteration changes over evolutions, because this would give another result from the simulations
  * minCrossingDistanceFactorFromRouteEnd must have a MINIMUM = 0.25
  */
@@ -71,12 +81,12 @@ public class NetworkEvolution {
 		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240); or ("zurich_1pm/Zurich_1pm_SimulationOutput_BACKUP__10/output_plans.xml.gz", 240); or ("zurich_1pm/Evolution/Population/Network1/Simulation_Output/output_plans.xml.gz", 240);
 	// - Initiate N networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 1;														// how many networks should be developed in parallel
+		int populationSize = 2;														// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
 		boolean mergeMetroWithRailway = false;
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
-		boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
+		boolean useOdPairsForInitialRoutes = true;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
 		int iterationToReadOriginalNetwork = 100;									// This is the iteration for the simulation output of the original network
 		String zeroLog = "zurich_1pm/Evolution/Population/HistoryLog/Generation0";	// Make string and directory to save to file first generation (Generation0)
@@ -85,14 +95,14 @@ public class NetworkEvolution {
 		Coord zurich_NetworkCenterCoord = new Coord(2683000.00, 1247700.00);		// default Coord(2683099.3305, 1247442.9076);
 		double xOffset = 1733436; 													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; X_MATSim= 2683476;
 		double yOffset = -4748525;													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; Y_MATSim= 1246811;
-		double metroCityRadius = 5000; 												// DEFAULT = 2500
+		double metroCityRadius = 2500; 												// DEFAULT = 2500
 		double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
 		double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
 		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
 		double maxExtendedMetroRadiusFromCenter = 1*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How far a metro can travel on railwayNetwork
-		int nMostFrequentLinks = 150;												// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
-		double maxNewMetroLinkDistance = 0.20*metroCityRadius;						// DEFAULT = 0.40*metroCityRadius
+		int nMostFrequentLinks = 70;												// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
+		double maxNewMetroLinkDistance = 0.40*metroCityRadius;						// DEFAULT = 0.40*metroCityRadius
 		double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
 																					// DEFAULT = 0.20*metroCityRadius for RandomRoutes (1.50)
 		double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
@@ -104,7 +114,7 @@ public class NetworkEvolution {
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
 		String vehicleTypeName = "metro";  double maxVelocity = 20/3.6 /*[m/s]*/;
 		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
-		double initialDepSpacing = 10.0*60.0; double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60; 
+		double initialDepSpacing = 7.5*60.0; double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60; 
 		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		double metroOpsCostPerKM = 1000; double metroConstructionCostPerKmOverground = 1000000; double metroConstructionCostPerKmUnderground = 10000000;
 		
@@ -112,10 +122,11 @@ public class NetworkEvolution {
 		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		// Log.write("NETWORK CREATION - START");
 		MNetworkPop networkPopulation = new MNetworkPop(populationName, populationSize);			// Initialize population of networks
+		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
 		for (int N=1; N<=populationSize; N++) {														// Make individual networks one by one in loop
 			String thisNewNetworkName = ("Network"+N);												// Name networks by their number [1;populationSize]
 			MNetwork mNetwork = NetworkEvolutionImpl.createMNetworkRoutes(							// Make a list of routes that will be added to this network
-					thisNewNetworkName, initialRoutesPerNetwork, initialRouteType, iterationToReadOriginalNetwork,
+					metroLinkAttributes, thisNewNetworkName, initialRoutesPerNetwork, initialRouteType, iterationToReadOriginalNetwork,
 					minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
 					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, mergeMetroWithRailway, railway2metroCatchmentArea,
 					metro2metroCatchmentArea, odConsiderationThreshold, xOffset, yOffset, vehicleTypeName, vehicleLength, maxVelocity, 
@@ -137,12 +148,10 @@ public class NetworkEvolution {
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/GlobalNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
-		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = null;
-//		metroLinkAttributes = XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/metroLinkAttributes.xml");
 		
 		int nEvolutions = 2;
 		double averageTravelTimePerformanceGoal = 40.0;
-		int lastIteration = 1;							// DEFAULT=0
+		int lastIteration = 0;							// DEFAULT=0
 		for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
 			Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "GENERATION - " + generationNr + " - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 			NetworkEvolutionImpl.saveCurrentMRoutes2HistoryLog(latestPopulation, generationNr, globalNetwork);
@@ -269,5 +278,4 @@ public class NetworkEvolution {
 //		- Iteration
 //		- ScoreMap for each network (and routes?)
 // --> Simulation loop
-
 

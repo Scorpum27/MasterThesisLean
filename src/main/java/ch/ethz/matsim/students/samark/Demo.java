@@ -17,10 +17,10 @@ public class Demo {
 
 	// Event reading
 
-		System.out.println(NetworkEvolutionImpl.removeString("hello", "l"));
-		Network nw = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
-		NetworkFactory nf = nw.getFactory();
-		nf.createLink(Id.createLinkId("testLink"), null, null);
+//		System.out.println(NetworkEvolutionImpl.removeString("hello", "l"));
+//		Network nw = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+//		NetworkFactory nf = nw.getFactory();
+//		nf.createLink(Id.createLinkId("testLink"), null, null);
 		
 		
 	// Extracting S-Bahn stops in ZH

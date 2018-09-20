@@ -2,7 +2,6 @@
 package ch.ethz.matsim.students.samark;
 
 import java.io.File;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,7 +37,6 @@ import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
 import org.matsim.vehicles.VehicleType;
 import com.google.common.collect.Sets;
 
-import ch.ethz.matsim.baseline_scenario.BaselineModule;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
 import ch.ethz.matsim.baseline_scenario.traffic.BaselineTrafficModule;

@@ -53,10 +53,9 @@ public class Metro_TransitScheduleImpl {
 		return vehicleType;
 	}
 	
-	public static List<TransitRouteStop> createAndAddNetworkRouteStops(Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, TransitSchedule transitSchedule,
-			Network network, NetworkRoute networkRoute, String defaultPtMode, double stopTime, double maxVehicleSpeed, boolean blocksLane) throws IOException{
 
-		TransitScheduleFactory transitScheduleFactory = transitSchedule.getFactory();
+//String transitScheduleFile, 
+		/*TransitScheduleFactory transitScheduleFactory = transitSchedule.getFactory();
 		List<TransitRouteStop> stopArray = new ArrayList<TransitRouteStop>();				// prepare an array for stop facilities on new networkRoute
 		
 		int stopCount = 0;
@@ -69,9 +68,8 @@ public class Metro_TransitScheduleImpl {
 		double vMaxAccDistance = maxVehicleSpeed*maxVehicleSpeed/(2*acceleration);
 		double tAccVMax = maxVehicleSpeed/acceleration;
 
-		// rail2newMetro
-		// newMetro
-		Id<Link> lastStopLinkId = routeLinkList.get(0);
+		
+		Id<Link> lastStopLinkId = routeLinkList.get(0); // Have secured by terminal choice that first link definitely has a stopFacility
 		TransitStopFacility lastStopFacility = Metro_TransitScheduleImpl.selectStopFacilityOnLink(metroLinkAttributes.get(lastStopLinkId));
 		for (Id<Link> currentLinkID : routeLinkList) {
 			Link currentLink = network.getLinks().get(currentLinkID);
@@ -81,8 +79,12 @@ public class Metro_TransitScheduleImpl {
 				// If the above line gives an error, then it is probable that currentLink=null because line above linkID cannot be found in network. 
 				// Please check network and make sure network choice is correct, link name is correct, no new link has been added to network!
 			}
+			Log.write("Moving along link " + currentLinkID.toString());
 			TransitStopFacility transitStopFacility = Metro_TransitScheduleImpl.selectStopFacilityOnLink(metroLinkAttributes.get(currentLinkID));
 			if (transitStopFacility != null) {
+				Log.write("Found new stop = " + transitStopFacility.getId().toString()     );// + "  [refLink = " + transitStopFacility.getLinkId().toString() + " ]");
+				Log.write("Found new stop = " + transitStopFacility.getName()       );//+ "  [refLink = " + transitStopFacility.getLinkId().toString() + " ]");
+				// transitStopFacility.setLinkId(currentLinkID);
 				stopCount++;
 				if(stopCount>1) {
 					lastStopDistance = Metro_TransitScheduleImpl.calculateDistanceBetweenStops(
@@ -111,8 +113,75 @@ public class Metro_TransitScheduleImpl {
 			stopArray.add(terminalTransitRouteStop);
 		}
 		
-		return stopArray;
-	}
+		TransitScheduleWriter tsw = new TransitScheduleWriter(transitSchedule);
+		tsw.writeFile(transitScheduleFile);
+		
+		return stopArray;*/
+		
+		public static List<TransitRouteStop> createAndAddNetworkRouteStops(Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, 
+				TransitSchedule transitSchedule, Network network, NetworkRoute networkRoute, String defaultPtMode, double stopTime, double maxVehicleSpeed, boolean blocksLane) throws IOException{
+
+			Config conf = ConfigUtils.createConfig();
+			conf.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/zurich_transit_schedule.xml.gz");
+			TransitSchedule originalZurichTransitSchedule = ScenarioUtils.loadScenario(conf).getTransitSchedule();
+			// Use exactly the same facilities as in original network and originalZurichTransitSchedule (each node in new network has exactly one facilities)
+			// Always take the facility at the FromNode for the StopFacilities
+			// Add one terminal Stop for the last link so that route goes right to end (respectively right to the FromNode it started from on the way there)
+
+			TransitScheduleFactory transitScheduleFactory = transitSchedule.getFactory();
+			List<TransitRouteStop> stopArray = new ArrayList<TransitRouteStop>();				// prepare an array for stop facilities on new networkRoute
+			
+			int stopCount = 0;
+			double accumulatedDrivingTime = 0;
+			
+			List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
+			routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute));
+			double acceleration = 0.1*9.81;
+			double vMaxAccDistance = maxVehicleSpeed*maxVehicleSpeed/(2*acceleration);
+			double tAccVMax = maxVehicleSpeed/acceleration;
+
+			for (Id<Link> currentLinkID : routeLinkList) {
+				Link currentLink = network.getLinks().get(currentLinkID);
+				if (currentLink.equals(null)) {
+					Log.writeAndDisplay("linkID cannot be found in network! Next line will give a NullPointer Exception.");
+					currentLink.getId().toString();
+					// If the above line gives an error, then it is prob. that currentLink=null because line above linkID cannot be found in network. 
+					// Please check network and make sure network choice is correct, link name is correct, no new link has been added to network!
+				}
+
+				stopCount++;
+				if(stopCount>1) {
+					if (currentLink.getLength() >= vMaxAccDistance) {
+						accumulatedDrivingTime += (2*tAccVMax + (currentLink.getLength()-vMaxAccDistance)/(maxVehicleSpeed));	// 2*AccTime for accelerating and braking and then the cruise time in between
+					}
+					else {
+						accumulatedDrivingTime += 2*Math.sqrt(2*currentLink.getLength()/acceleration); // 2*xxx for accelerating and then symmetric braking with const acceleration
+					}
+				}
+				double arrivalDelay = (stopCount-1)*stopTime + accumulatedDrivingTime;
+				double departureDelay = (stopCount)*stopTime + accumulatedDrivingTime;		// same as arrivalDelay + 1*stopTime
+
+				// Starting from the corresponding original zurich dominant transitStopfacility. Making new tsf with same specs and adding _metro to its ID
+				TransitStopFacility origTSF = coord2Facility(originalZurichTransitSchedule, currentLink.getFromNode().getCoord());
+				TransitStopFacility transitStopFacility = transitScheduleFactory.createTransitStopFacility(
+						Id.create(origTSF.getId().toString()+"_metro", TransitStopFacility.class), origTSF.getCoord(), blocksLane);
+				transitStopFacility.setName(origTSF.getName().toString()+"_metro");
+				transitStopFacility.setLinkId(currentLinkID);
+				TransitRouteStop transitRouteStop = transitScheduleFactory.createTransitRouteStop(transitStopFacility, arrivalDelay, departureDelay);
+				if (transitSchedule.getFacilities().containsKey(transitStopFacility.getId())==false) {
+					transitSchedule.addStopFacility(transitStopFacility);
+				}
+				stopArray.add(transitRouteStop);
+			}
+			double terminalArrivalOffset = stopArray.get(stopArray.size()-1).getDepartureOffset()+stopArray.get(1).getArrivalOffset();
+			double terminalDepartureOffset = terminalArrivalOffset+stopTime;
+			TransitRouteStop terminalTransitRouteStop = transitScheduleFactory.createTransitRouteStop(stopArray.get(0).getStopFacility(),
+					terminalArrivalOffset, terminalDepartureOffset);
+			stopArray.add(terminalTransitRouteStop);
+			
+			return stopArray;
+		}
+	
 	
 	public static double calculateDistanceBetweenStops(List<Id<Link>> linkList, TransitStopFacility lastStopFacility,
 			TransitStopFacility transitStopFacility, Network network) {
@@ -128,8 +197,8 @@ public class Metro_TransitScheduleImpl {
 	}
 
 	public static TransitStopFacility selectStopFacilityOnLink(CustomMetroLinkAttributes customMetroLinkAttributes) {
-		if (customMetroLinkAttributes.singeRefStopFacility != null) {
-			return customMetroLinkAttributes.singeRefStopFacility;
+		if (customMetroLinkAttributes.singleRefStopFacility != null) {
+			return customMetroLinkAttributes.singleRefStopFacility;
 		}
 		else if(customMetroLinkAttributes.fromNodeStopFacility != null) {
 			return customMetroLinkAttributes.fromNodeStopFacility;
@@ -142,6 +211,7 @@ public class Metro_TransitScheduleImpl {
 		}
 	}
 
+	
 	public static TransitStopFacility coord2Facility(TransitSchedule ts, Coord coord) throws IOException {
 		for (TransitStopFacility tsf : ts.getFacilities().values()) {
 			if (coord.equals(tsf.getCoord())) {
@@ -149,6 +219,16 @@ public class Metro_TransitScheduleImpl {
 			}
 		}
 		Log.write("ERROR: No TransitStopFacility found at such coordinate location! Returning null ...");
+		return null;
+	}
+	
+	public static TransitStopFacility node2Facility(Node node, Map<String, CustomStop> customStopsMap) throws IOException {
+		for (CustomStop stop : customStopsMap.values()) {
+			if (node.getId().equals(stop.newNetworkNode)) { // CAUTION: If you get an error here it may be because stop.newNetworkNode has not been set and is null;
+				return stop.transitStopFacility;
+			}
+		}
+		Log.write("ERROR: No TransitStopFacility found for such node! Returning null ...");
 		return null;
 	}
 
@@ -296,16 +376,6 @@ public class Metro_TransitScheduleImpl {
 		vehicleWriterV1.writeFile(fileName);
 
 		return mergedTransitVehicles;
-	}
-
-	public static TransitStopFacility node2Facility(Node node, Map<String, CustomStop> customStopsMap) throws IOException {
-		for (CustomStop stop : customStopsMap.values()) {
-			if (node.getId().equals(stop.newNetworkNode)) { // CAUTION: If you get an error here it may be because stop.newNetworkNode has not been set and is null;
-				return stop.transitStopFacility;
-			}
-		}
-		Log.write("ERROR: No TransitStopFacility found for such node! Returning null ...");
-		return null;
 	}
 	
 }
