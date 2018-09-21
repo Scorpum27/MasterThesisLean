@@ -29,6 +29,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  * 
  * 
  * 
+ * TODO Make network creation only once! ... and PARALLELIZE the network creation
  * TODO COST MODELS for metro (also wrt other pt modes)
  * TODO Tuning of EvoAlgo's
  * TODO Combining routes procedures when they come close etc...
@@ -36,7 +37,9 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  * TODO ABC Algo. as a reference !
  * TODO OD-Route improvements
  * TODO introduce test on Mendl's network!
- * 
+ * TODO RAIL-Strategy: How to add rails to innercityNetwork:
+ * 			- Make it manual
+ * 			- Or take a Djikstra from internet
  * DIVERSE
  *  - TODO What happens if I delete very short links (are they really worth using as feasible links or are they just a product of a crossing bottleneck?)
  *  - GlobalNetwork: Does it have to be with zurichPT or can it be only Metro?! --> Try it!
@@ -149,7 +152,7 @@ public class NetworkEvolution {
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
 		
-		int nEvolutions = 3;
+		int nEvolutions = 1;
 		double averageTravelTimePerformanceGoal = 40.0;
 		int lastIteration = 0;							// DEFAULT=0
 		for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
@@ -158,7 +161,7 @@ public class NetworkEvolution {
 			int finalGeneration = generationNr;
 			
 		// - SIMULATION LOOP:
-			lastIteration = 3;
+			lastIteration = 1;
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());

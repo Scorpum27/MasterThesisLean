@@ -996,11 +996,13 @@ public class NetworkEvolutionImpl {
 						&& safetyCounter < iterLimit);
 
 				Log.write("Terminal 1 = "+terminalFacility1.getName());
-				Log.write("Terminal 2 = "+terminalFacility1.getName());
+				Log.write("Terminal 2 = "+terminalFacility2.getName());
 				
 				// Find Dijkstra --> nodeList
-				ArrayList<Node> nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(newMetroNetwork, terminalNode1, terminalNode2);
-				if (nodeList == null) {
+				//List<Node> nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(newMetroNetwork, terminalNode1, terminalNode2);
+				List<Node> nodeList = DemoDijkstra.calculateShortestPath(newMetroNetwork, terminalNode1, terminalNode2);
+				// System.out.println();
+				if (nodeList == null || nodeList.size()<2) {
 					Log.write("Oops, no shortest path available. Trying to create next networkRoute. Please lower minTerminalDistance"
 							+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
 						continue OuterNetworkRouteLoop;
@@ -1112,7 +1114,7 @@ public class NetworkEvolutionImpl {
 			return null;
 		}
 
-		public static List<Id<Link>> nodeListToNetworkLinkList(Network network, ArrayList<Node> nodeList) {
+		public static List<Id<Link>> nodeListToNetworkLinkList(Network network, List<Node> nodeList) {
 			List<Id<Link>> linkList = new ArrayList<Id<Link>>(nodeList.size() - 1);
 			for (int n = 0; n < (nodeList.size() - 1); n++) {
 				for (Link l : nodeList.get(n).getOutLinks().values()) {
