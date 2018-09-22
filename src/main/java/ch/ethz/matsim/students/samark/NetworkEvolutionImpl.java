@@ -45,7 +45,7 @@ import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRo
 
 public class NetworkEvolutionImpl {
 
-	public static MNetwork createMNetworkRoutes(Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, String thisNewNetworkName, int initialRoutesPerNetwork, String initialRouteType, int iterationToReadOriginalNetwork,
+	public static MNetwork createMNetworkRoutes(Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, String thisNewNetworkName, int initialRoutesPerNetwork, String initialRouteType, String shortestPathStrategy, int iterationToReadOriginalNetwork,
 			double minMetroRadiusFromCenter, double maxMetroRadiusFromCenter, double maxExtendedMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
 			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter,
 			double minTerminalDistance, boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea, double odConsiderationThreshold, 
@@ -179,7 +179,7 @@ public class NetworkEvolutionImpl {
 					mNetworkPath + "/MetroStopFacilities.xml", zurich_NetworkCenterCoord, minTerminalRadiusFromCenter,
 					maxTerminalRadiusFromCenter, (mNetworkPath + "/4_MetroTerminalCandidateNodeLocations.xml"));
 					// null); // FOR SAVING: replace (null) by (mNetworkPath+"/4_MetroTerminalCandidate.xml"));
-			initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork,
+			initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork, shortestPathStrategy,
 					terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, minTerminalDistance);
 			// CAUTION: If NullPointerException, probably maxTerminalRadius >  metroNetworkRadius
 			separateRoutesNetwork = NetworkEvolutionImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork,
@@ -961,7 +961,7 @@ public class NetworkEvolutionImpl {
 		}
 
 		// REMEMBER: New nodes are named "MetroNodeLinkRef_"+linkID.toString()
-		public static ArrayList<NetworkRoute> createInitialRoutesRandom(Network newMetroNetwork,
+		public static ArrayList<NetworkRoute> createInitialRoutesRandom(Network newMetroNetwork, String shortestPathStrategy,
 				List<TransitStopFacility> terminalFacilities, Map<String, CustomStop> metroStops, int nRoutes, double minTerminalDistance) throws IOException {
 
 			ArrayList<NetworkRoute> networkRouteArray = new ArrayList<NetworkRoute>();
@@ -999,10 +999,14 @@ public class NetworkEvolutionImpl {
 				Log.write("Terminal 2 = "+terminalFacility2.getName());
 				
 				// Find Dijkstra --> nodeList
-				//List<Node> nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(newMetroNetwork, terminalNode1, terminalNode2);
-				List<Node> nodeList = DemoDijkstra.calculateShortestPath(newMetroNetwork, terminalNode1, terminalNode2);
-				// System.out.println();
-				if (nodeList == null || nodeList.size()<2) {
+				List<Node> nodeList = null;
+				if (shortestPathStrategy.equals("Dijkstra1")) {
+					nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(newMetroNetwork, terminalNode1, terminalNode2);
+				}
+				if (shortestPathStrategy.equals("Dijkstra2")) {
+					nodeList = DemoDijkstra.calculateShortestPath(newMetroNetwork, terminalNode1, terminalNode2);
+				}
+				if (nodeList == null || nodeList.size()<3) {
 					Log.write("Oops, no shortest path available. Trying to create next networkRoute. Please lower minTerminalDistance"
 							+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
 						continue OuterNetworkRouteLoop;
