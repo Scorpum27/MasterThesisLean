@@ -3,9 +3,8 @@ package ch.ethz.matsim.students.samark;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.util.ArrayList;
+import java.io.PrintWriter;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
 
 import org.matsim.api.core.v01.Scenario;
@@ -69,9 +68,10 @@ public class SimulationProcessing {
 	
 	// %%% START - Network Score vs. MATSim Iterations %%%	
 		
+		PrintWriter pw = new PrintWriter("zurich_1pm/nIterTest/log.txt");	pw.close();		// Prepare empty log file for run
+		
 		Map<Integer, Double> averageScores = new HashMap<Integer, Double>();
 		Map<Integer, Double> averageTravelTimesScores = new HashMap<Integer, Double>();
-
 		
 		String initialRouteType = "Random";
 		String initialConfig = "zurich_1pm/zurich_config.xml";
@@ -90,10 +90,10 @@ public class SimulationProcessing {
 		Network globalNetwork = ScenarioUtils.loadScenario(nwConf).getNetwork();
 		
 		
-		int nRuns = 3;
+		int nRuns = 20;
 		for (int n=1; n<nRuns+1; n++) {
-			int lastIteration = n * 2;
-			Log.write("zurich_1pm/nIterTest/log.txt", "Starting Simulation with nIter="+lastIteration);
+			int lastIteration = n * 5;
+			Log.write("zurich_1pm/nIterTest/log.txt", "Starting Simulation with nIter = "+lastIteration);
 			SimulationProcessing.runNIterTest(args, mNetwork, initialRouteType, initialConfig, lastIteration);
 			evoNetworksToProcess = SimulationProcessing.runEventsProcessingNIterTest(evoNetworksToProcess, lastIteration, globalNetwork);
 			int maxConsideredTravelTimeInMin = 240;
@@ -106,8 +106,9 @@ public class SimulationProcessing {
 					evoNetworksToProcess, 40.0, 1);
 			averageScores.put(lastIteration, mNetwork.overallScore);
 			averageTravelTimesScores.put(lastIteration, mNetwork.averageTravelTime);
-			
 		}
+		
+		
 
 		XYLineChart chart1 = new XYLineChart("NetworkScore by nIterations", "nIterations", "Score");
 		chart1.addSeries("NetworkScore", averageScores);
@@ -200,7 +201,7 @@ public class SimulationProcessing {
 		modConfig.getModules().get("controler").addParam("outputDirectory", simulationPath);
 		modConfig.getModules().get("controler").addParam("overwriteFiles", "overwriteExistingFiles");
 		modConfig.getModules().get("controler").addParam("lastIteration", Integer.toString(lastIteration));
-		modConfig.getModules().get("controler").addParam("writeEventsInterval", "1");
+		modConfig.getModules().get("controler").addParam("writeEventsInterval", "5");
 		String inputNetworkFile = "nIterTest/GlobalNetwork.xml"; 
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
 		modConfig.getModules().get("transit").addParam("transitScheduleFile","nIterTest/MergedSchedule.xml");
@@ -315,8 +316,8 @@ public class SimulationProcessing {
 			}
 			mNetwork.totalTravelTime = totalTravelTime;
 			mNetwork.averageTravelTime = totalTravelTime/travels;
-			Log.write("zurich_1pm/nIterTest/log.txt", "Average Travel Time =" + mNetwork.averageTravelTime);
-			Log.write("zurich_1pm/nIterTest/log.txt", "Overall =" + mNetwork.overallScore);
+			Log.write("zurich_1pm/nIterTest/log.txt", "Average Travel Time = " + mNetwork.averageTravelTime);
+			Log.write("zurich_1pm/nIterTest/log.txt", "Overall Network Score = " + mNetwork.overallScore);
 
 			double standardDeviationInnerSum = 0.0;
 			for (int i=0; i<travelTimeBins.length; i++) {
@@ -418,23 +419,21 @@ public class SimulationProcessing {
 		
 		for (String networkName : latestPopulation.getNetworks().keySet()) {
 			MNetwork mnetwork = latestPopulation.getNetworks().get(networkName);
-			if(latestPopulation.modifiedNetworksInLastEvolution.contains(mnetwork.getNetworkID())) {
-				mnetwork.calculateTotalRouteLengthAndDrivenKM();
-				mnetwork.calculateNetworkScore();		// from internal scoring parameters calculate overall score according to internal function
-				if (performanceGoalAccomplished == false) {		// checking whether performance goal achieved
-					if (mnetwork.averageTravelTime < averageTravelTimePerformanceGoal) {
-						performanceGoalAccomplished = true;
-						successfulNetwork = mnetwork;
-						successfulAverageTravelTime = mnetwork.getAverageTravelTime();
-					}					
-				}
-				if (performanceGoalAccomplished == true) {		// this loop is for the case that performance goal is achieved by one network, but in same iteration another network has an even better score
-					if (mnetwork.averageTravelTime < successfulAverageTravelTime) {
-						successfulAverageTravelTime = mnetwork.getAverageTravelTime();
-						successfulNetwork = mnetwork;
-					}				
-				}
-			}	// do from here for all networks, also those who have not been modified!
+			mnetwork.calculateTotalRouteLengthAndDrivenKM();
+			mnetwork.calculateNetworkScore();		// from internal scoring parameters calculate overall score according to internal function
+			if (performanceGoalAccomplished == false) {		// checking whether performance goal achieved
+				if (mnetwork.averageTravelTime < averageTravelTimePerformanceGoal) {
+					performanceGoalAccomplished = true;
+					successfulNetwork = mnetwork;
+					successfulAverageTravelTime = mnetwork.getAverageTravelTime();
+				}					
+			}
+			if (performanceGoalAccomplished == true) {		// this loop is for the case that performance goal is achieved by one network, but in same iteration another network has an even better score
+				if (mnetwork.averageTravelTime < successfulAverageTravelTime) {
+					successfulAverageTravelTime = mnetwork.getAverageTravelTime();
+					successfulNetwork = mnetwork;
+				}				
+			}
 			NetworkScoreLog nsl = new NetworkScoreLog();
 			nsl.NetworkScore2LogMap(mnetwork);			// copy network parameters to network score log for storing evolution
 			networkScoreMap.put(networkName, nsl);		// network score map is finally stored

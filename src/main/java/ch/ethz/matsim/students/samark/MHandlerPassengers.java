@@ -46,21 +46,8 @@ public class MHandlerPassengers implements GenericEventHandler{
 		if (event.getEventType().contains("pt_transit")) {	// first add distance for every pt_transit movement
 			double distance = Double.parseDouble(event.getAttributes().get("travelDistance"));
 			this.totalPtTransitPersonKM += distance;
-			try {
-				Log.write("zurich_1pm/nIterTest/log.txt", "Found a stop with NAME = " + event.getAttributes().get("accessStop").toString() + " Distance = "+distance);
-			} catch (IOException e2) {
-				// TODO Auto-generated catch block
-				e2.printStackTrace();
-			}
-
 			
 			if (event.getAttributes().get("accessStop").contains("metro")) { // then add distance specifically for every METRO pt_transit movement
-				try {
-					Log.write("zurich_1pm/nIterTest/log.txt", "Found a stop with metroName! Distance = "+distance);
-				} catch (IOException e1) {
-					// TODO Auto-generated catch block
-					e1.printStackTrace();
-				}
 				
 				// --- this subsection updates the distance by weighting links within city zone twice (CityZone= [Center=2683114/1248092], [Radius=4400])
 				// CAUTION: Several links touch the access/egressStops, but only one is referred to as refLinkId of the stop.
