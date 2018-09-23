@@ -26,6 +26,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  * TODO Tuning of EvoAlgo's
  * TODO Combining routes procedures when they come close etc...
  * TODO Different Scoring functions (--> Literature as well) (all roulette wheels, proportional choices, metro cost etc.)
+ * TODO Run many times frequencyAlgo for finding errors !
  * TODO ABC Algo. as a reference !
  * TODO OD-Route improvements
  * TODO introduce test on Mendl's network!
@@ -65,14 +66,16 @@ public class NetworkEvolution {
 
 	
 	public static void main(String[] args) throws ConfigurationException, IOException {
-		PrintWriter pw = new PrintWriter("zurich_1pm/Evolution/Population/PopulationEvolutionLog.txt");	pw.close();		// Prepare empty log file for run
+		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
+		PrintWriter pwEvo = new PrintWriter("zurich_1pm/Evolution/Population/LogEvo.txt");	pwEvo.close();				// Prepare empty evoLog file for run
+
 		
 	// INITIALIZATIon
 		// if desired, process raw existing network for its performance for reference : NetworkScoreLog rawNetworkPerformance = NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240);		
 		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240); or ("zurich_1pm/Zurich_1pm_SimulationOutput_BACKUP__10/output_plans.xml.gz", 240); or ("zurich_1pm/Evolution/Population/Network1/Simulation_Output/output_plans.xml.gz", 240);
 	// - Initiate N networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 1;													// how many networks should be developed in parallel
+		int populationSize = 16;													// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
 		boolean mergeMetroWithRailway = false;
@@ -87,14 +90,14 @@ public class NetworkEvolution {
 		Coord zurich_NetworkCenterCoord = new Coord(2683000.00, 1247700.00);		// default Coord(2683099.3305, 1247442.9076);
 		double xOffset = 1733436; 													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; X_MATSim= 2683476;
 		double yOffset = -4748525;													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; Y_MATSim= 1246811;
-		double metroCityRadius = 4500; 												// DEFAULT = 2500
+		double metroCityRadius = 4000; 												// DEFAULT = 2500
 		double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
 		double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
 		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
 		double maxExtendedMetroRadiusFromCenter = 1*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How far a metro can travel on railwayNetwork
-		int nMostFrequentLinks = 120;												// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
-		double maxNewMetroLinkDistance = 0.60*metroCityRadius;						// DEFAULT = 0.40*metroCityRadius
+		int nMostFrequentLinks = (int) metroCityRadius/25;							// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
+		double maxNewMetroLinkDistance = Math.max(0.2*metroCityRadius, 1400);		// DEFAULT = 0.40*metroCityRadius
 		double minTerminalRadiusFromCenter = 0.30*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
 																					// DEFAULT = 0.20*metroCityRadius for RandomRoutes (1.50)
 		double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
@@ -141,16 +144,21 @@ public class NetworkEvolution {
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
 		
-		int nEvolutions = 1;
+		int nEvolutions = 100;
 		double averageTravelTimePerformanceGoal = 40.0;
 		int lastIteration = 0;							// DEFAULT=0
 		for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
 			Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "GENERATION - " + generationNr + " - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 			NetworkEvolutionImpl.saveCurrentMRoutes2HistoryLog(latestPopulation, generationNr, globalNetwork);
-			int finalGeneration = generationNr;
 			
-		// - SIMULATION LOOP:
-			lastIteration = 1;
+			// - SIMULATION LOOP:
+			int finalGeneration = generationNr;
+			if ((17 < generationNr && 21 > generationNr) || (47 < generationNr && 51 > generationNr) || (97 < generationNr && 101 > generationNr)){
+				lastIteration = 20;
+			}
+			else {
+				lastIteration = 12;
+			}
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
@@ -193,17 +201,18 @@ public class NetworkEvolution {
 			
 		// - EVOLUTION: If PerformanceGoal not yet achieved, change routes and network here according to their scores!
 			Log.write("EVOLUTION at the end of GEN"+generationNr+":");
+			Log.writeEvo("%%%    EVOLUTION OF GEN_"+generationNr+"    %%%");
 
 			// Frequency Modification: Redistribute vehicle fleet by scores and stochastics before mutating actual routes
 				// - first set all mRoute.nVehicle as a function of current fleet size and stochastics
 				// - applyPT: make functions for depSpacing = f(nVehicles, total route length) while total route length = f(linkList or stopArray)
 			
 			double alpha = 10.0;											// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability to choose a weak network more than linearly -> linearly would be p_i = Score_i/Score_tot)
-			double pCrossOver = 0.20; 										// DEFAULT = 0.35;
+			double pCrossOver = 0.3; 										// DEFAULT = 0.35;
 			double minCrossingDistanceFactorFromRouteEnd = 0.3; 			// DEFAULT = 0.30; MINIMUM = 0.25
 			boolean logEntireRoutes = false;
 			double maxCrossingAngle = 110; 									// DEFAULT = 110;
-			double pMutation = 0.10;										// DEFAULT = 0.15
+			double pMutation = 0.35;										// DEFAULT = 0.15
 			double pBigChange = 0.2;										// DEFAULT = 0.20
 			double pSmallChange = 1.0-pBigChange;
 			latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,

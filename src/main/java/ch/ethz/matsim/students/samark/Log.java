@@ -9,10 +9,15 @@ import java.util.logging.SimpleFormatter;
 public class Log {
 
 	//This does not work: protected static String defaultLogFile = "C:Users/Sascha/eclipse-workspace/MATSim-Workspace/MasterThesis/zurich_1pm/Evolution/Population/PopulationEvolutionLog.txt";
-	protected static String defaultLogFile = "zurich_1pm/Evolution/Population/PopulationEvolutionLog.txt";
-
+	protected static String defaultLogFile = "zurich_1pm/Evolution/Population/LogDefault.txt";
+	protected static String defaultEvoLogFile = "zurich_1pm/Evolution/Population/LogEvo.txt";
+	
 	public static void write(String comment) throws IOException {
 		write(defaultLogFile, comment);
+	}
+
+	public static void writeEvo(String comment) throws IOException {
+		write(defaultEvoLogFile, comment);
 	}
 	
 	public static void writeAndDisplay(String comment) throws IOException {

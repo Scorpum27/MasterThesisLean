@@ -81,11 +81,11 @@ public class Metro_TransitScheduleImpl {
 					// If the above line gives an error, then it is probable that currentLink=null because line above linkID cannot be found in network. 
 					// Please check network and make sure network choice is correct, link name is correct, no new link has been added to network!
 				}
-				Log.write("Moving along link " + currentLinkID.toString());
+//				Log.write("Moving along link " + currentLinkID.toString());
 				TransitStopFacility transitStopFacility = Metro_TransitScheduleImpl.selectStopFacilityOnLink(metroLinkAttributes, currentLink, transitSchedule);
 				if (transitStopFacility != null) {
-					Log.write("Found new stop = " + transitStopFacility.getId().toString()     );// + "  [refLink = " + transitStopFacility.getLinkId().toString() + " ]");
-					Log.write("Found new stop = " + transitStopFacility.getName()       );//+ "  [refLink = " + transitStopFacility.getLinkId().toString() + " ]");
+//					Log.write("Found new stop = " + transitStopFacility.getId().toString()     );// + "  [refLink = " + transitStopFacility.getLinkId().toString() + " ]");
+//					Log.write("Found new stop = " + transitStopFacility.getName()       );//+ "  [refLink = " + transitStopFacility.getLinkId().toString() + " ]");
 					stopCount++;
 					if(stopCount>1) {
 						lastStopDistance = Metro_TransitScheduleImpl.calculateDistanceBetweenStops( routeLinkList.subList(routeLinkList.indexOf(lastStopLinkId),
@@ -109,7 +109,7 @@ public class Metro_TransitScheduleImpl {
 					stopArray.add(transitRouteStop);
 				}
 				else {
-					Log.write("No stop found on this link");
+//					Log.write("No stop found on this link");
 				}
 			}
 			if (stopArray.get(0).getStopFacility().getId().equals(stopArray.get(stopArray.size()-1).getStopFacility().getId()) == false) {
@@ -140,7 +140,7 @@ public class Metro_TransitScheduleImpl {
 			TransitSchedule transitSchedule) throws IOException {
 		CustomMetroLinkAttributes customMetroLinkAttributes = metroLinkAttributes.get(currentLink.getId());
 		if (customMetroLinkAttributes == null) {
-			Log.write("No metro link attributes found for link = "+currentLink.getId().toString());
+//			Log.write("No metro link attributes found for link = "+currentLink.getId().toString());
 //			return transitSchedule.getFactory().createTransitStopFacility(Id.create("genericMetroStopLinkRef"+currentLink.getId().toString(),TransitStopFacility.class),
 //					GeomDistance.coordBetweenNodes(currentLink.getFromNode(), currentLink.getToNode()), false);
 			return null;
@@ -190,7 +190,7 @@ public class Metro_TransitScheduleImpl {
 	
 	public static Id<Link> ReverseLink(Id<Link> linkId){
 		String[] linkIdStrings = linkId.toString().split("_");
-		Id<Link> reverseId = Id.createLinkId("MetroNodeLinkRef_"+linkIdStrings[3]+"_MetroNodeLinkRef_"+linkIdStrings[1]);
+		Id<Link> reverseId = Id.createLinkId(linkIdStrings[1]+"_"+linkIdStrings[0]);
 		return reverseId;
 	}
 	

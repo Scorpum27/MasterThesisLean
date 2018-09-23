@@ -201,7 +201,9 @@ public class Clone {
 		copy.averageTravelTime = o.averageTravelTime;		// NetworkEvolutionRunSim.peoplePlansProcessingM
 		copy.stdDeviationTravelTime = o.stdDeviationTravelTime;	// NetworkEvolutionRunSim.peoplePlansProcessingM
 		copy.totalTravelTime = o.totalTravelTime; 		// NetworkEvolutionRunSim.peoplePlansProcessingM
-
+		copy.evoLog = o.evoLog;
+		copy.parents = o.parents;
+		
 		copy.overallScore = o.overallScore;			// NetworkEvolution main separate line
 		return copy;
 	}

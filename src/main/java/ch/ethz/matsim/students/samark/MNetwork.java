@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
 import java.io.Serializable;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -35,7 +36,8 @@ public class MNetwork implements Serializable{
 		this.overallScore = 0.0;
 		this.totalVehiclesNr = 0;
 		this.totalPtTransitPersonKM = 0.0;
-
+		this.parents = Arrays.asList("", "");
+		this.evoLog = "";
 	}
 	
 	public MNetwork(String name) {
@@ -56,7 +58,25 @@ public class MNetwork implements Serializable{
 		this.totalRouteLength = 0.0;	
 		this.totalVehiclesNr = 0;
 		this.totalPtTransitPersonKM = 0.0;
+		this.parents = Arrays.asList("", "");
+		this.evoLog = "";
+	}
+	
+	public boolean hasParents() {
+		if (this.parents.contains("")) {
+			return false;
+		}
+		else {
+			return true;
+		}
+	}
 
+	public void setParents(String parent1, String parent2) {
+		this.parents = Arrays.asList(parent1, parent2);
+	}
+	
+	public void addPedigreeData(String sin) {
+		this.evoLog += ("\r\n" + sin);
 	}
 	
 	public void calculateNetworkScore() {
@@ -110,6 +130,8 @@ public class MNetwork implements Serializable{
 	double averageTravelTime;		// NetworkEvolutionRunSim.peoplePlansProcessingM
 	double stdDeviationTravelTime;	// NetworkEvolutionRunSim.peoplePlansProcessingM
 	double totalTravelTime; 		// NetworkEvolutionRunSim.peoplePlansProcessingM
+	List<String> parents;
+	String evoLog;
 	// Calculate
 	double overallScore;			// NetworkEvolution main separate line
 	

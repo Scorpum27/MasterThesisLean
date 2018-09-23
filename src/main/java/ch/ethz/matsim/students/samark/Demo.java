@@ -1,8 +1,12 @@
 package ch.ethz.matsim.students.samark;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
 
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Network;
@@ -15,6 +19,97 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException {
 
+		
+		MNetwork mn = new MNetwork("helloNetwork");
+		mn.setParents("daddy", "mommy");
+		System.out.println(mn.parents.toString());
+		
+	// ApplyFrequencyModification --> Explanation:
+			// Error happened because last and second last route were deleted in the same top loop, while their place was not deleted in perf order.
+			// Lower loop than took elements from perfOrderList and tried to find in routesMap. However, they had already been deleted --> NullPointerException
+		
+		
+		/*PrintWriter pw = new PrintWriter("demoLog.txt");	pw.close();		// Prepare empty log file for run
+		
+		MNetworkPop pop = new MNetworkPop("evoNetworks");
+		MNetwork mn1 = new MNetwork("Network1");
+		pop.addNetwork(mn1);
+		MRoute mr1 = new MRoute("Network1_Route1");
+		MRoute mr2 = new MRoute("Network1_Route2");
+		MRoute mr3 = new MRoute("Network1_Route3");
+		MRoute mr4 = new MRoute("Network1_Route4");
+		MRoute mr5 = new MRoute("Network1_Route5");
+		mn1.addNetworkRoute(mr1);
+		mn1.addNetworkRoute(mr2);
+		mn1.addNetworkRoute(mr3);
+		mn1.addNetworkRoute(mr4);
+		mn1.addNetworkRoute(mr5);
+		mr1.personMetroKM = 1;
+		mr1.drivenKM = 1;
+		mr1.vehiclesNr = 1;
+		mr2.personMetroKM = 2;
+		mr2.drivenKM = 1;
+		mr2.vehiclesNr = 1;
+		mr3.personMetroKM = 3;
+		mr3.drivenKM = 1;
+		mr3.vehiclesNr = 1;
+		mr4.personMetroKM = 4;
+		mr4.drivenKM = 1;
+		mr4.vehiclesNr = 1;
+		mr5.personMetroKM = 5;
+		mr5.drivenKM = 1;
+		mr5.vehiclesNr = 1;
+		
+		for (int i=0; i<30; i++) {
+			Log.write("demoLog.txt","ITER = "+i);
+			for(MNetwork mn : pop.networkMap.values()) {
+				Map<String, Double> routePerformances = new HashMap<String, Double>();
+				for (MRoute mr : mn.routeMap.values()) {
+					Log.write("demoLog.txt","ROUTE = "+mr.routeID);
+					routePerformances.put(mr.routeID, mr.personMetroKM/mr.drivenKM);
+				}
+				List<String> routePerformanceOrder = NetworkEvolutionImpl.sortMapByValueScore(routePerformances);
+				Log.write("demoLog.txt","RouteMapSize="+routePerformanceOrder.size()+"  -->PerformanceOrder="+routePerformanceOrder.toString());
+				if (mn.routeMap.size()>3) {
+					Log.write("demoLog.txt","1st loop shift with SIZE="+routePerformanceOrder.size());
+					Random r1 = new Random();
+					Random r2 = new Random();
+					if (r1.nextDouble() < 0.67) {
+						Log.write("demoLog.txt","Shifting one vehicle from weakest " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " to strongest " + routePerformanceOrder.get(0));
+						mn.routeMap.get(routePerformanceOrder.get(0)).vehiclesNr++;
+						mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr--;
+						if (mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr < 1) {
+							Log.write("Oops, " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " has died due to no more vehicles");
+							mn.routeMap.remove(routePerformanceOrder.get(routePerformanceOrder.size()-1));
+						}
+					}
+					if (r2.nextDouble() < 1.00) {//0.33) {
+						Log.write("demoLog.txt","Shifting one vehicle from second weakest " + routePerformanceOrder.get(routePerformanceOrder.size()-2) + " to second strongest" + routePerformanceOrder.get(1));
+						mn.routeMap.get(routePerformanceOrder.get(1)).vehiclesNr++;
+						mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-2)).vehiclesNr--;
+						if (mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-2)).vehiclesNr < 1) {
+							Log.write("demoLog.txt","Oops, " + routePerformanceOrder.get(routePerformanceOrder.size()-2) + " has died due to no more vehicles");
+							mn.routeMap.remove(routePerformanceOrder.get(routePerformanceOrder.size()-2));
+						}
+					}
+				}
+				if ( 4 > mn.routeMap.size() && mn.routeMap.size() > 1 ) {
+					Random r1 = new Random();
+					if (r1.nextDouble() < 0.67) {
+						Log.write("demoLog.txt","2nd loop shift with SIZE="+routePerformanceOrder.size());
+						// Log.write("Shifting one vehicle from weakest " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " to strongest " + routePerformanceOrder.get(0));
+						mn.routeMap.get(routePerformanceOrder.get(0)).vehiclesNr++;
+						mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr--;
+						if (mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr < 1) {
+							Log.write("demoLog.txt","   >> Oops, " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " has died due to no more vehicles");
+							mn.routeMap.remove(routePerformanceOrder.get(routePerformanceOrder.size()-1));
+						}
+					}
+				}
+			}
+		}*/
+		
+		
 	// Event reading
 
 //		System.out.println(NetworkEvolutionImpl.removeString("hello", "l"));

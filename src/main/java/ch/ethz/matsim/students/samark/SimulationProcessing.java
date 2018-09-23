@@ -48,27 +48,26 @@ public class SimulationProcessing {
 	public static void main(String[] args) throws IOException, ConfigurationException {
 		
 	// %%% START - Plots From History Log %%%
-		/*
-		int generationsToPlot = 4; // = nEvolutions-1
-		int populationSize = 16;
+		
+		int populationSize = 12;
 		int initialRoutesPerNetwork = 5;
+		int generationsToPlot = 5; // = nEvolutions-1
 		int lastIteration = 10;
-		String folderName = "ForExport/04_nInnerMATSimIterations/04b_16MATSimIter/";
+		String folderName = "ForExport/09_MutationProbParameter/09c_pMutation030/";
 		String inputFileName = folderName + "zurich_1pm/Evolution/Population/HistoryLog/";
 		String outputFileName1 = folderName + "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png";
 		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName1);
-		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimesEvo.png");
+		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimesEvoP030.png");
 		String outputFileName2 = folderName + "zurich_1pm/Evolution/Population/networkScoreEvo.png";
 		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName2);
-		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvo.png");
-		*/
+		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvoP030.png");
+		
 	// %%% END - Plots From History Log %%%
-	
 	
 	
 	// %%% START - Network Score vs. MATSim Iterations %%%	
 		
-		PrintWriter pw = new PrintWriter("zurich_1pm/nIterTest/log.txt");	pw.close();		// Prepare empty log file for run
+		/*PrintWriter pw = new PrintWriter("zurich_1pm/nIterTest/log.txt");	pw.close();		// Prepare empty log file for run
 		
 		Map<Integer, Double> averageScores = new HashMap<Integer, Double>();
 		Map<Integer, Double> averageTravelTimesScores = new HashMap<Integer, Double>();
@@ -117,6 +116,39 @@ public class SimulationProcessing {
 		XYLineChart chart2 = new XYLineChart("Average TravelTime by nIterations", "nIterations", "Score");
 		chart2.addSeries("TravelTime", averageTravelTimesScores);
 		chart2.saveAsPng("zurich_1pm/nIterTest/TravelTimeByNIter.png", 800, 600);
+		
+		// after simulation:
+		double[] xscore = new double[20];
+		double[] yscore = new double[20];
+		double[] xtime = new double[20];
+		double[] ytime = new double[20];
+		for (int n=1; n<=20; n++) {			
+			Map<String, NetworkScoreLog> scores = new HashMap<String, NetworkScoreLog>();
+			scores = XMLOps.readFromFile(scores.getClass(), "ForExport/06_nIterScoreConvergence/zurich_1pm/nIterTest/nIter"+Integer.toString(5*n)+"/networkScoreMap.xml");
+			xscore[n-1] = n*5.0;
+			yscore[n-1] = 40.0*scores.get("Network10").overallScore;
+			xtime[n-1] = n*5.0;
+			ytime[n-1] = scores.get("Network10").averageTravelTime;
+		}
+		
+		
+//		XYLineChart chart3 = new XYLineChart("NetworkScore by nIterations", "nIterations", "Score");
+//		chart3.addSeries("NetworkScore []", xscore, yscore);
+//		chart3.saveAsPng("ForExport/06_nIterScoreConvergence/ScoreByNIterPostprocessed.png", 800, 600);
+//		
+//		XYLineChart chart4 = new XYLineChart("Average TravelTime by nIterations", "nIterations", "Score");
+//		chart4.addSeries("TravelTime [min]", xtime, ytime);
+//		chart4.saveAsPng("ForExport/06_nIterScoreConvergence/TravelTimeByNIterPostprocessed.png", 800, 600);
+		
+		
+		XYLineChart chart5 = new XYLineChart("Average TravelTime and NetworkScore by nIterations", "nIterations", "Score");
+		chart5.addSeries("TravelTime [min]", xtime, ytime);
+		chart5.addSeries("NetworkScore [-]", xscore, yscore);
+		chart5.saveAsPng("ForExport/06_nIterScoreConvergence/TravelTimeAndNetworkScoreByNIterPostprocessed.png", 800, 600);*/
+
+	// %%% END - Network Score vs. MATSim Iterations %%%	
+
+	
 	}
 
 
@@ -156,6 +188,8 @@ public class SimulationProcessing {
 			chart.addSeries("Best Average Travel Time [min]", generationsBestTravelTime);
 			chart.saveAsPng(outputFileName, 800, 600);
 	}
+	
+	
 	
 	@SuppressWarnings("unchecked")
 	public static void scoreEvolutionMap(int lastGeneration, int populationSize, int routesPerNetwork, int lastIteration, String inputFileName, String outputFileName)
