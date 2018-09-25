@@ -21,7 +21,7 @@ public class DemoGraph {
 			if (verticesMap.containsKey(link.getToNode().getId())==false) {
 				toVertex = new DemoVertex(link.getToNode().getId().toString());
 				verticesMap.put(link.getToNode().getId(), toVertex);
-				Log.write("Adding to network node = "+link.getToNode().getId().toString());
+//				Log.write("Adding to network node = "+link.getToNode().getId().toString());
 			}
 			else {
 				toVertex = verticesMap.get(link.getToNode().getId());
@@ -33,7 +33,7 @@ public class DemoGraph {
 			if (verticesMap.containsKey(link.getFromNode().getId())==false) {
 				fromVertex = new DemoVertex(link.getFromNode().getId().toString());
 				verticesMap.put(link.getFromNode().getId(), fromVertex);
-				Log.write("Adding to network node = "+link.getFromNode().getId().toString());
+//				Log.write("Adding to network node = "+link.getFromNode().getId().toString());
 
 			}
 			else {

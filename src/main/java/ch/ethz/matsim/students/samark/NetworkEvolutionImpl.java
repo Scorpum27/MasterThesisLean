@@ -100,8 +100,8 @@ public class NetworkEvolutionImpl {
 					// - String=SuperName (only first part of TransitStopFacilityId, which is identical for all stopFacilities around one station with different refLinks)
 					// - CustomRailStop=Facility|Name|LinkRefIds|Node
 				Map<String, CustomStop> railStops = new HashMap<String, CustomStop>();
-				railStops = NetworkEvolutionImpl.getOriginalRailwayStations(maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord,
-						railStops);
+				railStops = NetworkEvolutionImpl.getOriginalRailwayStations(maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, railStops);
+				getIsolatedRailwayNetwork(maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord);
 				
 				// 1. Frequent link stop facilities within 150m range of a railway stop facility are replaced be the railway stop facility for economic reasons
 				//    Take care, may add several custom links to one railway station --> have to merge them and remove "duplicates"
@@ -148,7 +148,7 @@ public class NetworkEvolutionImpl {
 		if (mergeMetroWithRailway == true) { // merge with outerCity existing metroNetwork
 			Map<String, CustomStop> outerCityMetroStops = new HashMap<String, CustomStop>();		// to save all details of new stops
 			Network outerCityMetroNetwork = null;
-			outerCityMetroNetwork = NetworkEvolutionImpl.createMetroNetworkFromRailwayNetwork(
+			outerCityMetroNetwork = NetworkEvolutionImpl.createMetroNetworkFromRailwayNetwork2(
 					railStops, outerCityMetroStops, metroLinkAttributes, originalNetwork, innerCityMetroNetwork, mNetworkPath+"/MetroStopFacilities.xml",
 					mNetworkPath+"/3b_MetroNetworkOuterCity.xml");
 					//null); // FOR SAVING: replace (null) by (mNetworkPath+"/4_MetroNetwork.xml"))
@@ -994,8 +994,10 @@ public class NetworkEvolutionImpl {
 						newMetroNetwork.getNodes().get(terminalNode2).getCoord()) < minTerminalDistance
 						&& safetyCounter < iterLimit);
 
-//				Log.write("Terminal 1 = "+terminalFacility1.getName());
-//				Log.write("Terminal 2 = "+terminalFacility2.getName());
+				Log.write("Terminal 1 = "+terminalFacility1.getName() + "   Node="+terminalNode1.toString()+" --> Coord="+newMetroNetwork.getNodes().get(terminalNode1).getCoord());
+				
+				Log.write("Terminal 2 = "+terminalFacility2.getName() + "   Node="+terminalNode2.toString()+" --> Coord="+newMetroNetwork.getNodes().get(terminalNode2).getCoord());
+				
 				
 				// Find Dijkstra --> nodeList
 				List<Node> nodeList = null;
@@ -1009,6 +1011,10 @@ public class NetworkEvolutionImpl {
 					Log.write("Oops, no shortest path available. Trying to create next networkRoute. Please lower minTerminalDistance"
 							+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
 						continue OuterNetworkRouteLoop;
+				}
+				Log.write("Dijkstra Nodelist:");
+				for (Node node: nodeList) {
+					Log.write(node.getId().toString() + "  --> Coord = "+node.getCoord());
 				}
 				List<Id<Link>> linkList = nodeListToNetworkLinkList(newMetroNetwork, nodeList);
 				linkList.addAll(OppositeLinkListOf(linkList)); // extend linkList with its opposite direction for PT transportation!
@@ -2312,6 +2318,52 @@ public class NetworkEvolutionImpl {
 		return railStopsZH;
 	}
 	
+	public static void getIsolatedRailwayNetwork(double radius, Coord zurich_NetworkCenterCoord) {
+		Config conf = ConfigUtils.createConfig();
+		conf.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/zurich_transit_schedule.xml.gz");
+		conf.getModules().get("network").addParam("inputNetworkFile","zurich_1pm/zurich_network.xml");
+		Scenario scen = ScenarioUtils.loadScenario(conf);
+		Network originalNetwork = scen.getNetwork();
+		TransitSchedule ts = scen.getTransitSchedule();
+		Network isolNetwork = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+		
+		
+		Id<Node> tempFromNodeId;
+		Node tempFromNode;
+		Id<Node> tempToNodeId;
+		Node tempToNode;
+		Id<Link> tempLinkId;
+		Link tempLink;
+		Link link;
+		for (TransitLine tl : ts.getTransitLines().values()) {
+			for (TransitRoute tr : tl.getRoutes().values()) {
+				if (tr.getTransportMode().toString().equals("rail")) {
+					List<Id<Link>> linkList = NetworkRoute2LinkIdList(tr.getRoute());
+					for (Id<Link> linkId : linkList) {
+						link = originalNetwork.getLinks().get(linkId);
+						tempFromNodeId = Id.createNodeId(link.getFromNode().getId().toString()+"R");
+						if (isolNetwork.getNodes().keySet().contains(tempFromNodeId)==false) {
+							tempFromNode = isolNetwork.getFactory().createNode(tempFromNodeId, link.getFromNode().getCoord());
+							isolNetwork.addNode(tempFromNode);
+						}
+						tempToNodeId = Id.createNodeId(link.getToNode().getId().toString()+"R");
+						if (isolNetwork.getNodes().keySet().contains(tempToNodeId)==false) {
+							tempToNode = isolNetwork.getFactory().createNode(tempToNodeId, link.getToNode().getCoord());
+							isolNetwork.addNode(tempToNode);
+						}
+						tempLinkId = Id.createLinkId(tempFromNodeId+"_"+tempToNodeId);
+						if (isolNetwork.getLinks().keySet().contains(tempLinkId)==false) {
+							tempLink = isolNetwork.getFactory().createLink(tempLinkId, isolNetwork.getNodes().get(tempFromNodeId), isolNetwork.getNodes().get(tempToNodeId));
+							isolNetwork.addLink(tempLink);
+						}
+					}
+				}
+			}
+		}
+		NetworkWriter nw = new NetworkWriter(isolNetwork);
+		nw.write("zurich_1pm/zurich_networkRailOriginal_Rad"+((int) radius)+".xml");
+	}
+	
 	public static String removeString(String stringToProcess, String subtringToDelete){
 		String[] splitStringArray = stringToProcess.split(subtringToDelete);
 		String filteredString = "";
@@ -2324,4 +2376,126 @@ public class NetworkEvolutionImpl {
 		String cutString = stringToProcess.substring(0, stringToProcess.indexOf(subtringToCutOffFrom));
 		return cutString;
 	}	
+ 	
+ 	
+ 	public static Network createMetroNetworkFromRailwayNetwork2( Map<String, CustomStop> railStops,
+			Map<String, CustomStop> outerCityMetroStops, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Network originalNetwork, Network innerCityMetroNetwork,
+			String transitScheduleFileName, String fileName) throws IOException {
+		
+		// Extract copy of railway network from Zürich Scenario and convert (rename and connect to facilities) it to a metroNetwork:
+			// - make new facilities (add to transitSchedule)
+			// - make new nodes (add to network) and connecting links
+			// - convert existing nodes/links to a metroVersion (with naming)
+		
+			// Go through customRailStops (=all Zurich railway stopFacilities):
+				// - For all Facilities already added to innerCitySchedule: Create and add IDENTICAL node to isolated railwayNetwork --> CONSISTENCY WHEN MERGING later on!!
+				// - For all Facilities not added to transitSchedule yet (marked in customRailStops), create & add node & facility to new transitSchedule, mark in customRailStops
+		// Run along TransitRoutes and create new metro links and nodes (also make correctly named new facility node connectors) 
+		// Update metroLinkAttributes along the way with the originalLinkIds and the new stopFacilities!
+		Config conf = ConfigUtils.createConfig();
+		conf.getModules().get("transit").addParam("transitScheduleFile",transitScheduleFileName);
+		Scenario sc = ScenarioUtils.loadScenario(conf);
+		TransitSchedule metroStopFacilities = sc.getTransitSchedule();
+		TransitScheduleFactory tsf = metroStopFacilities.getFactory();
+		Network outerCityMetroNetwork = sc.getNetwork();
+		NetworkFactory networkFactory = outerCityMetroNetwork.getFactory();
+		
+//		List<Id<Node>[]> nodeStrings = new ArrayList<Id<Node>[]>();
+		List<List<Id<Node>>> nodeStrings = new ArrayList<List<Id<Node>>>();
+		// fill in nodeStrings now!
+		
+		for (int s=0; s<nodeStrings.size(); s++) {
+			List<Id<Node>> nodes = nodeStrings.get(s);
+			Id<Node> lastNodeId = nodes.get(0);
+			Node lastNode = originalNetwork.getNodes().get(lastNodeId);
+			Node lastNodeMetro = networkFactory.createNode(Id.createNodeId("zhRailNode"+lastNodeId), lastNode.getCoord());
+			outerCityMetroNetwork.addNode(lastNodeMetro);
+			for (Id<Node> thisNodeId : nodes.subList(1, nodes.size()-1)) {
+				Node thisNode = originalNetwork.getNodes().get(thisNodeId);
+				Node thisNodeMetro = networkFactory.createNode(Id.createNodeId("zhRailNode"+thisNodeId), thisNode.getCoord());
+				outerCityMetroNetwork.addNode(thisNodeMetro);
+				Id<Link> linkThereId = Id.createLinkId(lastNodeMetro.getId().toString()+"_"+thisNodeMetro.getId().toString());
+				Link linkThere = networkFactory.createLink(linkThereId, lastNodeMetro, thisNodeMetro);
+				Id<Link> linkBackId = ReverseLink(linkThereId);
+				Link linkBack = networkFactory.createLink(linkBackId, thisNodeMetro, lastNodeMetro);
+				outerCityMetroNetwork.addLink(linkThere);
+				outerCityMetroNetwork.addLink(linkBack);
+				metroLinkAttributes.put(linkThereId, new CustomMetroLinkAttributes("rail2newMetro", null));
+				metroLinkAttributes.put(linkBackId, new CustomMetroLinkAttributes("rail2newMetro", null));	
+			}
+		}
+		
+		Node newNode;
+		TransitStopFacility metroCloneFacility;
+		for (CustomStop railStop : railStops.values()) {
+			//Log.write("Considering facility = "+railStop.originalTransitStopFacility.getName());
+			if (railStop.addedToNewSchedule == true) {
+				newNode = innerCityMetroNetwork.getNodes().get(railStop.newNetworkNode);		// build identical node as in innerCityMetroNetwork (Consistency)
+				connectNodeToRailwayStrings(newNode, outerCityMetroNetwork, railStop, metroLinkAttributes);
+			}
+			else {
+				Id<Node> newNodeId = Id.createNodeId("zhRailStopNode" + removeString(removeString(railStop.originalTransitStopFacility.getName(),","),"_"));
+				newNode = networkFactory.createNode(newNodeId, railStop.originalTransitStopFacility.getCoord());
+				String originalStopFacilityId = railStop.originalTransitStopFacility.getId().toString();
+				String originalStopFacilityName = railStop.originalTransitStopFacility.getName().toString();
+				String newStopSuperName = cutString(originalStopFacilityId, ".");
+				String newMetroStopFacilityId = newStopSuperName+"_metro"; // stopFacilityId = superName.refLinkId --> Want only superName
+				String newMetroStopFacilityName = removeString(removeString(originalStopFacilityName, " "),",")+"_metro"; // don't want blanks in stop name
+				metroCloneFacility = tsf.createTransitStopFacility(Id.create(newMetroStopFacilityId, TransitStopFacility.class), 
+						railStop.originalTransitStopFacility.getCoord(), railStop.originalTransitStopFacility.getIsBlockingLane());
+				metroCloneFacility.setName(newMetroStopFacilityName);
+				connectNodeToRailwayStrings(newNode, outerCityMetroNetwork, railStop, metroLinkAttributes);
+				if (newNode.getInLinks().keySet().size() > 0) {		// if newNode and therefore metroCloneFacility could be connected. If not, then stop can be disregarded anyways.
+					metroCloneFacility.setLinkId(newNode.getInLinks().keySet().iterator().next());
+					metroStopFacilities.addStopFacility(metroCloneFacility);
+					outerCityMetroStops.put(newStopSuperName, new CustomStop(metroCloneFacility, newNode.getId(), "newMetro", true));
+					railStop.addedToNewSchedule = true;
+					railStop.transitStopFacility = metroCloneFacility;	// due to this being in the if loop, we can compare all
+																		// railStop.transitStopFacility to railStop.originalTSF
+																		// and see which ones have not been added and therefore not connected
+					railStop.newNetworkNode = newNode.getId();
+					outerCityMetroStops.put(newStopSuperName, new CustomStop(metroCloneFacility, newNode.getId(), "newMetro", true));
+				}
+			}
+			TransitScheduleWriter tsw = new TransitScheduleWriter(metroStopFacilities);
+			tsw.writeFile(transitScheduleFileName);
+		}
+	
+		NetworkWriter nw = new NetworkWriter(outerCityMetroNetwork);
+		nw.write(fileName);
+		return outerCityMetroNetwork;
+	}
+
+
+	public static void connectNodeToRailwayStrings(Node thisNode, Network outerCityMetroNetwork, CustomStop railStop, 
+			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) {
+		boolean nodeAddedToNetwork = false;
+		for (Node otherNode : outerCityMetroNetwork.getNodes().values()) {
+			if (thisNode.getId().equals(otherNode.getId())) {
+				continue;
+			}
+			else if (GeomDistance.betweenNodes(thisNode, otherNode) < 100) {
+				if (nodeAddedToNetwork==false) {
+					outerCityMetroNetwork.addNode(thisNode);
+					nodeAddedToNetwork = true;
+				}
+				
+				Id<Link> linkThereId = Id.createLinkId(thisNode.getId().toString()+"_"+otherNode.getId().toString());
+				Link linkThere = outerCityMetroNetwork.getFactory().createLink(linkThereId, thisNode, otherNode);
+				outerCityMetroNetwork.addLink(linkThere);
+				CustomMetroLinkAttributes cmlaThere = new CustomMetroLinkAttributes("rail2newMetro", null);
+				cmlaThere.fromNodeStopFacility = railStop.transitStopFacility;
+				metroLinkAttributes.put(linkThereId, cmlaThere);
+				
+				Id<Link> linkBackId = ReverseLink(linkThereId);
+				Link linkBack = outerCityMetroNetwork.getFactory().createLink(linkBackId, otherNode, thisNode);
+				outerCityMetroNetwork.addLink(linkBack);
+				CustomMetroLinkAttributes cmlaBack = new CustomMetroLinkAttributes("rail2newMetro", null);
+				cmlaBack.toNodeStopFacility = railStop.transitStopFacility;
+				metroLinkAttributes.put(linkThereId, cmlaBack);				
+				
+			}
+		}
+	}
+ 	
 }

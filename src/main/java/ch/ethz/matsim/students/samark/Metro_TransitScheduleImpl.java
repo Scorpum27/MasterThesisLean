@@ -88,8 +88,7 @@ public class Metro_TransitScheduleImpl {
 //					Log.write("Found new stop = " + transitStopFacility.getName()       );//+ "  [refLink = " + transitStopFacility.getLinkId().toString() + " ]");
 					stopCount++;
 					if(stopCount>1) {
-						lastStopDistance = Metro_TransitScheduleImpl.calculateDistanceBetweenStops( routeLinkList.subList(routeLinkList.indexOf(lastStopLinkId),
-								routeLinkList.indexOf(currentLinkID)+1), lastStopFacility, transitStopFacility, network);
+						lastStopDistance = Metro_TransitScheduleImpl.calculateDistanceBetweenStops( routeLinkList, lastStopLinkId, currentLinkID, lastStopFacility, transitStopFacility, network);
 						if (lastStopDistance >= vMaxAccDistance) {
 							accumulatedDrivingTime += (2*tAccVMax + (lastStopDistance-vMaxAccDistance)/(maxVehicleSpeed));	// 2*AccTime for accelerating and braking and then the cruise time in between
 						}
@@ -123,13 +122,25 @@ public class Metro_TransitScheduleImpl {
 		}
 	
 	
-	public static double calculateDistanceBetweenStops(List<Id<Link>> linkList, TransitStopFacility lastStopFacility,
+	public static double calculateDistanceBetweenStops(List<Id<Link>> routeLinkList, Id<Link> lastStopLinkId, Id<Link> currentLinkID, TransitStopFacility lastStopFacility,
 			TransitStopFacility transitStopFacility, Network network) {
+		List<Id<Link>> subrouteLinkList = null;
+		int index1 = routeLinkList.indexOf(lastStopLinkId);
+		int index2 = routeLinkList.indexOf(currentLinkID);
+		if ( index1 == -1 || index2 == -1 ) {
+			return 1000.0;
+		}
+		if (index1 < index2) {
+			subrouteLinkList = routeLinkList.subList(index1, index2);
+		}
+		else {
+			subrouteLinkList = routeLinkList.subList(index2, index1);
+		}
 		double distance = 0.0;
-		distance += GeomDistance.calculate(lastStopFacility.getCoord(), network.getLinks().get(linkList.get(0)).getToNode().getCoord());
-		distance += GeomDistance.calculate(transitStopFacility.getCoord(), network.getLinks().get(linkList.get(linkList.size()-1)).getFromNode().getCoord());
-		if (linkList.size()>2) {
-			for (Id<Link> subLinkId : linkList.subList(1, linkList.size())) {
+		distance += GeomDistance.calculate(lastStopFacility.getCoord(), network.getLinks().get(subrouteLinkList.get(0)).getToNode().getCoord());
+		distance += GeomDistance.calculate(transitStopFacility.getCoord(), network.getLinks().get(subrouteLinkList.get(subrouteLinkList.size()-1)).getFromNode().getCoord());
+		if (subrouteLinkList.size()>2) {
+			for (Id<Link> subLinkId : subrouteLinkList.subList(1, subrouteLinkList.size())) {
 				distance += network.getLinks().get(subLinkId).getLength();
 			}
 		}

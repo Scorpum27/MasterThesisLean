@@ -75,10 +75,10 @@ public class NetworkEvolution {
 		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240); or ("zurich_1pm/Zurich_1pm_SimulationOutput_BACKUP__10/output_plans.xml.gz", 240); or ("zurich_1pm/Evolution/Population/Network1/Simulation_Output/output_plans.xml.gz", 240);
 	// - Initiate N networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 16;													// how many networks should be developed in parallel
+		int populationSize = 1;													// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
-		boolean mergeMetroWithRailway = false;
+		boolean mergeMetroWithRailway = true;
 		String shortestPathStrategy = "Dijkstra2";
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 		boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
@@ -95,7 +95,7 @@ public class NetworkEvolution {
 		double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
 		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
-		double maxExtendedMetroRadiusFromCenter = 1*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How far a metro can travel on railwayNetwork
+		double maxExtendedMetroRadiusFromCenter = 3*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How far a metro can travel on railwayNetwork
 		int nMostFrequentLinks = (int) metroCityRadius/25;							// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
 		double maxNewMetroLinkDistance = Math.max(0.2*metroCityRadius, 1400);		// DEFAULT = 0.40*metroCityRadius
 		double minTerminalRadiusFromCenter = 0.30*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
@@ -144,7 +144,7 @@ public class NetworkEvolution {
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
 		
-		int nEvolutions = 100;
+		int nEvolutions = 1;
 		double averageTravelTimePerformanceGoal = 40.0;
 		int lastIteration = 0;							// DEFAULT=0
 		for (int generationNr = 1; generationNr<=nEvolutions; generationNr++) {
@@ -153,12 +153,8 @@ public class NetworkEvolution {
 			
 			// - SIMULATION LOOP:
 			int finalGeneration = generationNr;
-			if ((17 < generationNr && 21 > generationNr) || (47 < generationNr && 51 > generationNr) || (97 < generationNr && 101 > generationNr)){
-				lastIteration = 20;
-			}
-			else {
-				lastIteration = 12;
-			}
+			lastIteration = 12;
+		
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
@@ -208,7 +204,7 @@ public class NetworkEvolution {
 				// - applyPT: make functions for depSpacing = f(nVehicles, total route length) while total route length = f(linkList or stopArray)
 			
 			double alpha = 10.0;											// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability to choose a weak network more than linearly -> linearly would be p_i = Score_i/Score_tot)
-			double pCrossOver = 0.3; 										// DEFAULT = 0.35;
+			double pCrossOver = 0.30; 										// DEFAULT = 0.35;
 			double minCrossingDistanceFactorFromRouteEnd = 0.3; 			// DEFAULT = 0.30; MINIMUM = 0.25
 			boolean logEntireRoutes = false;
 			double maxCrossingAngle = 110; 									// DEFAULT = 110;

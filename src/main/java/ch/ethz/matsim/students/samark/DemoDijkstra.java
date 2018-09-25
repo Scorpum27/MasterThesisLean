@@ -17,8 +17,8 @@ public class DemoDijkstra {
 		DemoGraph g = new DemoGraph(networkIn);
 		DemoVertex origin = g.getVerticesMap().get(startNode);
 		DemoVertex destination = g.getVerticesMap().get(endNode);
-		Log.write("Origin node is: "+startNode.toString());
-		Log.write("Destination node is: "+endNode.toString());
+//		Log.write("Origin node is: "+startNode.toString());
+//		Log.write("Destination node is: "+endNode.toString());
 		if (origin == null) {
 			Log.write("Origin node is null (check if metroNetwork contains node): "+startNode.toString());
 			return null;
@@ -35,7 +35,8 @@ public class DemoDijkstra {
 			nodePathId.add(Id.createNodeId(v.name));
 			nodePath.add(networkIn.getNodes().get(Id.createNodeId(v.name)));
 		}
-		Log.write("ShortestPath NodeList = "+nodePathId.toString());
+		nodePath.add(networkIn.getNodes().get(endNode));
+//		Log.write("ShortestPath NodeList = "+nodePathId.toString());
 		return nodePath;
 	}
 	

@@ -49,18 +49,18 @@ public class SimulationProcessing {
 		
 	// %%% START - Plots From History Log %%%
 		
-		int populationSize = 12;
+		int populationSize = 16;
 		int initialRoutesPerNetwork = 5;
-		int generationsToPlot = 5; // = nEvolutions-1
-		int lastIteration = 10;
-		String folderName = "ForExport/09_MutationProbParameter/09c_pMutation030/";
+		int generationsToPlot = 23; // = nEvolutions-1
+		int lastIteration = 20;
+		String folderName = "ForExport/05_nEvolutionGenerations/nEvolutions100/";
 		String inputFileName = folderName + "zurich_1pm/Evolution/Population/HistoryLog/";
 		String outputFileName1 = folderName + "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png";
 		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName1);
-		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimesEvoP030.png");
+		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimes32GEN.png");
 		String outputFileName2 = folderName + "zurich_1pm/Evolution/Population/networkScoreEvo.png";
 		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName2);
-		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvoP030.png");
+		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvo23GEN.png");
 		
 	// %%% END - Plots From History Log %%%
 	
