@@ -24,44 +24,44 @@ public class Demo {
 	public static void main(String[] args) throws IOException {
 
 		
-//		String s1 = " he.l,-__'.-',lo-,";
-//		String s2 = NetworkEvolutionImpl.removeSpecialChar(s1);
-//		String s3 = NetworkEvolutionImpl.removeStrings(s1, Arrays.asList("_","-",","," ",".","'"));
-//		System.out.println(s3);
+		String s1 = " he.l,-/__//\\'.-'\\,lo-,";
+		String s2 = NetworkEvolutionImpl.removeSpecialChar(s1);
+		String s3 = NetworkEvolutionImpl.removeStrings(s1, Arrays.asList("_","-",","," ",".","'"));
+		System.out.println(s2);
 //		System.out.println(NetworkEvolutionImpl.removeString(s1, "."));
 
-		Network nw1 = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
-		NetworkFactory nwf1 = nw1.getFactory();
-		Node a1 = nwf1.createNode(Id.createNodeId("a1"), new Coord(0.0, 0.0));
-		Node a2 = nwf1.createNode(Id.createNodeId("a2"), new Coord(1.0, 0.0));
-		Link l1 = nwf1.createLink(Id.createLinkId("l1"), a1, a2);
-		nw1.addNode(a1);
-		nw1.addNode(a2);
-		nw1.addLink(l1);
-
-		Network nw2 = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
-		NetworkFactory nwf2 = nw2.getFactory();
-		Node a3 = nwf2.createNode(Id.createNodeId("a3"), new Coord(-1.0, 0.0));
-		Node a4 = nwf2.createNode(Id.createNodeId("a1"), new Coord(0.0, 0.0));
-		Node a5 = nwf2.createNode(Id.createNodeId("a5"), new Coord(0.0, 1.0));
-		Link l2 = nwf2.createLink(Id.createLinkId("l2"), a4, a5);
-		Link l3 = nwf2.createLink(Id.createLinkId("l3"), a4, a3);
-		nw2.addNode(a3);
-		nw2.addNode(a4);
-		nw2.addNode(a5);
-		nw2.addLink(l2);
-		nw2.addLink(l3);
-		
-		Network nw4 = Metro_NetworkImpl.mergeNetworks(nw1, nw2, null);
-		Network nw3 = NetworkEvolutionImpl.mergeNetworksX(nw1, nw2);
-		for (Node node : nw3.getNodes().values()) {
-			System.out.println(node);
-		}
-		for (Link link : nw3.getLinks().values()) {
-			System.out.println(link);
-			System.out.println("FromNode = "+link.getFromNode());
-			System.out.println("ToNode = "+link.getToNode());
-		}
+//		Network nw1 = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+//		NetworkFactory nwf1 = nw1.getFactory();
+//		Node a1 = nwf1.createNode(Id.createNodeId("a1"), new Coord(0.0, 0.0));
+//		Node a2 = nwf1.createNode(Id.createNodeId("a2"), new Coord(1.0, 0.0));
+//		Link l1 = nwf1.createLink(Id.createLinkId("l1"), a1, a2);
+//		nw1.addNode(a1);
+//		nw1.addNode(a2);
+//		nw1.addLink(l1);
+//
+//		Network nw2 = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+//		NetworkFactory nwf2 = nw2.getFactory();
+//		Node a3 = nwf2.createNode(Id.createNodeId("a3"), new Coord(-1.0, 0.0));
+//		Node a4 = nwf2.createNode(Id.createNodeId("a1"), new Coord(0.0, 0.0));
+//		Node a5 = nwf2.createNode(Id.createNodeId("a5"), new Coord(0.0, 1.0));
+//		Link l2 = nwf2.createLink(Id.createLinkId("l2"), a4, a5);
+//		Link l3 = nwf2.createLink(Id.createLinkId("l3"), a4, a3);
+//		nw2.addNode(a3);
+//		nw2.addNode(a4);
+//		nw2.addNode(a5);
+//		nw2.addLink(l2);
+//		nw2.addLink(l3);
+//		
+//		Network nw4 = Metro_NetworkImpl.mergeNetworks(nw1, nw2, null);
+//		Network nw3 = NetworkEvolutionImpl.mergeNetworksX(nw1, nw2);
+//		for (Node node : nw3.getNodes().values()) {
+//			System.out.println(node);
+//		}
+//		for (Link link : nw3.getLinks().values()) {
+//			System.out.println(link);
+//			System.out.println("FromNode = "+link.getFromNode());
+//			System.out.println("ToNode = "+link.getToNode());
+//		}
 		
 		
 	// ApplyFrequencyModification --> Explanation:

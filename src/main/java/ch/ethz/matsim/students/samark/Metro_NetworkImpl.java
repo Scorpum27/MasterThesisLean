@@ -442,7 +442,7 @@ public class Metro_NetworkImpl {
 		List<Id<Link>> linkList = new ArrayList<Id<Link>>(nodeList.size() - 1);
 		for (int n = 0; n < (nodeList.size() - 1); n++) {
 			for (Link l : nodeList.get(n).getOutLinks().values()) {
-				if (l.getToNode() == nodeList.get(n + 1)) {
+				if (l.getToNode().getId().equals(nodeList.get(n + 1).getId())) {
 					linkList.add(l.getId());
 				}
 			}

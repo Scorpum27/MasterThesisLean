@@ -117,7 +117,7 @@ public class MHandlerPassengers implements GenericEventHandler{
 							Link thisTravelledLink = this.network.getLinks().get(thisTravelledLinkId);
 							if (GeomDistance.calculate(new Coord(2683114.0,1248092.0), thisTravelledLink.getFromNode().getCoord()) < 4400.0) {
 								distance += thisTravelledLink.getLength();
-								Log.write("Adding an extra inner city CountDoubleDistance="+thisTravelledLink.getLength()+" --> Total="+distance);
+//								Log.write("Adding an extra inner city CountDoubleDistance="+thisTravelledLink.getLength()+" --> Total="+distance);
 							}
 						}
 					}
