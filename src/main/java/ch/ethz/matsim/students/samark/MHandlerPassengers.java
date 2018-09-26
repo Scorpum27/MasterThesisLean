@@ -112,13 +112,13 @@ public class MHandlerPassengers implements GenericEventHandler{
 //							Log.write("Access & Egress have been found: Egress Link= "+egressLinkId.toString());
 //							Log.write("Transit Route = "+ eventTransitRoute.getId().toString());
 //							Log.write("Route Links = "+ routeLinks.toString());
-					}
-					List<Id<Link>> travelledLinks = routeLinks.subList(routeLinks.indexOf(accessLinkId), routeLinks.indexOf(egressLinkId)+1);
-					for (Id<Link> thisTravelledLinkId : travelledLinks) {
-						Link thisTravelledLink = this.network.getLinks().get(thisTravelledLinkId);
-						if (GeomDistance.calculate(new Coord(2683114.0,1248092.0), thisTravelledLink.getFromNode().getCoord()) < 4400.0) {
-							distance += thisTravelledLink.getLength();
-							Log.write("Adding an extra inner city CountDoubleDistance="+thisTravelledLink.getLength()+" --> Total="+distance);
+						List<Id<Link>> travelledLinks = routeLinks.subList(routeLinks.indexOf(accessLinkId), routeLinks.indexOf(egressLinkId)+1);
+						for (Id<Link> thisTravelledLinkId : travelledLinks) {
+							Link thisTravelledLink = this.network.getLinks().get(thisTravelledLinkId);
+							if (GeomDistance.calculate(new Coord(2683114.0,1248092.0), thisTravelledLink.getFromNode().getCoord()) < 4400.0) {
+								distance += thisTravelledLink.getLength();
+								Log.write("Adding an extra inner city CountDoubleDistance="+thisTravelledLink.getLength()+" --> Total="+distance);
+							}
 						}
 					}
 				}catch (IOException e) {e.printStackTrace();}

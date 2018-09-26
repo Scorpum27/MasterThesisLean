@@ -79,7 +79,7 @@ public class NetworkEvolution {
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
 		boolean mergeMetroWithRailway = true;
-		String shortestPathStrategy = "Dijkstra2";
+		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes [OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of specified network]
 		boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
@@ -95,9 +95,9 @@ public class NetworkEvolution {
 		double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
 		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network into outer parts to better connect inner/outer city
-		double maxExtendedMetroRadiusFromCenter = 3*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How far a metro can travel on railwayNetwork
-		int nMostFrequentLinks = (int) metroCityRadius/25;							// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
-		double maxNewMetroLinkDistance = Math.max(0.2*metroCityRadius, 1400);		// DEFAULT = 0.40*metroCityRadius
+		double maxExtendedMetroRadiusFromCenter = 2*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How far a metro can travel on railwayNetwork
+		int nMostFrequentLinks = (int) metroCityRadius/20;							// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
+		double maxNewMetroLinkDistance = Math.max(0.33*metroCityRadius, 1400);		// DEFAULT = 0.40*metroCityRadius
 		double minTerminalRadiusFromCenter = 0.30*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
 																					// DEFAULT = 0.20*metroCityRadius for RandomRoutes (1.50)
 		double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
@@ -153,7 +153,7 @@ public class NetworkEvolution {
 			
 			// - SIMULATION LOOP:
 			int finalGeneration = generationNr;
-			lastIteration = 12;
+			lastIteration = 1;
 		
 			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
