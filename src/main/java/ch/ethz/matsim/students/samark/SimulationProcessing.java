@@ -3,7 +3,6 @@ package ch.ethz.matsim.students.samark;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,16 +50,16 @@ public class SimulationProcessing {
 		
 		int populationSize = 16;
 		int initialRoutesPerNetwork = 5;
-		int generationsToPlot = 23; // = nEvolutions-1
-		int lastIteration = 20;
+		int generationsToPlot = 44; // = nEvolutions    (NOT nEvolutions-1 !!)
+		int lastIteration = 12;
 		String folderName = "ForExport/05_nEvolutionGenerations/nEvolutions100/";
 		String inputFileName = folderName + "zurich_1pm/Evolution/Population/HistoryLog/";
 		String outputFileName1 = folderName + "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png";
 		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName1);
-		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimes32GEN.png");
+		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimes44GEN.png");
 		String outputFileName2 = folderName + "zurich_1pm/Evolution/Population/networkScoreEvo.png";
 		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName2);
-		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvo23GEN.png");
+		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvo44GEN.png");
 		
 	// %%% END - Plots From History Log %%%
 	

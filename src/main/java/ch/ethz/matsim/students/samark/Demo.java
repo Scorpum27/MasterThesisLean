@@ -1,7 +1,13 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.PrintWriter;
+import java.io.Reader;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -9,6 +15,13 @@ import java.util.List;
 import java.util.Map;
 import java.util.Random;
 
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
+import javax.xml.stream.XMLInputFactory;
+import javax.xml.stream.XMLStreamException;
+import javax.xml.stream.XMLStreamReader;
+
+import org.apache.commons.io.FileUtils;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
@@ -17,17 +30,61 @@ import org.matsim.api.core.v01.network.NetworkFactory;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.pt.transitSchedule.api.TransitRoute;
+import org.matsim.pt.transitSchedule.api.TransitRouteStop;
+import org.xml.sax.InputSource;
+import org.xml.sax.helpers.DefaultHandler;
 
 
 public class Demo {
 	
-	public static void main(String[] args) throws IOException {
+	public static void main(String[] args) throws IOException, XMLStreamException {
+		
+//		System.out.println(Charset.defaultCharset());
+		
+		int generationNr = 2;
+		int storeScheduleInterval = 1;
+		if ((generationNr % storeScheduleInterval) == 0) {
+			File sourceSchedule = new File("zurich_1pm/Evolution/Population/MergedSchedule.xml");
+			File destSchedule = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/Network1/MergedSchedule.xml");
+			File sourceVehicles = new File("zurich_1pm/Evolution/Population/MergedVehicles.xml");
+			File destVehicles = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/Network1/MergedVehicles.xml");		
+			try {
+			    FileUtils.copyFile(sourceSchedule, destSchedule);
+			    FileUtils.copyFile(sourceVehicles, destVehicles);
+			} catch (IOException e) {
+			    e.printStackTrace();
+			}
+		}
+		
+//		System.out.println((4%3));
+		
+//		MNetwork loadedNetwork = new MNetwork("Network1");
+//		String routeFilePath = "zurich_1pm/Evolution/Population/HistoryLog/Generation3/MRoutes/Network1_Route1_RoutesFile.xml";
+//		MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+//		for (TransitRoute tr : loadedRoute.transitLine.getRoutes().values()) {
+//			for (TransitRouteStop trs : tr.getStops()) {
+//				System.out.println(trs.getStopFacility().getName());
+//			}
+//		}
+//		System.out.println(loadedRoute.routeID);
+//		
+//		XMLInputFactory factory = XMLInputFactory.newInstance();
+//		loadedRoute = (MRoute) factory.createXMLStreamReader(new FileInputStream(routeFilePath));
+//		System.out.println(loadedRoute.routeID);
 
 		
-		String s1 = " he.l,-/__//\\'.-'\\,lo-,";
+		
+	// String splitting trials:
+	
+		/*String s1 = " he.l,-/__//\\'.-'\\,lo-,";
 		String s2 = NetworkEvolutionImpl.removeSpecialChar(s1);
 		String s3 = NetworkEvolutionImpl.removeStrings(s1, Arrays.asList("_","-",","," ",".","'"));
-		System.out.println(s2);
+		System.out.println(s2);*/
+		
+		
+	// Merging network trials:
+
 //		System.out.println(NetworkEvolutionImpl.removeString(s1, "."));
 
 //		Network nw1 = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();

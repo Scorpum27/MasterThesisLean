@@ -9,10 +9,11 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Random;
 import java.util.Set;
-import java.util.Map.Entry;
 
+import org.apache.commons.io.FileUtils;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -38,6 +39,7 @@ import org.matsim.pt.transitSchedule.api.TransitScheduleFactory;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 import org.matsim.vehicles.VehicleType;
+
 import com.google.common.collect.Sets;
 
 import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRoute;
@@ -227,6 +229,11 @@ public class NetworkEvolutionImpl {
 			// The new network was constructed so that every node had a corresponding stop facility from the original zurich network on it.
 			List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
 					metroLinkAttributes, metroSchedule, metroNetwork, metroNetworkRoute, defaultPtMode, stopTime, maxVehicleSpeed, blocksLane);
+			if (stopArray == null) {
+				Log.write("CAUTION: stopArray was too short (see code for size limits) --> Therefore deleting mRoute = " +mRoute.routeID + "and moving to next initial line");
+				mNetwork.routeMap.remove(mRoute.routeID);
+				continue;
+			}
 			mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
 			mRoute.vehiclesNr = (int) Math.ceil(mRoute.roundtripTravelTime/mRoute.departureSpacing);		// set vehicles initially so they are not zero for evo loops
 			// Log.writeAndDisplay("stopArray.size()="+stopArray.size());
@@ -821,7 +828,7 @@ public class NetworkEvolutionImpl {
 									}
 									// when we have connecting link to new node at lastStop, make connection links!
 									Node lastStopNetworkNode = outerCityMetroNetwork.getNodes().get(railStops.get(lastStopSuperName).newNetworkNode);
-									Id<Link> newLinkIdLastStop = Id.createLinkId(lastStopNetworkNode.getId().toString()+"XXX_"+ firstFromNodeMetro.getId().toString()+"XXX");							
+									Id<Link> newLinkIdLastStop = Id.createLinkId(lastStopNetworkNode.getId().toString()+"RC_"+ firstFromNodeMetro.getId().toString());							
 									Id<Link> newLinkIdLastStopReverse = NetworkEvolutionImpl.ReverseLink(newLinkIdLastStop);
 									if (outerCityMetroNetwork.getLinks().containsKey(newLinkIdLastStop)==false) {
 										outerCityMetroNetwork.addLink(networkFactory.createLink(newLinkIdLastStop, lastStopNetworkNode, firstFromNodeMetro));
@@ -874,7 +881,7 @@ public class NetworkEvolutionImpl {
 									}
 									// now we have reached currentStop and can make connecting links there and add to network
 									Node currentStopNetworkNode = outerCityMetroNetwork.getNodes().get(railStops.get(currentStopSuperName).newNetworkNode);
-									Id<Link> newLinkIdCurrentStop = Id.createLinkId(currentStopNetworkNode.getId().toString()+"XXX_"+ lastToNodeMetro.getId().toString()+"XXX");
+									Id<Link> newLinkIdCurrentStop = Id.createLinkId(currentStopNetworkNode.getId().toString()+"RC_"+ lastToNodeMetro.getId().toString());
 									Id<Link> newLinkIdCurrentStopReverse = NetworkEvolutionImpl.ReverseLink(newLinkIdCurrentStop);
 									if (outerCityMetroNetwork.getLinks().containsKey(newLinkIdCurrentStop)==false) {
 										outerCityMetroNetwork.addLink(networkFactory.createLink(newLinkIdCurrentStop, currentStopNetworkNode, lastToNodeMetro));										
@@ -882,12 +889,12 @@ public class NetworkEvolutionImpl {
 									if (outerCityMetroNetwork.getLinks().containsKey(newLinkIdCurrentStopReverse)==false) {
 										outerCityMetroNetwork.addLink(networkFactory.createLink(newLinkIdCurrentStopReverse, lastToNodeMetro, currentStopNetworkNode));										
 									}								
-									CustomMetroLinkAttributes cmlaCurrentStopToNodeFacility = new CustomMetroLinkAttributes("rail2newMetro", null);
-									cmlaCurrentStopToNodeFacility.toNodeStopFacility = railStops.get(currentStopSuperName).transitStopFacility;
-									metroLinkAttributes.put(newLinkIdCurrentStop, cmlaCurrentStopToNodeFacility);
-									CustomMetroLinkAttributes cmlaCurrentStopFromNodeFacility = new CustomMetroLinkAttributes("rail2newMetro", null);		
+									CustomMetroLinkAttributes cmlaCurrentStopFromNodeFacility = new CustomMetroLinkAttributes("rail2newMetro", null);
 									cmlaCurrentStopFromNodeFacility.fromNodeStopFacility = railStops.get(currentStopSuperName).transitStopFacility;
-									metroLinkAttributes.put(newLinkIdCurrentStopReverse, cmlaCurrentStopFromNodeFacility);
+									metroLinkAttributes.put(newLinkIdCurrentStop, cmlaCurrentStopFromNodeFacility);
+									CustomMetroLinkAttributes cmlaCurrentStopToNodeFacility = new CustomMetroLinkAttributes("rail2newMetro", null);		
+									cmlaCurrentStopToNodeFacility.toNodeStopFacility = railStops.get(currentStopSuperName).transitStopFacility;
+									metroLinkAttributes.put(newLinkIdCurrentStopReverse, cmlaCurrentStopToNodeFacility);
 								}
 							}
 							lastStop = currentStop;		// IMPORTANT :)
@@ -976,8 +983,8 @@ public class NetworkEvolutionImpl {
 						newMetroNetwork.getNodes().get(terminalNode2).getCoord()) < minTerminalDistance
 						&& safetyCounter < iterLimit);
 
-				Log.write("Terminal 1 = "+terminalFacility1.getName() + "   Node="+terminalNode1.toString()+" --> Coord="+newMetroNetwork.getNodes().get(terminalNode1).getCoord());
-				Log.write("Terminal 2 = "+terminalFacility2.getName() + "   Node="+terminalNode2.toString()+" --> Coord="+newMetroNetwork.getNodes().get(terminalNode2).getCoord());
+//				Log.write("Terminal 1 = "+terminalFacility1.getName() + "   Node="+terminalNode1.toString()+" --> Coord="+newMetroNetwork.getNodes().get(terminalNode1).getCoord());
+//				Log.write("Terminal 2 = "+terminalFacility2.getName() + "   Node="+terminalNode2.toString()+" --> Coord="+newMetroNetwork.getNodes().get(terminalNode2).getCoord());
 				
 				
 				// Find Dijkstra --> nodeList
@@ -993,14 +1000,14 @@ public class NetworkEvolutionImpl {
 							+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
 						continue OuterNetworkRouteLoop;
 				}
-				Log.write("Dijkstra Nodelist:");
-				for (Node node: nodeList) {
-					Log.write(node.getId().toString() + "  --> Coord = "+node.getCoord());
-				}
+//				Log.write("Dijkstra Nodelist:");
+//				for (Node node: nodeList) {
+//					Log.write(node.getId().toString() + "  --> Coord = "+node.getCoord());
+//				}
 				List<Id<Link>> linkList = nodeListToNetworkLinkList(newMetroNetwork, nodeList);
-				for (Id<Link> link: linkList) {
-					Log.write(link.toString());
-				}
+//				for (Id<Link> link: linkList) {
+//					Log.write(link.toString());
+//				}
 				linkList.addAll(OppositeLinkListOf(linkList)); // extend linkList with its opposite direction for PT transportation!
 				NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, newMetroNetwork);
 
@@ -1420,7 +1427,8 @@ public class NetworkEvolutionImpl {
 
 	
 	
-	public static MNetworkPop developGeneration(Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop evoNetworksToProcessPlans, String populationName,
+	public static MNetworkPop developGeneration(Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
+			Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop evoNetworksToProcessPlans, String populationName,
 			Double alpha, Double pCrossOver, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM,
 			int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes, String vehicleTypeName, double vehicleLength, double maxVelocity, 
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
@@ -1444,7 +1452,7 @@ public class NetworkEvolutionImpl {
 		
 		// MUTATIONS (set nDepartures=0, keep nVehicles, keep first/lastDep, --> RouteLength, RoundTripTravelTime, DepSpacing will be changed accordingly in applyPT)
 		newPopulation = NetworkEvolutionImpl.applyMutations(newPopulation, globalNetwork, pMutation, pBigChange, pSmallChange,
-				maxCrossingAngle, eliteMNetwork.networkID);
+				maxCrossingAngle, eliteMNetwork.networkID, metroLinkAttributes);
 
 		// APPLY TRANSIT + STORE POPULATION & TRANSITSCHEDULE (calculates & updates: routeLength, roundTripTravelTimes, nDepartures, depSpacing=d(nVehicles))
 		NetworkEvolutionImpl.applyPT(newPopulation, globalNetwork, metroLinkAttributes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
@@ -1635,7 +1643,7 @@ public class NetworkEvolutionImpl {
 
 
 	public static MNetworkPop applyMutations(MNetworkPop newPopulation, Network globalNetwork, double pMutation, double pBigChange, double pSmallChange,
-			double maxCrossingAngle, String eliteNetworkName) throws IOException {
+			double maxCrossingAngle, String eliteNetworkName, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 		List<String> mutatedNetworks = new ArrayList<String>();
 		List<Id<Link>> linkListMutate;
 		for (String mNetworkName : newPopulation.networkMap.keySet()) {
@@ -1724,50 +1732,116 @@ public class NetworkEvolutionImpl {
 					}
 					else{ // make small change
 						hasHadMutation = true;
-						double weakeningFactor = 0.8; // factor to weaked dominant routes, which would just extend and extend (maybe make here like network score with exp function)
+						double weakeningFactor = 0.8; // factor to weaken dominant routes, which would just extend and extend (maybe make here like network score with exp function)
 						double thisRouletteScore = mRoute.personMetroKM/mRoute.drivenKM;
 						double pExtend = weakeningFactor*thisRouletteScore / (weakeningFactor*thisRouletteScore + averageRouletteScore);
 						Random rExt = new Random();
 						double rExtDouble = rExt.nextDouble();
 						if (rExtDouble < pExtend) { // extend route // TODO this should be done with better condition e.g. abs. profitability instead of rel. performance!
+//							Log.write("Route to be extended = "+linkListMutate.toString());
 							Random rEnd = new Random();
 							if(rEnd.nextDouble() < 0.5) { // add on start link
-								Link startLink = globalNetwork.getLinks().get(linkListMutate.get(0));
-								for (Id<Link> previousLink : globalNetwork.getNodes().get(startLink.getFromNode().getId()).getInLinks().keySet()) {
-									if(GeomDistance.angleBetweenLinks(globalNetwork.getLinks().get(previousLink), startLink)<maxCrossingAngle) {
-										linkListMutate.add(0, previousLink);
-										Log.write("   >> Modifying route by adding before start link = "+previousLink.toString());
-										break;
+								Log.write("Trying to add extension before start link");
+								List<Id<Link>> linkListMutateExtended = findExtensionToCloseFacilities("IN", linkListMutate, maxCrossingAngle, globalNetwork, metroLinkAttributes);
+								if (linkListMutateExtended == null) {
+									Log.write("Failed to add extension before start link ... trying to add after end link");
+									linkListMutateExtended = findExtensionToCloseFacilities("OUT", linkListMutate, maxCrossingAngle, globalNetwork, metroLinkAttributes);
+									if (linkListMutateExtended == null) {
+										Log.write("Also failed to add extension after end link --> Route cannot be extended any more and is left as is. ");
 									}
+									else {
+										linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
+//										Log.write(" ---> SUCCESS - new linkList is = "+linkListMutate.toString());
+									}
+								}
+								else {
+									linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
+//									Log.write("SUCCESS - new linkList is = "+linkListMutate.toString());
 								}
 							}
 							else {  //	add on end link
-								Link endLink = globalNetwork.getLinks().get(linkListMutate.get(linkListMutate.size()-1));
-								for (Id<Link> nextLink : globalNetwork.getNodes().get(endLink.getToNode().getId()).getOutLinks().keySet()) {
-									if(GeomDistance.angleBetweenLinks(endLink, globalNetwork.getLinks().get(nextLink))<maxCrossingAngle) {
-										linkListMutate.add(nextLink);
-										Log.write("   >> Modifying route by adding after end link = "+nextLink.toString());
-										break;
+								Log.write("Trying to add extension after end link");
+								List<Id<Link>> linkListMutateExtended = findExtensionToCloseFacilities("OUT", linkListMutate, maxCrossingAngle, globalNetwork, metroLinkAttributes);
+								if (linkListMutateExtended == null) {
+									Log.write("Failed to add extension after end link ... trying to add before start link");
+									linkListMutateExtended = findExtensionToCloseFacilities("IN", linkListMutate, maxCrossingAngle, globalNetwork, metroLinkAttributes);
+									if (linkListMutateExtended == null) {
+										Log.write("Also failed to add extension before start link --> Route cannot be extended any more and is left as is. ");
+									}
+									else {
+										linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
+//										Log.write(" ---> SUCCESS - new linkList is = "+linkListMutate.toString());
 									}
 								}
-							}		
+								else {
+									linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
+//									Log.write("SUCCESS - new linkList is = "+linkListMutate.toString());
+								}
+							}
+							
 						}
 						else { // shorten route
 							Random rEnd = new Random();
 							if(rEnd.nextDouble() < 0.5) { // shorten on start link
-								Log.write("   >> Modifying route by removing start link = "+linkListMutate.get(0));
-								linkListMutate = linkListMutate.subList(1, linkListMutate.size());
+								Id<Link> nextLinkWithFacility = null;
+								Log.write("Checking route " + linkListMutate.toString());
+								for (Id<Link> linkId : linkListMutate.subList(1, linkListMutate.size())) {
+									Log.write("Checking link " + linkId);
+									if (NetworkEvolutionImpl.searchStopFacilitiesOnLink(metroLinkAttributes, globalNetwork.getLinks().get(linkId)) != null) {
+										nextLinkWithFacility = linkId;
+//										Log.write("Success: Found next facility on link " + linkId);
+										break;
+									}
+								}
+								List<Id<Link>> linksToKillTillNextFacility = new ArrayList<Id<Link>>();
+								if (nextLinkWithFacility != null) {
+									if (nextLinkWithFacility.equals(linkListMutate.get(linkListMutate.size()-1)) == false) {
+										linksToKillTillNextFacility = linkListMutate.subList(0, linkListMutate.indexOf(nextLinkWithFacility));
+//										Log.write("   >> Modifying route by removing links between start terminal and first stop = "+linksToKillTillNextFacility.toString());
+									}
+									else {
+										linksToKillTillNextFacility.addAll(linkListMutate);
+//										Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals = "+linksToKillTillNextFacility.toString());
+									}
+								}
+								else {
+									linksToKillTillNextFacility.addAll(linkListMutate);
+//									Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals = "+linksToKillTillNextFacility.toString());
+								}
+								linkListMutate.removeAll(linksToKillTillNextFacility);
 							}
 							else {  //	shorten on end link
-								Log.write("   >> Modifying route by removing end link = "+linkListMutate.get(linkListMutate.size()-1));
-								linkListMutate = linkListMutate.subList(0, linkListMutate.size()-1);
+								Id<Link> lastLinkWithFacility = null;
+//								Log.write("Checking route " + linkListMutate.toString());
+								for (int l=2; l<linkListMutate.size(); l++) {
+									Id<Link> linkId = linkListMutate.get(linkListMutate.size()-l);
+//									Log.write("Checking link " + linkId);
+									if (NetworkEvolutionImpl.searchStopFacilitiesOnLink(metroLinkAttributes, globalNetwork.getLinks().get(linkId)) != null) {
+										lastLinkWithFacility = linkId;
+//										Log.write("Success: Found next facility on link " + linkId);
+										break;
+									}
+								}
+								List<Id<Link>> linksToKillTillNextFacility = new ArrayList<Id<Link>>();
+								if (lastLinkWithFacility != null) {
+									if (lastLinkWithFacility.equals(linkListMutate.get(0)) == false) {
+										linksToKillTillNextFacility = linkListMutate.subList(linkListMutate.indexOf(lastLinkWithFacility)+1, linkListMutate.size());
+//										Log.write("   >> Modifying route by removing links between last stop and end terminal = "+linksToKillTillNextFacility.toString());
+									}
+									else {
+										linksToKillTillNextFacility.addAll(linkListMutate);
+//										Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals = "+linksToKillTillNextFacility.toString());
+									}
+								}
+								else {
+									linksToKillTillNextFacility.addAll(linkListMutate);
+//									Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals = "+linksToKillTillNextFacility.toString());
+								}
+								linkListMutate.removeAll(linksToKillTillNextFacility);
 							}
 						}
-						if (linkListMutate.size() == 1) {
-							Log.write("CAUTION: RouteLength = 1 -> Serving only one link "+mRoute.routeID);
-						}
-						if (linkListMutate.size() < 1) {
-							Log.write("CAUTION: RouteLength < 1 --> Deleting "+mRoute.routeID);
+						if (linkListMutate.size() < 2) {
+							Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);
 							mNetwork.routeMap.remove(mRoute.routeID);
 							break;
 						}
@@ -1798,6 +1872,150 @@ public class NetworkEvolutionImpl {
 	}
 
 
+	public static List<Id<Link>> findExtensionToCloseFacilities(String strategy, List<Id<Link>> routeLinks, double maxCrossingAngle, Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+		List<Id<Link>> extendedRouteLinks = null;
+		for (int lowestTreeLevel=1; lowestTreeLevel<100; lowestTreeLevel++) {
+			if (strategy.equals("IN")) {
+				extendedRouteLinks = dig4facilitiesIN(lowestTreeLevel, routeLinks, maxCrossingAngle, globalNetwork, metroLinkAttributes);				
+			}
+			else if (strategy.equals("OUT")) {
+				extendedRouteLinks = dig4facilitiesOUT(lowestTreeLevel, routeLinks, maxCrossingAngle, globalNetwork, metroLinkAttributes);				
+			}
+			if (extendedRouteLinks != null) {
+				return extendedRouteLinks;
+			}
+		}
+		// return null if nothing found by digging for next facilities
+		return null;
+	}
+
+	
+	
+
+	public static List<Id<Link>> dig4facilitiesIN(int lowestTreeLevel, List<Id<Link>> routeLinksIn, double maxCrossingAngle, Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+		List<Id<Link>> routeLinks = new ArrayList<Id<Link>>();
+		routeLinks.addAll(routeLinksIn);
+		Link startLink = globalNetwork.getLinks().get(routeLinks.get(0));
+		Node startNode = globalNetwork.getNodes().get(startLink.getFromNode().getId());
+		if (lowestTreeLevel == 1) {
+			for (Link previousLink : startNode.getInLinks().values()) {
+				if (GeomDistance.angleBetweenLinks(previousLink, startLink) > maxCrossingAngle) {
+					continue;
+				}
+				if (searchAcceptableStopFacilitiesOnLink(metroLinkAttributes, previousLink, metroLinkAttributes.get(startLink.getId()).fromNodeStopFacility) != null) {
+					// second condition makes sure that a link is not added, which has same facility on FromNode as end link on ToNode
+					// given that they share that node and therefore also a possible stopFacility on that node!
+					routeLinks.add(0, previousLink.getId());
+					return routeLinks;
+				}
+			}
+		}
+		else {
+			for (Link previousLink : globalNetwork.getNodes().get(globalNetwork.getLinks().get(routeLinks.get(0)).getFromNode().getId()).getInLinks().values()) {
+				if (GeomDistance.angleBetweenLinks(previousLink, startLink) > maxCrossingAngle) {
+					continue;
+				}
+				List<Id<Link>> extRouteList = new ArrayList<Id<Link>>();
+				extRouteList.addAll(routeLinks);
+				extRouteList.add(0, previousLink.getId());
+				List<Id<Link>> extExtRouteList = dig4facilitiesIN(lowestTreeLevel-1, extRouteList, maxCrossingAngle, globalNetwork, metroLinkAttributes);
+				if (extExtRouteList != null) {
+					return extExtRouteList;
+				}
+			}			
+		}
+		// if nothing has been returned by this point, extend search to next level of link tree
+		return null;
+	}
+
+	public static List<Id<Link>> dig4facilitiesOUT(int lowestTreeLevel, List<Id<Link>> routeLinksIn, double maxCrossingAngle, Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+		List<Id<Link>> routeLinks = new ArrayList<Id<Link>>();
+		routeLinks.addAll(routeLinksIn);
+		Link endLink = globalNetwork.getLinks().get(routeLinks.get(routeLinks.size()-1));
+		Node endNode = globalNetwork.getNodes().get(endLink.getToNode().getId());
+		if (lowestTreeLevel == 1) {
+			for (Link nextLink : endNode.getOutLinks().values()) {
+				if (GeomDistance.angleBetweenLinks(nextLink, endLink) > maxCrossingAngle) {
+					continue;
+				}
+				if (searchAcceptableStopFacilitiesOnLink(metroLinkAttributes, nextLink, metroLinkAttributes.get(endLink.getId()).toNodeStopFacility) != null) {
+					// second condition makes sure that a link is not added, which has same facility on ToNode as start link on FromNode given that they touch.
+					routeLinks.add(nextLink.getId());
+					return routeLinks;
+				}
+			}
+		}
+		else {
+			for (Link nextLink : globalNetwork.getNodes().get(globalNetwork.getLinks().get(routeLinks.get(routeLinks.size()-1)).getToNode().getId()).getOutLinks().values()) {
+				if (GeomDistance.angleBetweenLinks(nextLink, endLink) > maxCrossingAngle) {
+					continue;
+				}
+				List<Id<Link>> extRouteList = new ArrayList<Id<Link>>();
+				extRouteList.addAll(routeLinks);
+				extRouteList.add(nextLink.getId());
+				List<Id<Link>> extExtRouteList = dig4facilitiesOUT(lowestTreeLevel-1, extRouteList, maxCrossingAngle, globalNetwork, metroLinkAttributes);
+				if (extExtRouteList != null) {
+					return extExtRouteList;
+				}
+			}			
+		}
+		// if nothing has been returned by this point, extend search to next level of link tree
+		return null;
+	}
+	
+	public static TransitStopFacility searchStopFacilitiesOnLink(Map<Id<Link>,CustomMetroLinkAttributes> metroLinkAttributes, Link currentLink) throws IOException {
+		CustomMetroLinkAttributes customMetroLinkAttributes = metroLinkAttributes.get(currentLink.getId());
+		if (customMetroLinkAttributes == null) {
+//			Log.write("No metro link attributes found for link = "+currentLink.getId().toString());
+//			return transitSchedule.getFactory().createTransitStopFacility(Id.create("genericMetroStopLinkRef"+currentLink.getId().toString(),TransitStopFacility.class),
+//					GeomDistance.coordBetweenNodes(currentLink.getFromNode(), currentLink.getToNode()), false);
+			return null;
+		}
+		else if (customMetroLinkAttributes.singleRefStopFacility != null) {
+//			Log.write("Found SINGLE REF FACILITY " +  customMetroLinkAttributes.singleRefStopFacility.getName() + " on link="+currentLink.getId().toString());
+			return customMetroLinkAttributes.singleRefStopFacility;
+		}
+		else if(customMetroLinkAttributes.fromNodeStopFacility != null) {
+//			Log.write("Found FROM NODE FACILITY " +  customMetroLinkAttributes.fromNodeStopFacility.getName() + " on link="+currentLink.getId().toString());
+			return customMetroLinkAttributes.fromNodeStopFacility;
+		}
+		else if(customMetroLinkAttributes.toNodeStopFacility != null) {
+//			Log.write("Found TO NODE FACILITY " +  customMetroLinkAttributes.toNodeStopFacility.getName() + " on link="+currentLink.getId().toString());
+			return customMetroLinkAttributes.toNodeStopFacility;
+		}
+		else {
+//			Log.write("Found no facility on link= "+currentLink.getId().toString() + "... Try next link...");
+			return null;
+		}
+	}
+	
+	public static TransitStopFacility searchAcceptableStopFacilitiesOnLink(Map<Id<Link>,CustomMetroLinkAttributes> metroLinkAttributes,
+			Link currentLink, TransitStopFacility blockedFacility) throws IOException {
+		CustomMetroLinkAttributes customMetroLinkAttributes = metroLinkAttributes.get(currentLink.getId());
+		if (customMetroLinkAttributes == null) {
+//			Log.write("No metro link attributes found for link = "+currentLink.getId().toString());
+//			return transitSchedule.getFactory().createTransitStopFacility(Id.create("genericMetroStopLinkRef"+currentLink.getId().toString(),TransitStopFacility.class),
+//					GeomDistance.coordBetweenNodes(currentLink.getFromNode(), currentLink.getToNode()), false);
+			return null;
+		}
+		else if (customMetroLinkAttributes.singleRefStopFacility != null && customMetroLinkAttributes.singleRefStopFacility != blockedFacility) {
+//			Log.write("Found SINGLE REF FACILITY " +  customMetroLinkAttributes.singleRefStopFacility.getName() + " on link="+currentLink.getId().toString());
+			return customMetroLinkAttributes.singleRefStopFacility;
+		}
+		else if(customMetroLinkAttributes.fromNodeStopFacility != null && customMetroLinkAttributes.fromNodeStopFacility != blockedFacility) {
+//			Log.write("Found FROM NODE FACILITY " +  customMetroLinkAttributes.fromNodeStopFacility.getName() + " on link="+currentLink.getId().toString());
+			return customMetroLinkAttributes.fromNodeStopFacility;
+		}
+		else if(customMetroLinkAttributes.toNodeStopFacility != null && customMetroLinkAttributes.toNodeStopFacility != blockedFacility) {
+//			Log.write("Found TO NODE FACILITY " +  customMetroLinkAttributes.toNodeStopFacility.getName() + " on link="+currentLink.getId().toString());
+			return customMetroLinkAttributes.toNodeStopFacility;
+		}
+		else {
+//			Log.write("Found no new facility on link= "+currentLink.getId().toString() + "... Try next link...");
+			return null;
+		}
+	}
+
 	public static MNetworkPop applyPT(MNetworkPop newPopulation, Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, String vehicleTypeName,
 			double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom, String defaultPtMode,
 			double stopTime, boolean blocksLane, double metroConstructionCostPerKmOverground,
@@ -1826,12 +2044,20 @@ public class NetworkEvolutionImpl {
 			
 			// Generate TransitLines and Schedules on NetworkRoutes --> Add to Transit Schedule
 			int lineNr = 0;
-			for (String mRouteName : mNetwork.routeMap.keySet()) {
+			Iterator<Entry<String, MRoute>> mRouteIter = mNetwork.routeMap.entrySet().iterator();
+			while (mRouteIter.hasNext()) {
+				Entry<String, MRoute> mRouteEntry = mRouteIter.next();
+				String mRouteName = mRouteEntry.getKey();
 				MRoute mRoute = mNetwork.routeMap.get(mRouteName);
 				lineNr++;
 				// Create an array of stops along new networkRoute on the center of each of its individual links
 				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
 						metroLinkAttributes, metroSchedule, globalNetwork, mRoute.networkRoute, defaultPtMode, stopTime, maxVelocity, blocksLane);
+				if (stopArray == null) {
+					Log.write("CAUTION: stopArray was too short (see code for size limits) --> Therefore deleting mRoute = " +mRouteName);
+					mNetwork.routeMap.remove(mRouteName);
+					continue;
+				}
 				mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
 				mRoute.departureSpacing = NetworkEvolutionImpl.depSpacingCalculator(mRoute.vehiclesNr, mRoute.roundtripTravelTime);
 				
@@ -2202,8 +2428,8 @@ public class NetworkEvolutionImpl {
 		return routesNetwork;
 	}
 
-	public static void saveCurrentMRoutes2HistoryLog(MNetworkPop latestPopulation, int generationNr, Network globalNetwork) throws FileNotFoundException {
-		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr-1)+"/MRoutes";
+	public static void saveCurrentMRoutes2HistoryLog(MNetworkPop latestPopulation, int generationNr, Network globalNetwork, int storeScheduleInterval) throws FileNotFoundException {
+		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/MRoutes";
 		new File(historyFileLocation).mkdirs();
 		for (MNetwork mn : latestPopulation.getNetworks().values()) {
 			for (MRoute mr : mn.getRouteMap().values()) {
@@ -2214,7 +2440,20 @@ public class NetworkEvolutionImpl {
 			// make a separate network of all mRoutes of one network for visualization purposes (all routes of a network)
 			NetworkEvolutionImpl.MRoutesToNetwork(mn.getRouteMap(), globalNetwork, 
 					Sets.newHashSet("pt"), historyFileLocation+"/MRoutes"+mn.networkID+".xml");
+			if ((generationNr % storeScheduleInterval) == 0) {
+				File sourceSchedule = new File("zurich_1pm/Evolution/Population/"+mn.networkID+"/MergedSchedule.xml"); 
+				File destSchedule = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/"+mn.networkID+"/MergedSchedule.xml");
+				File sourceVehicles = new File("zurich_1pm/Evolution/Population/"+mn.networkID+"/MergedVehicles.xml"); 
+				File destVehicles = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/"+mn.networkID+"/MergedVehicles.xml");		
+				try {
+					FileUtils.copyFile(sourceSchedule, destSchedule);
+					FileUtils.copyFile(sourceVehicles, destVehicles);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
 		}
+		
 	}
 	
 	public static Network updateGlobalNetwork(String globalNetworkFile) {

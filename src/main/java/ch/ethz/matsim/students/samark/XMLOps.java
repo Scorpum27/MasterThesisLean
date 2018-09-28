@@ -10,12 +10,11 @@ import java.util.Map;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.network.io.NetworkReaderMatsimV1;
 import org.matsim.core.network.io.NetworkWriter;
-import org.matsim.core.population.io.PopulationReader;
 import org.matsim.core.scenario.ScenarioUtils;
 
 import com.thoughtworks.xstream.XStream;
+import com.thoughtworks.xstream.io.xml.DomDriver;
 import com.thoughtworks.xstream.io.xml.StaxDriver;
 
 
@@ -109,7 +108,7 @@ public class XMLOps {
 	
 	public static <T extends Object> T readFromFile(Class<T> type, String fileName) throws FileNotFoundException {	
 		FileInputStream fis = new FileInputStream(fileName);
-		XStream xstream = new XStream(new StaxDriver());
+		XStream xstream = new XStream(new DomDriver("windows-1252")); 		// Default: new XStream(new StaxDriver()); but will only work if xml is UTF-8!!
 		
 		//XStream.setupDefaultSecurity(xstream);
 		//xstream.allowTypes(new Class[] {type});

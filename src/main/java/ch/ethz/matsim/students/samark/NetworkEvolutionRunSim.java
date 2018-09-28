@@ -5,7 +5,10 @@ import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.apache.commons.io.FileUtils;
+import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
@@ -323,6 +326,49 @@ public class NetworkEvolutionRunSim {
 			System.out.println(" AverageTavelTime [min] = "+nsl.averageTravelTime+"   (StandardDeviation="+nsl.stdDeviationTravelTime+")");
 			System.out.println(" TotalTravelTime [min] = "+nsl.totalTravelTime);
 		return nsl;
+	}
+
+
+	@SuppressWarnings("unchecked")
+	public static void recallSimulation(MNetworkPop latestPopulation, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
+			int generationToRecall, String populationName, int populationSize, int initialRoutesPerNetwork) throws IOException {
+		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "RECALLING END STATE OF GEN="+ generationToRecall + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		metroLinkAttributes = XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/MetroLinkAttributes.xml");
+		for (int n=1; n<=populationSize; n++) {
+			MNetwork loadedNetwork = new MNetwork("Network"+n);
+			latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
+			Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
+			for (int r=1; r<=initialRoutesPerNetwork; r++) {
+				String routeFilePath =
+						"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationToRecall+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
+				File f = new File(routeFilePath);
+				if (f.exists()) {
+					MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+					loadedNetwork.addNetworkRoute(loadedRoute);
+					Log.write("Adding network route "+loadedRoute.routeID);
+				}
+			}
+			// copy MergedSchedule/Vehicles from HistoryLog (archived) to the active working directory of the network as per the paths below
+			File sourceSchedule = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationToRecall)+"/"+loadedNetwork.networkID+"/MergedSchedule.xml");
+			File destSchedule = new File("zurich_1pm/Evolution/Population/"+loadedNetwork.networkID+"/MergedSchedule.xml"); 
+			File sourceVehicles = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationToRecall)+"/"+loadedNetwork.networkID+"/MergedVehicles.xml");		
+			File destVehicles = new File("zurich_1pm/Evolution/Population/"+loadedNetwork.networkID+"/MergedVehicles.xml");
+			if (sourceSchedule.exists() && sourceVehicles.exists()) {
+				try {
+					FileUtils.copyFile(sourceSchedule, destSchedule);
+					FileUtils.copyFile(sourceVehicles, destVehicles);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+			}
+			else {
+				Log.write("ERROR: Either MergedSchedule or MergedVehicles does not exist in HistoryLog. Please check folder or choose another generationToRecall.");
+				Log.write("Cannot proceed. Terminating ...");
+				System.exit(0);
+			}
+			latestPopulation.addNetwork(loadedNetwork);
+		}
+		
 	}
 	
 }

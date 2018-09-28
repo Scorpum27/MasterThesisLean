@@ -72,7 +72,7 @@ public class Metro_TransitScheduleImpl {
 			double tAccVMax = maxVehicleSpeed/acceleration;
 
 			Id<Link> lastStopLinkId = routeLinkList.get(0); // Have secured by terminal choice that first link definitely has a stopFacility
-			TransitStopFacility lastStopFacility = selectStopFacilityOnLink(metroLinkAttributes, network.getLinks().get(lastStopLinkId), transitSchedule);
+			TransitStopFacility lastStopFacility = selectStopFacilityOnLink(metroLinkAttributes, network.getLinks().get(lastStopLinkId), null);
 			for (Id<Link> currentLinkID : routeLinkList) {
 				Link currentLink = network.getLinks().get(currentLinkID);
 				if (currentLink.equals(null)) {
@@ -82,7 +82,7 @@ public class Metro_TransitScheduleImpl {
 					// Please check network and make sure network choice is correct, link name is correct, no new link has been added to network!
 				}
 //				Log.write("Moving along link " + currentLinkID.toString());
-				TransitStopFacility transitStopFacility = Metro_TransitScheduleImpl.selectStopFacilityOnLink(metroLinkAttributes, currentLink, transitSchedule);
+				TransitStopFacility transitStopFacility = Metro_TransitScheduleImpl.selectStopFacilityOnLink(metroLinkAttributes, currentLink, lastStopFacility);
 				if (transitStopFacility != null) {
 //					Log.write("Found new stop = " + transitStopFacility.getId().toString()     );// + "  [refLink = " + transitStopFacility.getLinkId().toString() + " ]");
 //					Log.write("Found new stop = " + transitStopFacility.getName()       );//+ "  [refLink = " + transitStopFacility.getLinkId().toString() + " ]");
@@ -110,6 +110,12 @@ public class Metro_TransitScheduleImpl {
 				else {
 //					Log.write("No stop found on this link");
 				}
+			}
+			if (stopArray.size() < 3) {
+				// length two would mean same stop is services one time there and one time back, while length three means an additional link 
+				// with a stop must be involved and the vehicle must actually drive off from first stop to get to the second one.
+				Log.write("CAUTION: too small stopArray = "+stopArray.toString() + " --> Returning NULL and removing mRoute from network.");
+				return null;
 			}
 			if (stopArray.get(0).getStopFacility().getId().equals(stopArray.get(stopArray.size()-1).getStopFacility().getId()) == false) {
 				double terminalArrivalOffset = stopArray.get(stopArray.size()-1).getDepartureOffset()+stopArray.get(1).getArrivalOffset();
@@ -147,8 +153,8 @@ public class Metro_TransitScheduleImpl {
 		return distance;
 	}
 
-	public static TransitStopFacility selectStopFacilityOnLink(Map<Id<Link>,CustomMetroLinkAttributes> metroLinkAttributes, Link currentLink, 
-			TransitSchedule transitSchedule) throws IOException {
+	public static TransitStopFacility selectStopFacilityOnLink(Map<Id<Link>,CustomMetroLinkAttributes> metroLinkAttributes, 
+			Link currentLink, TransitStopFacility lastStopFacility) throws IOException {
 		CustomMetroLinkAttributes customMetroLinkAttributes = metroLinkAttributes.get(currentLink.getId());
 		if (customMetroLinkAttributes == null) {
 //			Log.write("No metro link attributes found for link = "+currentLink.getId().toString());
@@ -156,20 +162,27 @@ public class Metro_TransitScheduleImpl {
 //					GeomDistance.coordBetweenNodes(currentLink.getFromNode(), currentLink.getToNode()), false);
 			return null;
 		}
-		else if (customMetroLinkAttributes.singleRefStopFacility != null) {
+		// Second condition makes sure that a TSF is not used twice given the network nature where the same facility can be used on the ToNode of one link
+		// and on the FromNode of the next link. Making a stop twice on the same TSF would be unreasonable.
+		else if (customMetroLinkAttributes.singleRefStopFacility != null && customMetroLinkAttributes.singleRefStopFacility != lastStopFacility) {
+//			Log.write("Found SINGLE REF FACILITY " +  customMetroLinkAttributes.singleRefStopFacility.getName() + " on link="+currentLink.getId().toString());
 			return customMetroLinkAttributes.singleRefStopFacility;
 		}
-		else if(customMetroLinkAttributes.fromNodeStopFacility != null) {
+		else if(customMetroLinkAttributes.fromNodeStopFacility != null && customMetroLinkAttributes.fromNodeStopFacility != lastStopFacility) {
+//			Log.write("Found FROM NODE FACILITY " +  customMetroLinkAttributes.fromNodeStopFacility.getName() + " on link="+currentLink.getId().toString());
 			return customMetroLinkAttributes.fromNodeStopFacility;
 		}
-		else if(customMetroLinkAttributes.toNodeStopFacility != null) {
+		else if(customMetroLinkAttributes.toNodeStopFacility != null && customMetroLinkAttributes.toNodeStopFacility != lastStopFacility) {
+//			Log.write("Found TO NODE FACILITY " +  customMetroLinkAttributes.toNodeStopFacility.getName() + " on link="+currentLink.getId().toString());
 			return customMetroLinkAttributes.toNodeStopFacility;
 		}
 		else {
+//			Log.write("Found no new facility on link= "+currentLink.getId().toString() + "... Try next link...");
 			return null;
 		}
 	}
 
+	
 	
 	public static TransitStopFacility coord2Facility(TransitSchedule ts, Coord coord) throws IOException {
 		for (TransitStopFacility tsf : ts.getFacilities().values()) {
