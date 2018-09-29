@@ -116,17 +116,8 @@ public class NetworkEvolution {
 		
 		
 		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		
 		// Log.write("NETWORK CREATION - START");
-		NetworkEvolutionImpl.buildNewBaseInfrastructure(initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork,
-				minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
-				maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, mergeMetroWithRailway, railway2metroCatchmentArea,
-				metro2metroCatchmentArea, odConsiderationThreshold, xOffset, yOffset, vehicleTypeName, vehicleLength, maxVelocity, 
-				vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing,
-				metroOpsCostPerKM, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground);
-		
-		MNetworkPop networkPopulation = NetworkEvolutionImpl.createMNetworkRoutes(							// Make a list of routes that will be added to this network
-				populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork,
+		MNetworkPop networkPopulation = NetworkEvolutionImpl.createNetworks(populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork,
 				minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
 				maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, mergeMetroWithRailway, railway2metroCatchmentArea,
 				metro2metroCatchmentArea, odConsiderationThreshold, xOffset, yOffset, vehicleTypeName, vehicleLength, maxVelocity, 
