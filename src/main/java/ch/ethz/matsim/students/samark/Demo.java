@@ -43,8 +43,25 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException, XMLStreamException {
 		
+		System.out.println("Inside : " + Thread.currentThread().getName());
+		int i = 2;
+        System.out.println("Creating Runnable...");
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Inside : " + Thread.currentThread().getName());
+            }
+        };
+
+        System.out.println("Creating Thread...");
+        Thread thread = new Thread(runnable);
+
+        System.out.println("Starting Thread...");
+        thread.start();
+        
+		
 		// EVOLUTIONARY PROCESS
-		Config config = ConfigUtils.createConfig();
+		/*Config config = ConfigUtils.createConfig();
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/TotalMetroNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
@@ -65,7 +82,7 @@ public class Demo {
 			else {
 				System.out.println("Stop facility=" + tsf.getName());
 			}
-		}
+		}*/
 		
 //		System.out.println(Charset.defaultCharset());
 		
