@@ -24,14 +24,17 @@ import javax.xml.stream.XMLStreamReader;
 import org.apache.commons.io.FileUtils;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.NetworkFactory;
 import org.matsim.api.core.v01.network.Node;
+import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitRouteStop;
+import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 import org.xml.sax.InputSource;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -40,22 +43,46 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException, XMLStreamException {
 		
-//		System.out.println(Charset.defaultCharset());
+		// EVOLUTIONARY PROCESS
+		Config config = ConfigUtils.createConfig();
+		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/TotalMetroNetwork.xml");
+		Scenario scenario = ScenarioUtils.loadScenario(config);
+		Network globalNetwork = scenario.getNetwork();
 		
-		int generationNr = 2;
-		int storeScheduleInterval = 1;
-		if ((generationNr % storeScheduleInterval) == 0) {
-			File sourceSchedule = new File("zurich_1pm/Evolution/Population/MergedSchedule.xml");
-			File destSchedule = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/Network1/MergedSchedule.xml");
-			File sourceVehicles = new File("zurich_1pm/Evolution/Population/MergedVehicles.xml");
-			File destVehicles = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/Network1/MergedVehicles.xml");		
-			try {
-			    FileUtils.copyFile(sourceSchedule, destSchedule);
-			    FileUtils.copyFile(sourceVehicles, destVehicles);
-			} catch (IOException e) {
-			    e.printStackTrace();
+		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+		metroLinkAttributes = XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/MetroLinkAttributes.xml");
+
+		for (Id<Link> linkid : globalNetwork.getLinks().keySet()) {
+			System.out.println(linkid.toString());
+			if (metroLinkAttributes.get(linkid) == null) {
+				System.out.println("Cannot find this linkId in metroLinkAttributes!");
+				break;
+			}
+			TransitStopFacility tsf = NetworkEvolutionImpl.searchStopFacilitiesOnLink(metroLinkAttributes, globalNetwork.getLinks().get(linkid));
+			if (tsf == null) {
+				System.out.println("No facility found on link="+linkid.toString());
+			}
+			else {
+				System.out.println("Stop facility=" + tsf.getName());
 			}
 		}
+		
+//		System.out.println(Charset.defaultCharset());
+		
+//		int generationNr = 2;
+//		int storeScheduleInterval = 1;
+//		if ((generationNr % storeScheduleInterval) == 0) {
+//			File sourceSchedule = new File("zurich_1pm/Evolution/Population/MergedSchedule.xml");
+//			File destSchedule = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/Network1/MergedSchedule.xml");
+//			File sourceVehicles = new File("zurich_1pm/Evolution/Population/MergedVehicles.xml");
+//			File destVehicles = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/Network1/MergedVehicles.xml");		
+//			try {
+//			    FileUtils.copyFile(sourceSchedule, destSchedule);
+//			    FileUtils.copyFile(sourceVehicles, destVehicles);
+//			} catch (IOException e) {
+//			    e.printStackTrace();
+//			}
+//		}
 		
 //		System.out.println((4%3));
 		

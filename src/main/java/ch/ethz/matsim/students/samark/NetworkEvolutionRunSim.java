@@ -332,8 +332,10 @@ public class NetworkEvolutionRunSim {
 	@SuppressWarnings("unchecked")
 	public static void recallSimulation(MNetworkPop latestPopulation, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
 			int generationToRecall, String populationName, int populationSize, int initialRoutesPerNetwork) throws IOException {
-		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "RECALLING END STATE OF GEN="+ generationToRecall + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		metroLinkAttributes = XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/MetroLinkAttributes.xml");
+		Log.write("%%%%%%%%%%%%%%%%%%%            %%%%%%%%%%%%%% RECALLING END STATE OF GEN=\"+ generationToRecall %%%%%%%%%%%%%%%            %%%%%%%%%%%%%%%%%%");
+		Log.write(" "); Log.write(" "); Log.write(" ");
+		Log.write("%%%%%%%%%%%%%%%%%%%            %%%%%%%%%%%%%% ------------------------------------------------- %%%%%%%%%%%%%%%            %%%%%%%%%%%%%%%%%%");
+		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/metroLinkAttributes.xml"));
 		for (int n=1; n<=populationSize; n++) {
 			MNetwork loadedNetwork = new MNetwork("Network"+n);
 			latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);

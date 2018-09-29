@@ -1665,6 +1665,7 @@ public class NetworkEvolutionImpl {
 					Random rBig = new Random();
 					if (rBig.nextDouble() < pBigChange) { // make big change
 						if(linkListMutate.size()>2) {
+							Log.writeAndDisplay("  >> Applying big change");
 							hasHadMutation = true;
 							boolean feasibleCutLinkFound = false;
 							Id<Link> openCutLinkId;
@@ -1731,6 +1732,7 @@ public class NetworkEvolutionImpl {
 						}
 					}
 					else{ // make small change
+						Log.writeAndDisplay("  >> Applying small change");
 						hasHadMutation = true;
 						double weakeningFactor = 0.8; // factor to weaken dominant routes, which would just extend and extend (maybe make here like network score with exp function)
 						double thisRouletteScore = mRoute.personMetroKM/mRoute.drivenKM;
@@ -1738,44 +1740,43 @@ public class NetworkEvolutionImpl {
 						Random rExt = new Random();
 						double rExtDouble = rExt.nextDouble();
 						if (rExtDouble < pExtend) { // extend route // TODO this should be done with better condition e.g. abs. profitability instead of rel. performance!
-//							Log.write("Route to be extended = "+linkListMutate.toString());
 							Random rEnd = new Random();
 							if(rEnd.nextDouble() < 0.5) { // add on start link
-								Log.write("Trying to add extension before start link");
+//								Log.write("Trying to add extension before start link");
 								List<Id<Link>> linkListMutateExtended = findExtensionToCloseFacilities("IN", linkListMutate, maxCrossingAngle, globalNetwork, metroLinkAttributes);
 								if (linkListMutateExtended == null) {
-									Log.write("Failed to add extension before start link ... trying to add after end link");
+//									Log.write("Failed to add extension before start link ... trying to add after end link");
 									linkListMutateExtended = findExtensionToCloseFacilities("OUT", linkListMutate, maxCrossingAngle, globalNetwork, metroLinkAttributes);
 									if (linkListMutateExtended == null) {
-										Log.write("Also failed to add extension after end link --> Route cannot be extended any more and is left as is. ");
+										Log.write("Failed to add extension after end link and before start link --> Route cannot be extended any more and is left as is. ");
 									}
 									else {
 										linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
-//										Log.write(" ---> SUCCESS - new linkList is = "+linkListMutate.toString());
+										Log.write("Failed to add extension before start link, but succeeded to add after end link.");
 									}
 								}
 								else {
 									linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
-//									Log.write("SUCCESS - new linkList is = "+linkListMutate.toString());
+									Log.write("Succeeded to add extension before start link.");
 								}
 							}
 							else {  //	add on end link
-								Log.write("Trying to add extension after end link");
+//								Log.write("Trying to add extension after end link");
 								List<Id<Link>> linkListMutateExtended = findExtensionToCloseFacilities("OUT", linkListMutate, maxCrossingAngle, globalNetwork, metroLinkAttributes);
 								if (linkListMutateExtended == null) {
-									Log.write("Failed to add extension after end link ... trying to add before start link");
+//									Log.write("Failed to add extension after end link ... trying to add before start link");
 									linkListMutateExtended = findExtensionToCloseFacilities("IN", linkListMutate, maxCrossingAngle, globalNetwork, metroLinkAttributes);
 									if (linkListMutateExtended == null) {
-										Log.write("Also failed to add extension before start link --> Route cannot be extended any more and is left as is. ");
+										Log.write("Failed to add extension after end link and before start link --> Route cannot be extended any more and is left as is. ");
 									}
 									else {
 										linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
-//										Log.write(" ---> SUCCESS - new linkList is = "+linkListMutate.toString());
+										Log.write("Failed to add extension after end link, but succeeded to add before start link.");
 									}
 								}
 								else {
 									linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
-//									Log.write("SUCCESS - new linkList is = "+linkListMutate.toString());
+									Log.write("Succeeded to add extension after end link.");
 								}
 							}
 							
@@ -1784,12 +1785,9 @@ public class NetworkEvolutionImpl {
 							Random rEnd = new Random();
 							if(rEnd.nextDouble() < 0.5) { // shorten on start link
 								Id<Link> nextLinkWithFacility = null;
-								Log.write("Checking route " + linkListMutate.toString());
 								for (Id<Link> linkId : linkListMutate.subList(1, linkListMutate.size())) {
-									Log.write("Checking link " + linkId);
 									if (NetworkEvolutionImpl.searchStopFacilitiesOnLink(metroLinkAttributes, globalNetwork.getLinks().get(linkId)) != null) {
 										nextLinkWithFacility = linkId;
-//										Log.write("Success: Found next facility on link " + linkId);
 										break;
 									}
 								}
@@ -1797,28 +1795,25 @@ public class NetworkEvolutionImpl {
 								if (nextLinkWithFacility != null) {
 									if (nextLinkWithFacility.equals(linkListMutate.get(linkListMutate.size()-1)) == false) {
 										linksToKillTillNextFacility = linkListMutate.subList(0, linkListMutate.indexOf(nextLinkWithFacility));
-//										Log.write("   >> Modifying route by removing links between start terminal and first stop = "+linksToKillTillNextFacility.toString());
+										Log.write("   >> Modifying route by removing links between start terminal and first stop with link = "+nextLinkWithFacility.toString());
 									}
 									else {
 										linksToKillTillNextFacility.addAll(linkListMutate);
-//										Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals = "+linksToKillTillNextFacility.toString());
+										Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals ...");
 									}
 								}
 								else {
 									linksToKillTillNextFacility.addAll(linkListMutate);
-//									Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals = "+linksToKillTillNextFacility.toString());
+									Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals ...");
 								}
 								linkListMutate.removeAll(linksToKillTillNextFacility);
 							}
 							else {  //	shorten on end link
 								Id<Link> lastLinkWithFacility = null;
-//								Log.write("Checking route " + linkListMutate.toString());
 								for (int l=2; l<linkListMutate.size(); l++) {
 									Id<Link> linkId = linkListMutate.get(linkListMutate.size()-l);
-//									Log.write("Checking link " + linkId);
 									if (NetworkEvolutionImpl.searchStopFacilitiesOnLink(metroLinkAttributes, globalNetwork.getLinks().get(linkId)) != null) {
 										lastLinkWithFacility = linkId;
-//										Log.write("Success: Found next facility on link " + linkId);
 										break;
 									}
 								}
@@ -1826,16 +1821,16 @@ public class NetworkEvolutionImpl {
 								if (lastLinkWithFacility != null) {
 									if (lastLinkWithFacility.equals(linkListMutate.get(0)) == false) {
 										linksToKillTillNextFacility = linkListMutate.subList(linkListMutate.indexOf(lastLinkWithFacility)+1, linkListMutate.size());
-//										Log.write("   >> Modifying route by removing links between last stop and end terminal = "+linksToKillTillNextFacility.toString());
+										Log.write("   >> Modifying route by removing links between end terminal and last stop before terminal with link = "+lastLinkWithFacility.toString());
 									}
 									else {
 										linksToKillTillNextFacility.addAll(linkListMutate);
-//										Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals = "+linksToKillTillNextFacility.toString());
+										Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals ...");
 									}
 								}
 								else {
 									linksToKillTillNextFacility.addAll(linkListMutate);
-//									Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals = "+linksToKillTillNextFacility.toString());
+									Log.write("   >> Deleting route due to unprofitability and no intermediate stops between terminals ...");
 								}
 								linkListMutate.removeAll(linksToKillTillNextFacility);
 							}
@@ -1939,7 +1934,7 @@ public class NetworkEvolutionImpl {
 					continue;
 				}
 				if (searchAcceptableStopFacilitiesOnLink(metroLinkAttributes, nextLink, metroLinkAttributes.get(endLink.getId()).toNodeStopFacility) != null) {
-					// second condition makes sure that a link is not added, which has same facility on ToNode as start link on FromNode given that they touch.
+					// second condition makes sure that a link is not added, which has same facility on FromNode as end link on ToNode given that they touch.
 					routeLinks.add(nextLink.getId());
 					return routeLinks;
 				}
@@ -1967,8 +1962,6 @@ public class NetworkEvolutionImpl {
 		CustomMetroLinkAttributes customMetroLinkAttributes = metroLinkAttributes.get(currentLink.getId());
 		if (customMetroLinkAttributes == null) {
 //			Log.write("No metro link attributes found for link = "+currentLink.getId().toString());
-//			return transitSchedule.getFactory().createTransitStopFacility(Id.create("genericMetroStopLinkRef"+currentLink.getId().toString(),TransitStopFacility.class),
-//					GeomDistance.coordBetweenNodes(currentLink.getFromNode(), currentLink.getToNode()), false);
 			return null;
 		}
 		else if (customMetroLinkAttributes.singleRefStopFacility != null) {
@@ -1994,8 +1987,6 @@ public class NetworkEvolutionImpl {
 		CustomMetroLinkAttributes customMetroLinkAttributes = metroLinkAttributes.get(currentLink.getId());
 		if (customMetroLinkAttributes == null) {
 //			Log.write("No metro link attributes found for link = "+currentLink.getId().toString());
-//			return transitSchedule.getFactory().createTransitStopFacility(Id.create("genericMetroStopLinkRef"+currentLink.getId().toString(),TransitStopFacility.class),
-//					GeomDistance.coordBetweenNodes(currentLink.getFromNode(), currentLink.getToNode()), false);
 			return null;
 		}
 		else if (customMetroLinkAttributes.singleRefStopFacility != null && customMetroLinkAttributes.singleRefStopFacility != blockedFacility) {
@@ -2048,14 +2039,14 @@ public class NetworkEvolutionImpl {
 			while (mRouteIter.hasNext()) {
 				Entry<String, MRoute> mRouteEntry = mRouteIter.next();
 				String mRouteName = mRouteEntry.getKey();
-				MRoute mRoute = mNetwork.routeMap.get(mRouteName);
+				MRoute mRoute = mRouteEntry.getValue();
 				lineNr++;
 				// Create an array of stops along new networkRoute on the center of each of its individual links
 				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
 						metroLinkAttributes, metroSchedule, globalNetwork, mRoute.networkRoute, defaultPtMode, stopTime, maxVelocity, blocksLane);
 				if (stopArray == null) {
 					Log.write("CAUTION: stopArray was too short (see code for size limits) --> Therefore deleting mRoute = " +mRouteName);
-					mNetwork.routeMap.remove(mRouteName);
+					mRouteIter.remove();
 					continue;
 				}
 				mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();

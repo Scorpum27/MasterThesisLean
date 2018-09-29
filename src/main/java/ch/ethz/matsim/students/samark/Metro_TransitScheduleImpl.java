@@ -114,7 +114,7 @@ public class Metro_TransitScheduleImpl {
 			if (stopArray.size() < 3) {
 				// length two would mean same stop is services one time there and one time back, while length three means an additional link 
 				// with a stop must be involved and the vehicle must actually drive off from first stop to get to the second one.
-				Log.write("CAUTION: too small stopArray = "+stopArray.toString() + " --> Returning NULL and removing mRoute from network.");
+				Log.write("CAUTION: too small stopArray = "+stopArray.toString() + " --> Returning NULL and will be removing mRoute from network.");
 				return null;
 			}
 			if (stopArray.get(0).getStopFacility().getId().equals(stopArray.get(stopArray.size()-1).getStopFacility().getId()) == false) {
@@ -157,9 +157,7 @@ public class Metro_TransitScheduleImpl {
 			Link currentLink, TransitStopFacility lastStopFacility) throws IOException {
 		CustomMetroLinkAttributes customMetroLinkAttributes = metroLinkAttributes.get(currentLink.getId());
 		if (customMetroLinkAttributes == null) {
-//			Log.write("No metro link attributes found for link = "+currentLink.getId().toString());
-//			return transitSchedule.getFactory().createTransitStopFacility(Id.create("genericMetroStopLinkRef"+currentLink.getId().toString(),TransitStopFacility.class),
-//					GeomDistance.coordBetweenNodes(currentLink.getFromNode(), currentLink.getToNode()), false);
+			Log.write("No metro link attributes found for link = "+currentLink.getId().toString());
 			return null;
 		}
 		// Second condition makes sure that a TSF is not used twice given the network nature where the same facility can be used on the ToNode of one link

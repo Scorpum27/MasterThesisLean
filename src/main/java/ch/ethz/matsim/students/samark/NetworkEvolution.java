@@ -136,9 +136,17 @@ public class NetworkEvolution {
 		// for isolated code running:
 		// XMLOps.writeToFileMNetworkPop(networkPopulation, "zurich_1pm/Evolution/Population/"+networkPopulation.populationId+".xml");
 		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - END" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
+		MNetworkPop latestPopulation = networkPopulation;		// Uncomment until here for RECALL
+
 		
-		MNetworkPop latestPopulation = networkPopulation;		
-				
+		// RECALL MODULE
+		// - Uncomment "LogCleaner" & "Network Creation"
+		// - firstGeneration=generationToRecall
+		//		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+		//		int generationToRecall = 4;	// it is recommended to use the Generation before the one that failed in order
+		//									// to make sure it's data is complete and ready for next clean generation
+		//		MNetworkPop latestPopulation = new MNetworkPop(populationName);
+		//		NetworkEvolutionRunSim.recallSimulation(latestPopulation, metroLinkAttributes, generationToRecall, "evoNetworks", populationSize, initialRoutesPerNetwork);
 		
 	// EVOLUTIONARY PROCESS
 		Config config = ConfigUtils.createConfig();
@@ -146,12 +154,12 @@ public class NetworkEvolution {
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
 		
-		int firstGeneration = 1;
-		int lastGeneration = 2;
-		int nEvolutions = lastGeneration - firstGeneration + 1;
 		
-		double averageTravelTimePerformanceGoal = 40.0;
+		int firstGeneration = 1;
+		int lastGeneration = 4;
+		
 		int lastIteration = 1;
+		double averageTravelTimePerformanceGoal = 40.0;
 		int storeScheduleInterval = 1;	// every X generations the mergedSchedule/Vehicles are saved for continuation of simulation after undesired breakdown
 		for (int generationNr=firstGeneration; generationNr<=lastGeneration; generationNr++) {
 			Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "GENERATION - " + generationNr + " - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
@@ -224,7 +232,7 @@ public class NetworkEvolution {
 		}
 
 	// PLOT RESULTS
-		int generationsToPlot = nEvolutions;
+		int generationsToPlot = lastGeneration;
 		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png");
 		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkScoreEvo.png");
 	

@@ -6,6 +6,8 @@ import java.io.PrintWriter;
 import java.util.HashMap;
 import java.util.Map;
 
+import javax.sound.midi.Synthesizer;
+
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -19,6 +21,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 public class NetworkEvolutionXSimOnly {
 
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws ConfigurationException, IOException {
 //		Here, we don't want to empty logFile before simulating because we want the whole history
 //		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
@@ -99,10 +102,10 @@ public class NetworkEvolutionXSimOnly {
 		
 		// RECALL OLD SIMULATION STATE
 		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
-		int generationToRecall = 2;
+		int generationToRecall = 4;	// it is recommended to use the Generation before the one that failed in order
+									// to make sure it's data is complete and ready for next clean generation
 	    MNetworkPop latestPopulation = new MNetworkPop(populationName);
 		NetworkEvolutionRunSim.recallSimulation(latestPopulation, metroLinkAttributes, generationToRecall, "evoNetworks", populationSize, initialRoutesPerNetwork);
-		
 		
 		
 	// EVOLUTIONARY PROCESS
@@ -111,9 +114,8 @@ public class NetworkEvolutionXSimOnly {
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
 		
-		int firstGeneration = 3;
-		int lastGeneration = 4;
-		int nEvolutions = lastGeneration - firstGeneration + 1;
+		int firstGeneration = generationToRecall;
+		int lastGeneration = 7;
 		
 		double averageTravelTimePerformanceGoal = 40.0;
 		int lastIteration = 1;
@@ -189,7 +191,7 @@ public class NetworkEvolutionXSimOnly {
 		}
 
 	// PLOT RESULTS
-		int generationsToPlot = nEvolutions;
+		int generationsToPlot = lastGeneration;
 		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png");
 		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkScoreEvo.png");
 	
