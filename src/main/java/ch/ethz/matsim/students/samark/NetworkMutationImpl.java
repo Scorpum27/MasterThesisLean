@@ -250,7 +250,8 @@ public class NetworkMutationImpl {
 			
 			Id<Link> blockedLink = linkListMutateFacilityLinks.get((new Random()).nextInt(linkListMutateFacilityLinks.size()-2)+1);
 			mRoute.facilityBlockedLinks.add(blockedLink);
-			Log.write("Blocking facility link for servicing an active stop: "+blockedLink.toString());
+			mRoute.facilityBlockedLinks.add(NetworkEvolutionImpl.ReverseLink(blockedLink));
+			Log.write("Blocking facility links for servicing an active stop:  "+blockedLink.toString() + "  &  " + NetworkEvolutionImpl.ReverseLink(blockedLink));
 		}
 		else {
 			// insert an additional stop facility (facility insertion)
@@ -266,34 +267,37 @@ public class NetworkMutationImpl {
 				Link cutOpenLink;
 				int cutIndex;
 				int n = 0;
+				boolean foundFeasibleCutCandidate = true;
 				do {
 					cutIndex = (new Random()).nextInt(linkListMutateFacilityLinks.size()-2)+1;
 					cutOpenLinkId = linkListMutateFacilityLinks.get(cutIndex);
 					cutOpenLink = globalNetwork.getLinks().get(cutOpenLinkId);
 					n++;
 					if (n>50) {
-						Log.write("Failing to find a route stop insertion point within (metro) city. Not inserting any node and proceeding to next route.");
-						break InsertionLoop; 
+						Log.write("Failing to find a route stop insertion point within (metro) city. Trying to add in reverse direction.");
+						foundFeasibleCutCandidate = false;
+						break; 
 					}
 				} while(GeomDistance.calculate(cutOpenLink.getFromNode().getCoord(), zurich_NetworkCenterCoord) > 5000.0);
 				int facilitiesUntilEndTerminal = linkListMutateFacilityLinks.size()-1-cutIndex;
-				int facilitiesUntilStartTerminal = cutIndex;
 				
-				for (int i=1; i<=Math.min(facilitiesUntilEndTerminal, 4.0); i++) {
-					Id<Link> cutCloseLinkId = linkListMutateFacilityLinks.get(cutIndex + i);
-					Link cutCloseLink = globalNetwork.getLinks().get(cutCloseLinkId);
-					if (GeomDistance.calculate(cutCloseLink.getFromNode().getCoord(), cutOpenLink.getFromNode().getCoord()) > 3500) {
-						continue;
-					}
-					Log.write("Testing close node nPositions DOWN the route: n="+i);
-					List<Id<Link>> reroutedLinkRoute = insertNewStopInRoute(servicedFacilities, cutOpenLinkId, cutCloseLinkId, globalNetwork,
-							allMetroStops, linkListMutate, linkListMutateFacilityLinks, maxCrossingAngle);
-					if (reroutedLinkRoute == null) {
-						continue;
-					} else {
-						linkListMutate = reroutedLinkRoute;
-						Log.write("A new facility node was inserted successfully!");
-						break InsertionLoop;
+				if (foundFeasibleCutCandidate == true) {
+					for (int i=1; i<=Math.min(facilitiesUntilEndTerminal, 4.0); i++) {
+						Id<Link> cutCloseLinkId = linkListMutateFacilityLinks.get(cutIndex + i);
+						Link cutCloseLink = globalNetwork.getLinks().get(cutCloseLinkId);
+						if (GeomDistance.calculate(cutCloseLink.getFromNode().getCoord(), cutOpenLink.getFromNode().getCoord()) > 3500) {
+							continue;
+						}
+						Log.write("Testing close node nPositions DOWN the route: n="+i);
+						List<Id<Link>> reroutedLinkRoute = insertNewStopInRoute(servicedFacilities, cutOpenLinkId, cutCloseLinkId, globalNetwork,
+								allMetroStops, linkListMutate, linkListMutateFacilityLinks, maxCrossingAngle);
+						if (reroutedLinkRoute == null) {
+							continue;
+						} else {
+							linkListMutate = reroutedLinkRoute;
+							Log.write("A new facility node was inserted successfully!");
+							break InsertionLoop;
+						}
 					}
 				}
 				
@@ -301,20 +305,35 @@ public class NetworkMutationImpl {
 				List<Id<Link>>linkListMutateReverse = NetworkEvolutionImpl.OppositeLinkListOf(linkListMutate);				
 				List<Id<Link>>linkListMutateFacilityLinksReverse = NetworkEvolutionImpl.OppositeLinkListOf(linkListMutateFacilityLinks);
 				
+				Id<Link> cutOpenLinkIdReverse;
+				Link cutOpenLinkReverse;
+				int cutIndexReverse;
+				n = 0;
+				do {
+					cutIndexReverse = (new Random()).nextInt(linkListMutateFacilityLinksReverse.size()-2)+1;
+					cutOpenLinkIdReverse = linkListMutateFacilityLinksReverse.get(cutIndexReverse);
+					cutOpenLinkReverse = globalNetwork.getLinks().get(cutOpenLinkIdReverse);
+					n++;
+					if (n>50) {
+						Log.write("Failing to find a route stop insertion point within (metro) city. Not inserting any node and proceeding to next route.");
+						break InsertionLoop; 
+					}
+				} while(GeomDistance.calculate(cutOpenLinkReverse.getFromNode().getCoord(), zurich_NetworkCenterCoord) > 5000.0);
+				int facilitiesUntilEndTerminalReverse = linkListMutateFacilityLinksReverse.size()-1-cutIndexReverse;
 				
-				for (int i=1; i<=Math.min(facilitiesUntilStartTerminal, 4.0); i++) {
-					Id<Link> cutCloseLinkId = linkListMutateFacilityLinks.get(cutIndex - i);
-					Link cutCloseLink = globalNetwork.getLinks().get(cutCloseLinkId);
-					if (GeomDistance.calculate(cutCloseLink.getFromNode().getCoord(), cutOpenLink.getFromNode().getCoord()) > 3500) {
+				for (int i=1; i<=Math.min(facilitiesUntilEndTerminalReverse, 4.0); i++) {
+					Id<Link> cutCloseLinkIdReverse = linkListMutateFacilityLinksReverse.get(cutIndexReverse + i);
+					Link cutCloseLinkReverse = globalNetwork.getLinks().get(cutCloseLinkIdReverse);
+					if (GeomDistance.calculate(cutCloseLinkReverse.getFromNode().getCoord(), cutOpenLinkReverse.getFromNode().getCoord()) > 3500) {
 						continue;
 					}
 					Log.write("Testing close node nPositions UP the route: n="+i);
-					List<Id<Link>> reroutedLinkRoute = insertNewStopInRoute(servicedFacilities, cutOpenLinkId, cutCloseLinkId, globalNetwork,
-							allMetroStops, linkListMutate, linkListMutateFacilityLinks, maxCrossingAngle);
-					if (reroutedLinkRoute == null) {
+					List<Id<Link>> reroutedLinkRouteReverse = insertNewStopInRoute(servicedFacilities, cutOpenLinkIdReverse, cutCloseLinkIdReverse, globalNetwork,
+							allMetroStops, linkListMutateReverse, linkListMutateFacilityLinksReverse, maxCrossingAngle);
+					if (reroutedLinkRouteReverse == null) {
 						continue;
 					} else {
-						linkListMutate = reroutedLinkRoute;
+						linkListMutate = reroutedLinkRouteReverse;
 						break InsertionLoop;
 					}
 				}
