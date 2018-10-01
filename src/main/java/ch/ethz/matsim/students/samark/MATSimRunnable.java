@@ -2,6 +2,7 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.File;
 import java.io.IOException;
+
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
@@ -28,7 +29,7 @@ import ch.ethz.matsim.baseline_scenario.zurich.ZurichModule;
 import ch.ethz.matsim.papers.mode_choice_paper.CustomModeChoiceModule;
 import ch.ethz.matsim.papers.mode_choice_paper.utils.LongPlanFilter;
 
-public class ThreadMATSimRun extends Thread {
+public class MATSimRunnable implements Runnable {
 
 	String[] args;
 	MNetwork mNetwork;
@@ -36,7 +37,7 @@ public class ThreadMATSimRun extends Thread {
 	String initialConfig;
 	int lastIteration;
 	
-	public ThreadMATSimRun(String[] args, MNetwork mNetwork, String initialRouteType, String initialConfig, int lastIteration) {
+	public MATSimRunnable(String[] args, MNetwork mNetwork, String initialRouteType, String initialConfig, int lastIteration) {
 		this.args = args;
 		this.mNetwork = mNetwork;
 		this.initialRouteType = initialRouteType;
@@ -44,6 +45,7 @@ public class ThreadMATSimRun extends Thread {
 		this.lastIteration = lastIteration;
 	}
 
+	@Override
 	public void run() {
 		
 		try {
@@ -133,6 +135,13 @@ public class ThreadMATSimRun extends Thread {
 		controler.addOverridingModule(new CustomModeChoiceModule(cmd));
 		controler.run();
 
+		try {
+			Log.write("Completed MATSim Run of network="+mNetwork.networkID);
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
 	}
 
+	
 }

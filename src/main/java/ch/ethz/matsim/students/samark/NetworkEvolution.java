@@ -3,8 +3,13 @@ package ch.ethz.matsim.students.samark;
 import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
@@ -57,18 +62,28 @@ public class NetworkEvolution {
 	
 
 /* CAUTION & NOTES
+ * CAUTION: Put back in applyMutations jump over eliteNetwork
  * Run RunScenario First to have simulation output that can be analyzed [up to iterationToReadOriginalNetwork]
  * Parameters: Tune well, may use default
  * For OD: minTerminalRadiusFromCenter = 0.00*metroCityRadius
  * Do not use "noModificationInLastEvolution" if lastIteration changes over evolutions, because this would give another result from the simulations
  * minCrossingDistanceFactorFromRouteEnd must have a MINIMUM = 0.25
+ * POM INCLUDE:
+ * 		<dependency>
+			<groupId>org.apache.directory.studio</groupId>
+			<artifactId>org.apache.commons.io</artifactId>
+			<version>2.4</version>
+		</dependency>
+ *
  */
 
 	
+	
 	@SuppressWarnings("unchecked")
-	public static void main(String[] args) throws ConfigurationException, IOException {
+	public static void main(String[] args) throws ConfigurationException, IOException, InterruptedException {
 		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
 		PrintWriter pwEvo = new PrintWriter("zurich_1pm/Evolution/Population/LogEvo.txt");	pwEvo.close();				// Prepare empty evoLog file for run
+		Log.write("START TIME = "+(new SimpleDateFormat("HH:mm:ss")).format(Calendar.getInstance().getTime()));
 
 		
 	// INITIALIZATIon
@@ -114,40 +129,45 @@ public class NetworkEvolution {
 		double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		double metroOpsCostPerKM = 1000; double metroConstructionCostPerKmOverground = 1000000; double metroConstructionCostPerKmUnderground = 10000000;
 		
-		
+	
 		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		// Log.write("NETWORK CREATION - START");
-		MNetworkPop networkPopulation = NetworkEvolutionImpl.createNetworks(populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork,
-				minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
-				maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, mergeMetroWithRailway, railway2metroCatchmentArea,
-				metro2metroCatchmentArea, odConsiderationThreshold, xOffset, yOffset, vehicleTypeName, vehicleLength, maxVelocity, 
-				vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing,
-				metroOpsCostPerKM, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground);
-		// XMLOps.writeToFileMNetworkPop(networkPopulation, "zurich_1pm/Evolution/Population/"+networkPopulation.populationId+".xml");
-		
+
+		MNetworkPop networkPopulation = NetworkEvolutionImpl.createMNetworkRoutes(							// Make a list of routes that will be added to this network
+					populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork,
+					minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
+					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, mergeMetroWithRailway, railway2metroCatchmentArea,
+					metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, vehicleTypeName, vehicleLength, maxVelocity, 
+					vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing,
+					metroOpsCostPerKM, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground);
+			
 		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - END" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-		MNetworkPop latestPopulation = networkPopulation;		// Uncomment until here for RECALL
+		
+		MNetworkPop latestPopulation = networkPopulation;
+		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
+		// Uncomment until here for RECALL
 		
 		
 		// RECALL MODULE
 		// - Uncomment "LogCleaner" & "Network Creation"
 		// - firstGeneration=generationToRecall
-		//		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
-		//		int generationToRecall = 4;	// it is recommended to use the Generation before the one that failed in order
-		//									// to make sure it's data is complete and ready for next clean generation
-		//		MNetworkPop latestPopulation = new MNetworkPop(populationName);
-		//		NetworkEvolutionRunSim.recallSimulation(latestPopulation, metroLinkAttributes, generationToRecall, "evoNetworks", populationSize, initialRoutesPerNetwork);
+//				Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+//				int generationToRecall = 1;	// it is recommended to use the Generation before the one that failed in order
+//											// to make sure it's data is complete and ready for next clean generation
+//				MNetworkPop latestPopulation = new MNetworkPop(populationName);
+//				NetworkEvolutionRunSim.recallSimulation(latestPopulation, metroLinkAttributes, generationToRecall, "evoNetworks", populationSize, initialRoutesPerNetwork);
+		
+		
 		
 	// EVOLUTIONARY PROCESS
 		Config config = ConfigUtils.createConfig();
-		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/GlobalNetwork.xml");
+		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
-		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
-		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/metroLinkAttributes.xml"));
+
 		
 		int firstGeneration = 1;
-		int lastGeneration = 2;
+		int lastGeneration = 4;
 		
 		int lastIteration = 1;
 		double averageTravelTimePerformanceGoal = 40.0;
@@ -158,32 +178,40 @@ public class NetworkEvolution {
 			
 			// - SIMULATION LOOP:
 		
-			//MNetworkPop evoNetworksToSimulate = latestPopulation;
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
-					// for isolated code running:
-					// XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/"+populationName+".xml");
+
+//	        ExecutorService executor = Executors.newFixedThreadPool(4);
 			for (MNetwork mNetwork : latestPopulation.getNetworks().values()) {
 				if (latestPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())==false) {
-					continue;		// must not simulate this loop again, because it has not been changed in last evolution
-									// Comment this if lastIteration changes over evolutions !!
+					// must not simulate this loop again, because it has not been changed in last evolution
+					// Comment this if lastIteration changes over evolutions !!
+					continue;
 				}
 				mNetwork.evolutionGeneration = generationNr;
 				String initialConfig = "zurich_1pm/zurich_config.xml";
+//				MATSimRunnable matsimrunnable = new MATSimRunnable(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+//				executor.execute(matsimrunnable);
+				// Alternative: (new ThreadMATSimRun(args, mNetwork, initialRouteType, initialConfig, lastIteration)).start();
 				NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration);
-			} // End Network Simulation Loop 
-	
+			} // End Network Simulation Loop
+//	        executor.shutdown();			        // Wait until all threads are finished
+
+//	        try {
+//	        	  executor.awaitTermination(120*60, TimeUnit.SECONDS);
+//	        	} catch (InterruptedException e) {
+//	        	  Log.writeAndDisplay(e.getMessage().toString());
+//	        	}
+//			Log.write("Completed all MATSim runs.");
+			
 		// - EVENTS PROCESSING: 
 			Log.write("EVENTS PROCESSING of GEN"+generationNr+"");
 			int lastEventIteration = lastIteration; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
-			MNetworkPop evoNetworksToProcess = latestPopulation;  // for isolated code running: MNetworkPop evoNetworksToProcess = XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/"+populationName+".xml");
+			MNetworkPop evoNetworksToProcess = latestPopulation;
 			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration, globalNetwork);
-					// only for isolated code running to store processed performance parameters:
-					// XMLOps.writeToFileMNetworkPop(evoNetworksToProcess, "zurich_1pm/Evolution/Population/"+evoNetworksToProcess.populationId+".xml");
-			
+
 		// - PLANS PROCESSING:
 			Log.write("PLANS PROCESSING of GEN"+generationNr+"");
-			//MNetworkPop evoNetworksToProcessPlans = evoNetworksToProcess; 	// for isolated code running: XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/"+populationName+".xml");
 			int maxConsideredTravelTimeInMin = 240;
 			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInMin);
 			
@@ -207,18 +235,18 @@ public class NetworkEvolution {
 				// - applyPT: make functions for depSpacing = f(nVehicles, total route length) while total route length = f(linkList or stopArray)
 			
 			double alpha = 10.0;											// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and decreases probability to choose a weak network more than linearly -> linearly would be p_i = Score_i/Score_tot)
-			double pCrossOver = 0.35; 										// DEFAULT = 0.35
+			double pCrossOver = 0.00; 										// DEFAULT = 0.35
 			double minCrossingDistanceFactorFromRouteEnd = 0.3; 			// DEFAULT = 0.30; MINIMUM = 0.25
 			boolean logEntireRoutes = false;
 			double maxCrossingAngle = 110; 									// DEFAULT = 110
-			double pMutation = 0.35;										// DEFAULT = 0.35 
-			double pBigChange = 0.2;										// DEFAULT = 0.20
+			double pMutation = 1.00;										// DEFAULT = 0.35
+			double pBigChange = 1.0;										// DEFAULT = 0.20
 			double pSmallChange = 1.0-pBigChange;
 			if (generationNr != lastGeneration) {
 				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,
 						metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork, 
 						useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, 
-						logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, pMutation, pBigChange, pSmallChange);
+						logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, zurich_NetworkCenterCoord, pMutation, pBigChange, pSmallChange);
 			}			
 		}
 
@@ -232,6 +260,7 @@ public class NetworkEvolution {
 						"populationSize = "+populationSize  + "\r\n" + "initialRoutesPerNetwork = "+initialRoutesPerNetwork + "\r\n" +
 						"mergeMetroWithRailway = "+mergeMetroWithRailway  + "\r\n" + "... etc ...");
 
+		Log.write("END TIME = "+(new SimpleDateFormat("HH:mm:ss")).format(Calendar.getInstance().getTime()));
 	} // end Main Method
 
 } // end NetworkEvolution Class
@@ -284,4 +313,3 @@ public class NetworkEvolution {
 //		- Iteration
 //		- ScoreMap for each network (and routes?)
 // --> Simulation loop
-

@@ -2,6 +2,8 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -34,7 +36,7 @@ public class Log {
 
 		FileWriter aWriter = new FileWriter(f, true);
 		// aWriter.write(currentTime + " " + s + "\n");
-		aWriter.write(comment + "\r\n");
+		aWriter.write((new SimpleDateFormat("HH:mm:ss")).format(Calendar.getInstance().getTime()) + " |  " + comment + "\r\n");
 		aWriter.flush();
 		aWriter.close();
 	}

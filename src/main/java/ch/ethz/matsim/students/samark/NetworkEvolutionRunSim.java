@@ -58,17 +58,20 @@ public class NetworkEvolutionRunSim {
 		modConfig.getModules().get("controler").addParam("overwriteFiles", "overwriteExistingFiles");
 		modConfig.getModules().get("controler").addParam("lastIteration", Integer.toString(lastIteration));
 		modConfig.getModules().get("controler").addParam("writeEventsInterval", "1");
-		String inputNetworkFile = "Evolution/Population/GlobalNetwork.xml"; 
+		String inputNetworkFile = "Evolution/Population/BaseInfrastructure/GlobalNetwork.xml"; 
 		// See old versions BEFORE 06.09.2018 for how to load specific mergedNetworks OD/Random instead of Global Network with all links
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
 		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml");
+//		modConfig.getModules().get("global").addParam("numberOfThreads","1");
+//		modConfig.getModules().get("parallelEventHandling").addParam("numberOfThreads","1");
+//		modConfig.getModules().get("qsim").addParam("numberOfThreads","1");
 		// See old versions BEFORE 06.09.2018 for how to write config to file (not necessary)
 		
 		Scenario modScenario = ScenarioUtils.createScenario(modConfig);
 		modScenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class,
 					new DefaultEnrichedTransitRouteFactory());
-		ScenarioUtils.loadScenario(modScenario);	
+		ScenarioUtils.loadScenario(modScenario);
 			
 		// Do this to delete initial plans in order to have same chances of success for metro as other traffic!
 		TripsToLegsAlgorithm t2l = new TripsToLegsAlgorithm(new StageActivityTypesImpl(PtConstants.TRANSIT_ACTIVITY_TYPE), new MainModeIdentifierImpl());
@@ -335,7 +338,7 @@ public class NetworkEvolutionRunSim {
 		Log.write("%%%%%%%%%%%%%%%%%%%            %%%%%%%%%%%%%% RECALLING END STATE OF GEN=\"+ generationToRecall %%%%%%%%%%%%%%%            %%%%%%%%%%%%%%%%%%");
 		Log.write(" "); Log.write(" "); Log.write(" ");
 		Log.write("%%%%%%%%%%%%%%%%%%%            %%%%%%%%%%%%%% ------------------------------------------------- %%%%%%%%%%%%%%%            %%%%%%%%%%%%%%%%%%");
-		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/metroLinkAttributes.xml"));
+		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
 		for (int n=1; n<=populationSize; n++) {
 			MNetwork loadedNetwork = new MNetwork("Network"+n);
 			latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);

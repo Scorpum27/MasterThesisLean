@@ -20,11 +20,11 @@ public class DemoDijkstra {
 //		Log.write("Origin node is: "+startNode.toString());
 //		Log.write("Destination node is: "+endNode.toString());
 		if (origin == null) {
-			Log.write("Origin node is null (check if metroNetwork contains node): "+startNode.toString());
+//			Log.write("Origin node is null (check if metroNetwork contains node): "+startNode.toString());
 			return null;
 		}
 		if (destination == null) {
-			Log.write("Destination node is null (check if metroNetwork contains node): "+endNode.toString());
+//			Log.write("Destination node is null (check if metroNetwork contains node): "+endNode.toString());
 			return null;
 		}
 		calculate(origin);

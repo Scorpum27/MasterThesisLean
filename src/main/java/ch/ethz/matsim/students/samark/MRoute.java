@@ -1,5 +1,6 @@
 package ch.ethz.matsim.students.samark;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import org.matsim.api.core.v01.Id;
@@ -40,6 +41,9 @@ public class MRoute implements Serializable{
 	double undergroundPercentage;
 	int vehiclesNr;
 	
+	// from evolution
+	List<Id<Link>> facilityBlockedLinks;
+	
 	public MRoute() {
 	}
 	
@@ -60,6 +64,8 @@ public class MRoute implements Serializable{
 		this.constrCost = Double.MAX_VALUE;
 		this.vehiclesNr = 0;
 		this.roundtripTravelTime = Double.MAX_VALUE;
+		this.facilityBlockedLinks = new ArrayList<Id<Link>>();
+
 	}
 	
 	

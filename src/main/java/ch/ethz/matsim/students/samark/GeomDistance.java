@@ -25,6 +25,24 @@ public class GeomDistance {
 		return betweenCoord;
 	}
 
+	public static double angleBetweenPoints(Coord c1, Coord c2, Coord c3) {
+		double x1A = c1.getX();
+		double y1A = c1.getY();
+		double x2A = c2.getX();
+		double y2A = c2.getY();
+		double directionA = GeomDistance.absoluteAngle(x1A, x2A, y1A, y2A);
+		double x1B = c2.getX();
+		double y1B = c2.getY();
+		double x2B = c3.getX();
+		double y2B = c3.getY();
+		double directionB = GeomDistance.absoluteAngle(x1B, x2B, y1B, y2B);
+		double intersectingAngle = Math.abs(directionB-directionA);
+		if (intersectingAngle > 180.0) {
+			intersectingAngle = 360.0-intersectingAngle;
+		}
+		return intersectingAngle;
+	}
+	
 	public static double angleBetweenLinks(Link linkA, Link linkB) {
 		double x1A = linkA.getFromNode().getCoord().getX();
 		double y1A = linkA.getFromNode().getCoord().getY();

@@ -8,8 +8,10 @@ import java.io.InputStreamReader;
 import java.io.PrintWriter;
 import java.io.Reader;
 import java.nio.charset.Charset;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -41,8 +43,89 @@ import org.xml.sax.helpers.DefaultHandler;
 
 public class Demo {
 	
+	
+	
+	
+	
 	public static void main(String[] args) throws IOException, XMLStreamException {
 		
+		Config c2 = ConfigUtils.createConfig();
+		c2.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/TotalMetroNetwork.xml");
+		Network metroNetwork = ScenarioUtils.loadScenario(c2).getNetwork();
+		
+		MRoute mr = XMLOps.readFromFile(MRoute.class, "zurich_1pm/Evolution/Population/HistoryLog/Generation2/MRoutes/Network2_Route2_RoutesFile.xml");
+		List<Id<Link>> linkList = NetworkEvolutionImpl.NetworkRoute2LinkIdList(mr.networkRoute);
+		System.out.println("LinkList = "+linkList.toString());
+		
+		List<Link> links = new ArrayList<Link>();
+		for (Id<Link> linkId : linkList) {
+			links.add(metroNetwork.getLinks().get(linkId));
+		}
+		
+		Link lastLink = links.get(0);
+		for (Link thisLink : links.subList(1, links.size())) {
+			System.out.println(GeomDistance.angleBetweenLinks(lastLink, thisLink) + "     LastLink="+lastLink.getId().toString());
+			lastLink = thisLink;
+		}
+		
+		
+		
+		
+		
+		
+		/*Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
+		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
+		
+		Config c1 = ConfigUtils.createConfig();
+		c1.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
+		Network globalNetwork = ScenarioUtils.loadScenario(c1).getNetwork();
+		Config c2 = ConfigUtils.createConfig();
+		c2.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/TotalMetroNetwork.xml");
+		Network metroNetwork = ScenarioUtils.loadScenario(c2).getNetwork();
+		
+		for (CustomStop cs : allMetroStops.values()) {
+			if (globalNetwork.getNodes().containsKey(cs.newNetworkNode)==false) {
+				Log.write("testLogNodes.txt","GlobalNetwork does not contain the node "+cs.newNetworkNode.toString() + " referenced by facility " + cs.transitStopFacility.getName());
+			}
+			if (metroNetwork.getNodes().containsKey(cs.newNetworkNode)==false) {
+				Log.write("testLogNodes.txt","MetroNetwork does not contain the node "+cs.newNetworkNode.toString() + " referenced by facility " + cs.transitStopFacility.getName());
+			}
+		}*/
+		
+		
+		/*
+		MRoute mr = new MRoute("mRoute1äöü");
+		MNetwork mn = new MNetwork("mNetwork1äöü");
+		mn.network = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+		MNetworkPop mnp = new MNetworkPop("mNetworkPop1äöü");
+		mn.addNetworkRoute(mr);
+		mnp.addNetwork(mn);
+		
+		CustomMetroLinkAttributes cmla = new CustomMetroLinkAttributes("testLinkäöü", Id.createLinkId("originalLinkId"));
+		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAtt = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+		metroLinkAtt.put(Id.createLinkId("testLinkId"), cmla);
+		
+		XMLOps.writeToFile(metroLinkAtt, "metroLinkAtt.xml");
+		XMLOps.writeToFileMNetwork(mn, "mn.xml");
+		XMLOps.writeToFileMNetworkPop(mnp, "mnp.xml");
+		
+		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAtt2 = XMLOps.readFromFile(metroLinkAtt.getClass(), "metroLinkAtt.xml");
+		MNetwork mn2 = XMLOps.readFromFileMNetwork("mn.xml");
+		MNetworkPop mnp2 = XMLOps.readFromFileMNetworkPop("mnp.xml");
+		
+		System.out.println(metroLinkAtt2.get(Id.createLinkId("testLinkId")).type.toString());
+		System.out.println(mn2.networkID);
+		System.out.println(mnp2.populationId);*/
+		
+		
+		// DISPLAY TIME
+//        Calendar cal = Calendar.getInstance();
+//        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+//        System.out.println( (new SimpleDateFormat("HH:mm:ss")).format(Calendar.getInstance().getTime()) );
+		
+		// RUNNABLE
+		
+		/*
 		System.out.println("Inside : " + Thread.currentThread().getName());
 		int i = 2;
         System.out.println("Creating Runnable...");
@@ -57,7 +140,7 @@ public class Demo {
         Thread thread = new Thread(runnable);
 
         System.out.println("Starting Thread...");
-        thread.start();
+        thread.start();*/
         
 		
 		// EVOLUTIONARY PROCESS
@@ -84,7 +167,7 @@ public class Demo {
 			}
 		}*/
 		
-//		System.out.println(Charset.defaultCharset());
+//		System.out.println(Charset.defaultCharset().toString());
 		
 //		int generationNr = 2;
 //		int storeScheduleInterval = 1;

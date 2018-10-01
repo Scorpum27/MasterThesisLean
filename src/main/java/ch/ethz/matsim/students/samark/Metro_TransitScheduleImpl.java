@@ -56,7 +56,7 @@ public class Metro_TransitScheduleImpl {
 
 		
 		public static List<TransitRouteStop> createAndAddNetworkRouteStops(Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, 
-				TransitSchedule transitSchedule, Network network, NetworkRoute networkRoute, String defaultPtMode, double stopTime, double maxVehicleSpeed, boolean blocksLane) throws IOException{
+				TransitSchedule transitSchedule, Network network, MRoute mRoute, String defaultPtMode, double stopTime, double maxVehicleSpeed, boolean blocksLane) throws IOException{
 
 			TransitScheduleFactory transitScheduleFactory = transitSchedule.getFactory();
 			List<TransitRouteStop> stopArray = new ArrayList<TransitRouteStop>();				// prepare an array for stop facilities on new networkRoute
@@ -66,7 +66,7 @@ public class Metro_TransitScheduleImpl {
 			double lastStopDistance = 0.0; // new
 			
 			List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
-			routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(networkRoute));
+			routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(mRoute.networkRoute));
 			double acceleration = 0.1*9.81;
 			double vMaxAccDistance = maxVehicleSpeed*maxVehicleSpeed/(2*acceleration);
 			double tAccVMax = maxVehicleSpeed/acceleration;
@@ -74,6 +74,9 @@ public class Metro_TransitScheduleImpl {
 			Id<Link> lastStopLinkId = routeLinkList.get(0); // Have secured by terminal choice that first link definitely has a stopFacility
 			TransitStopFacility lastStopFacility = selectStopFacilityOnLink(metroLinkAttributes, network.getLinks().get(lastStopLinkId), null);
 			for (Id<Link> currentLinkID : routeLinkList) {
+				if (mRoute.facilityBlockedLinks.contains(currentLinkID)) {
+					Log.write("Jumping over link with a blocked StopFacility, i.e. a stop chosen not to be serviced on this route!");
+				}
 				Link currentLink = network.getLinks().get(currentLinkID);
 				if (currentLink.equals(null)) {
 					Log.writeAndDisplay("linkID cannot be found in network! Next line will give a NullPointer Exception.");
@@ -108,6 +111,7 @@ public class Metro_TransitScheduleImpl {
 					stopArray.add(transitRouteStop);
 				}
 				else {
+					continue;
 //					Log.write("No stop found on this link");
 				}
 			}
@@ -261,6 +265,7 @@ public class Metro_TransitScheduleImpl {
 	}
 	
 	public static Network mergeRoutesNetworkToOriginalNetwork(Network routesNetwork, Network originalNetwork, Set<String> transportModes, String fileName) {
+		
 		Network mergedNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
 		
 		Metro_NetworkImpl.copyNetworkToNetwork(routesNetwork, mergedNetwork, transportModes);
@@ -277,10 +282,11 @@ public class Metro_TransitScheduleImpl {
 	}
 
 	public static TransitSchedule mergeAndWriteTransitSchedules(TransitSchedule schedule1, TransitSchedule schedule2, String fileName) {
+		
 		Config defaultConfig = ConfigUtils.createConfig();
 		Scenario defaultScenario = ScenarioUtils.createScenario(defaultConfig);
 		TransitSchedule mergedSchedule = defaultScenario.getTransitSchedule();
-		
+
 		
 		// Add all TransitStopFacilities from both TransitSchedules
 		for (TransitStopFacility stopFacility : schedule1.getFacilities().values()) {
@@ -315,10 +321,10 @@ public class Metro_TransitScheduleImpl {
 	}
 	
 	public static Vehicles mergeAndWriteVehicles(Vehicles transitVehicles1, Vehicles transitVehicles2, String fileName) {
+		
 		Config defaultConfig = ConfigUtils.createConfig();
 		Scenario defaultScenario = ScenarioUtils.createScenario(defaultConfig);
 		Vehicles mergedTransitVehicles = defaultScenario.getTransitVehicles();
-	
 		
 		// CAUTION: May have to construct conditional loops as in schedule merger above if can't add new vehicles
 		// because they are already featured in vehicles bin

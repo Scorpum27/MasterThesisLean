@@ -92,6 +92,9 @@ public class Clone {
 		if(o.linkList != null) {
 			copy.linkList = Clone.linkList(o.linkList);
 		}
+		if(o.facilityBlockedLinks != null) {
+			copy.facilityBlockedLinks = Clone.linkList(o.facilityBlockedLinks);
+		}
 		if(o.transitLine != null) {
 			copy.transitLine = Clone.transitLine(o.transitLine, ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule().getFactory());
 		}
