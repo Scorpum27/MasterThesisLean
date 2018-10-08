@@ -112,9 +112,16 @@ public class Clone {
 		copy.roundtripTravelTime = o.roundtripTravelTime;
 		copy.transitScheduleFile = o.transitScheduleFile;
 		copy.drivenKM = o.drivenKM;
+		copy.nStationsExtend = o.nStationsExtend;
+		copy.nStationsNew = o.nStationsNew;
 		copy.opsCost = o.opsCost;
 		copy.constrCost = o.constrCost;
 		copy.undergroundPercentage = o.undergroundPercentage;
+		copy.NewUGpercentage = o.NewUGpercentage;
+		copy.DevelopUGPercentage = o.DevelopUGPercentage;
+		copy.NewOGpercentage = o.NewOGpercentage;
+		copy.EquipOGPercentage = o.EquipOGPercentage;
+		copy.DevelopOGPercentage = o.DevelopOGPercentage;
 		return copy;
 	}
 	

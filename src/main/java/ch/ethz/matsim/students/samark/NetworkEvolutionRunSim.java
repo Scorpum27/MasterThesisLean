@@ -1,6 +1,7 @@
 package ch.ethz.matsim.students.samark;
 
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
@@ -207,7 +208,7 @@ public class NetworkEvolutionRunSim {
 		return networkPopulation;
 	}
 	
-	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInMin) {
+	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInMin, int lastIterationOriginal) throws IOException {
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			String networkName = mNetwork.networkID;
 			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";			
@@ -267,12 +268,17 @@ public class NetworkEvolutionRunSim {
 			double standardDeviation = Math.sqrt(standardDeviationInnerSum/(travels-1));
 			mNetwork.stdDeviationTravelTime = standardDeviation;
 
+			CostBenefitParameters cbpNew = NetworkEvolutionImpl.calculateCBAStats(finalPlansFile,
+					"zurich_1pm/Evolution/Population/"+networkName+"/cbaParameters"+lastIterationOriginal+".xml");
 		}
 		// Display Travel Time Stats
 		for (MNetwork network : networkPopulation.networkMap.values()) {
 			System.out.println(network.networkID+" AverageTavelTime [min] = "+network.averageTravelTime+"   (StandardDeviation="+network.stdDeviationTravelTime+")");
 			System.out.println(network.networkID+" TotalTravelTime [min] = "+network.totalTravelTime);
 		}
+		
+
+		
 		return networkPopulation;
 	}
 	

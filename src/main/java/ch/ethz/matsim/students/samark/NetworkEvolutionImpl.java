@@ -22,6 +22,10 @@ import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.NetworkFactory;
 import org.matsim.api.core.v01.network.NetworkWriter;
 import org.matsim.api.core.v01.network.Node;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Plan;
+import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
@@ -47,14 +51,15 @@ import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRo
 
 public class NetworkEvolutionImpl {
 
-	public static MNetworkPop createMNetworkRoutes(String populationName, int populationSize, int initialRoutesPerNetwork, String initialRouteType, String shortestPathStrategy, int iterationToReadOriginalNetwork,
-			double minMetroRadiusFromCenter, double maxMetroRadiusFromCenter, double maxExtendedMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
+	public static MNetworkPop createMNetworkRoutes(String populationName, int populationSize, int initialRoutesPerNetwork, String initialRouteType, 
+			String shortestPathStrategy, int iterationToReadOriginalNetwork, int lastIterationOriginal, double minMetroRadiusFromCenter,
+			double maxMetroRadiusFromCenter, double maxExtendedMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
 			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter,
-			double minTerminalDistance, boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea, double odConsiderationThreshold, 
-			boolean useOdPairsForInitialRoutes, double xOffset, double yOffset,
+			double minTerminalDistance, boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea,
+			double odConsiderationThreshold, boolean useOdPairsForInitialRoutes, double xOffset, double yOffset, double populationFactor,
 			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom,String defaultPtMode, 
 			boolean blocksLane, double stopTime, double maxVehicleSpeed, double tFirstDep, double tLastDep, double initialDepSpacing,
-			double metroOpsCostPerKM, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground ) throws IOException {
+			double metroOpsCostPerKM, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground) throws IOException {
 
 		String networkPath = "zurich_1pm/Evolution/Population/BaseInfrastructure";
 		new File(networkPath).mkdirs();
@@ -68,7 +73,18 @@ public class NetworkEvolutionImpl {
 		// calculate average speed in Original Zurich TransitSchedule: Do this only once and put in commentaries afterwards
 		// NetworkEvolutionImpl.CalculateAverageNetworkSpeed(originalTransitSchedule, originalNetwork, "zurich_1pm/zurich_transit_schedule_meanSpeed.xml");
 		
-				
+		// CostBenefitAnalysis: calculate travel stats for original network at lastIterationOriginal,
+		// 						which should be the same iteration number as the one that will be simulated
+			// -nPersons PT;  		-nPersons MPT;
+			// -totalLegKM PT;		-totalLegKM MPT;
+			// -aveTravTime PT;		-aveTravTime MPT;
+		
+		String plansFile = "C:\\Users\\Sascha\\eclipse-workspace\\MATSim-Workspace\\MasterThesis\\zurich_1pm\\"
+				+ "Zurich_1pm_SimulationOutput\\ITERS\\it."+lastIterationOriginal+"\\"+lastIterationOriginal+".plans.xml.gz";
+		String outputFile = "zurich_1pm/cbaParametersOriginal"+lastIterationOriginal+".xml";
+		NetworkEvolutionImpl.calculateCBAStats(plansFile, outputFile);
+		
+		
 		// Initialize a customLinkMap with all links from original network
 		Map<Id<Link>, CustomLinkAttributes> allOriginalLinks = NetworkEvolutionImpl.createCustomLinkMap(originalNetwork, null);
 		
@@ -133,7 +149,7 @@ public class NetworkEvolutionImpl {
 				//null); // FOR SAVING: replace (null) by (networkPath+"/4_MetroNetwork.xml"))
 		
 		
-		// Extract copy of railway network from Zürich Scenario and convert (rename and connect to facilities) it to a metroNetwork:
+		// Extract copy of railway network from ZÃ¼rich Scenario and convert (rename and connect to facilities) it to a metroNetwork:
 		// Go through customRailStops (=all Zurich railway stopFacilities):
 			// - For all Facilities not added to transitSchedule yet (marked in customRailStops), create & add node & facility to new transitSchedule, mark in customRailStops
 			// - For all Facilities already added to innerCitySchedule: Create and add IDENTICAL node to isolated railwayNetwork --> CONSISTENCY WHEN MERGING later on!!
@@ -177,10 +193,6 @@ public class NetworkEvolutionImpl {
 				Sets.newHashSet("pt"), "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");				
 		XMLOps.writeToFile(metroLinkAttributes, "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml");
 		XMLOps.writeToFile(allMetroStops, "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml");
-
-		
-		// ---------------------------------------------------------------------------------
-		// TODO: Do not merge origNetwork, but copy to new one at bottom!!!
 		
 		MNetworkPop networkPopulation = new MNetworkPop(populationName, populationSize);			// Initialize population of networks
 		
@@ -272,11 +284,13 @@ public class NetworkEvolutionImpl {
 				mRoute.setNodeList(NetworkRoute2NodeIdList(metroNetworkRoute, metroNetwork));
 				mRoute.setRouteLength(metroNetwork);
 				mRoute.setDrivenKM(mRoute.routeLength * mRoute.nDepartures);
-				mRoute.constrCost = mRoute.routeLength
-						* (metroConstructionCostPerKmOverground * 0.01 * (100 - mRoute.undergroundPercentage)
-								+ metroConstructionCostPerKmUnderground * 0.01 * mRoute.undergroundPercentage);
-				mRoute.opsCost = mRoute.routeLength * (metroOpsCostPerKM * 0.01 * (100 - mRoute.undergroundPercentage)
-						+ 2 * metroOpsCostPerKM * 0.01 * mRoute.undergroundPercentage);
+//				mRoute.calculateConstCost();
+//				mRoute.calculateOpsCost(populationFactor);
+//				mRoute.constrCost = mRoute.routeLength
+//						* (metroConstructionCostPerKmOverground * 0.01 * (100 - mRoute.undergroundPercentage)
+//								+ metroConstructionCostPerKmUnderground * 0.01 * mRoute.undergroundPercentage);
+//				mRoute.opsCost = mRoute.routeLength * (metroOpsCostPerKM * 0.01 * (100 - mRoute.undergroundPercentage)
+//						+ 2 * metroOpsCostPerKM * 0.01 * mRoute.undergroundPercentage);
 				mRoute.transitScheduleFile = mNetworkPath + "/MetroSchedule.xml";
 				mRoute.setEventsFile("zurich_1pm/Zurich_1pm_SimulationOutput/ITERS/it." + iterationToReadOriginalNetwork
 						+ "/" + iterationToReadOriginalNetwork + ".events.xml.gz");
@@ -306,6 +320,66 @@ public class NetworkEvolutionImpl {
 	}
 		
 	
+	public static CostBenefitParameters calculateCBAStats(String plansFile, String outputFile) throws IOException {
+		Config blankConfig = ConfigUtils.createConfig();
+		blankConfig.getModules().get("plans").addParam("inputPlansFile", plansFile);
+		Scenario plansScenario = ScenarioUtils.loadScenario(blankConfig);		
+		
+		double totalPersons = 0.0;
+		double ptUsers = 0.0;
+		double carUsers = 0.0;
+		double otherUsers = 0.0;
+		double carTimeTotal = 0.0;
+		double carPersonKM = 0.0;
+		double ptTimeTotal = 0.0;
+		double ptPersonKM = 0.0;
+		
+		for (Person p : plansScenario.getPopulation().getPersons().values()) {
+			boolean isPtTraveler = false;
+			boolean isCarTraveler = false;
+			totalPersons++;
+			Plan selectedPlan = p.getSelectedPlan();
+			for (PlanElement e : selectedPlan.getPlanElements()) {
+				if (e instanceof Leg) {
+					Leg leg = (Leg) e;
+					Log.write("Current Selected Plan Leg = "+leg.toString()+" with mode = "+leg.getMode());
+					if (leg.getMode().contains("car")) {
+						carTimeTotal += leg.getTravelTime();
+						Log.write("Distance = " + leg.getRoute().getDistance());
+						carPersonKM += leg.getRoute().getDistance();
+						isCarTraveler = true;
+					}
+					if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
+							leg.getMode().contains("transit_walk") || leg.getMode().contains("egress_walk")) {
+						ptTimeTotal += leg.getTravelTime();
+						ptPersonKM += leg.getRoute().getDistance();
+						Log.write("Distance = " + leg.getRoute().getDistance());
+						isPtTraveler = true;
+					}
+				}
+			}
+			if (isCarTraveler && isPtTraveler) {
+				ptUsers ++;
+				carUsers ++;
+			}
+			else if (isCarTraveler) {
+				carUsers ++;
+			}
+			else if (isPtTraveler) {
+				ptUsers ++;
+			}
+			else {
+				otherUsers ++;
+			}
+		}
+		CostBenefitParameters cbp = new CostBenefitParameters(  ptUsers,  carUsers,  otherUsers,
+				 carTimeTotal,  carPersonKM,  ptTimeTotal,  ptPersonKM);
+		XMLOps.writeToFile(cbp, outputFile);
+		return cbp;
+	}
+
+	
+
 	public static void CalculateAverageNetworkSpeed(TransitSchedule originalTransitSchedule, Network originalNetwork,
 			String fileName) throws FileNotFoundException {
 		double totalLength = 0.0;
@@ -681,6 +755,7 @@ public class NetworkEvolutionImpl {
 							// - If facility is featured in railwayFacilities (check by superName): Process facility (superName) in railCustomStopMap - Set mode/NODE/addedToSchedule
 							for (String railStopSuperName : railStops.keySet()) {
 								if (newStopSuperName.equals(railStopSuperName)) {
+									railStops.get(railStopSuperName).mode = "railway2metro";
 									railStops.get(railStopSuperName).addedToNewSchedule = true;
 									railStops.get(railStopSuperName).newNetworkNode = newNode.getId();
 									railStops.get(railStopSuperName).transitStopFacility = metroCloneFacility;
@@ -745,7 +820,7 @@ public class NetworkEvolutionImpl {
 				Map<String, CustomStop> outerCityMetroStops, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Network originalNetwork, Network innerCityMetroNetwork,
 				String transitScheduleFileName, String fileName) throws IOException {
 			
-			// Extract copy of railway network from Zürich Scenario and convert (rename and connect to facilities) it to a metroNetwork:
+			// Extract copy of railway network from ZÃ¼rich Scenario and convert (rename and connect to facilities) it to a metroNetwork:
 				// - make new facilities (add to transitSchedule)
 				// - make new nodes (add to network) and connecting links
 				// - convert existing nodes/links to a metroVersion (with naming)
@@ -788,6 +863,7 @@ public class NetworkEvolutionImpl {
 					metroCloneFacility.setName(newMetroStopFacilityName);
 					metroStopFacilities.addStopFacility(metroCloneFacility);
 					outerCityMetroStops.put(newStopSuperName, new CustomStop(metroCloneFacility, newNode.getId(), "newMetro", true));
+					railStop.mode = "railway2metro";
 					railStop.newNetworkNode = newNode.getId();
 					railStop.addedToNewSchedule = true;
 					railStop.transitStopFacility = metroCloneFacility;
@@ -912,6 +988,9 @@ public class NetworkEvolutionImpl {
 					}
 				}
 			}
+			
+			// store railStops with its newly assigned tsf's here.
+			XMLOps.writeToFile(railStops, "zurich_1pm/Evolution/Population/BaseInfrastructure/railStopAttributes.xml");
 			
 			NetworkWriter nw = new NetworkWriter(outerCityMetroNetwork);
 			nw.write(fileName);
@@ -1285,7 +1364,7 @@ public class NetworkEvolutionImpl {
 // %%%%%%%%%%%%% Route & Line Processors %%%%%%%%%%%%%%%%%%%%%
 			public static double NetworkRoute2TotalLength(NetworkRoute networkRoute, Network thisNetwork) {
 				double totalLength = 0.00;
-				for (Id<Link> linkID : networkRoute.getLinkIds()) {
+				for (Id<Link> linkID : NetworkRoute2LinkIdList(networkRoute)) {
 					totalLength += thisNetwork.getLinks().get(linkID).getLength();
 				}
 				return totalLength;
@@ -2193,7 +2272,9 @@ public class NetworkEvolutionImpl {
 
 
 	public static boolean logResults(Map<String, NetworkScoreLog> networkScoreMap, String historyFileLocation,
-			String networkScoreMapGeneralLocation, MNetworkPop latestPopulation, double averageTravelTimePerformanceGoal, int finalGeneration) throws IOException {
+			String networkScoreMapGeneralLocation, MNetworkPop latestPopulation, double averageTravelTimePerformanceGoal,
+			int finalGeneration, int lastIterationOriginal, double populationFactor,
+			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 		
 		boolean performanceGoalAccomplished = false;
 		new File(historyFileLocation).mkdirs();
@@ -2205,7 +2286,9 @@ public class NetworkEvolutionImpl {
 			MNetwork mnetwork = latestPopulation.getNetworks().get(networkName);
 			if(latestPopulation.modifiedNetworksInLastEvolution.contains(mnetwork.getNetworkID())) {
 				mnetwork.calculateTotalRouteLengthAndDrivenKM();
-				mnetwork.calculateNetworkScore();		// from internal scoring parameters calculate overall score according to internal function
+				XMLOps.writeToFile(mnetwork, mnetwork.networkID.toString()+"TEMP.xml");
+//				mnetwork.calculateNetworkScore();		// from internal scoring parameters calculate overall score according to internal function
+				mnetwork.calculateNetworkScore2(lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes); // include here also part of routesHandling
 				if (performanceGoalAccomplished == false) {		// checking whether performance goal achieved
 					if (mnetwork.averageTravelTime < averageTravelTimePerformanceGoal) {
 						performanceGoalAccomplished = true;
@@ -2399,7 +2482,7 @@ public class NetworkEvolutionImpl {
 			Map<String, CustomStop> outerCityMetroStops, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Network originalNetwork, Network innerCityMetroNetwork,
 			String transitScheduleFileName, String fileName) throws IOException {
 		
-		// Extract copy of railway network from Zürich Scenario and convert (rename and connect to facilities) it to a metroNetwork:
+		// Extract copy of railway network from ZÃ¼rich Scenario and convert (rename and connect to facilities) it to a metroNetwork:
 			// - make new facilities (add to transitSchedule)
 			// - make new nodes (add to network) and connecting links
 			// - convert existing nodes/links to a metroVersion (with naming)
@@ -2477,6 +2560,8 @@ public class NetworkEvolutionImpl {
 				}
 			}
 		}
+		
+//		XMLOps.readFromFile(railStop.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
 		
 		TransitScheduleWriter tsw = new TransitScheduleWriter(metroStopFacilities);
 		tsw.writeFile(transitScheduleFileName);

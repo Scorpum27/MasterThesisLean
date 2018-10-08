@@ -153,18 +153,18 @@ public class NetworkEvolutionXSimOnly {
 			Log.write("PLANS PROCESSING of GEN"+generationNr+"");
 			//MNetworkPop evoNetworksToProcessPlans = evoNetworksToProcess; 	// for isolated code running: XMLOps.readFromFileMNetworkPop("zurich_1pm/Evolution/Population/"+populationName+".xml");
 			int maxConsideredTravelTimeInMin = 240;
-			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInMin);
+//			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInMin);
 			
 		// - TOTAL SCORE CALCULATOR & HISTORY LOGGER & SCORE CHECK: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
 			Log.write("LOGGING SCORES of GEN"+generationNr+":");
 			String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr;
 			String networkScoreMapGeneralLocation = "zurich_1pm/Evolution/Population/networkScoreMap.xml";
 			Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
-			boolean performanceGoalAccomplished = NetworkEvolutionImpl.logResults(networkScoreMap, historyFileLocation, networkScoreMapGeneralLocation, 
-					latestPopulation, averageTravelTimePerformanceGoal, generationNr);
-			if(performanceGoalAccomplished == true) {		// 
-				break;
-			}
+//			boolean performanceGoalAccomplished = NetworkEvolutionImpl.logResults(networkScoreMap, historyFileLocation, networkScoreMapGeneralLocation, 
+//					latestPopulation, averageTravelTimePerformanceGoal, generationNr);
+//			if(performanceGoalAccomplished == true) {		// 
+//				break;
+//			}
 			
 		// - EVOLUTION: If PerformanceGoal not yet achieved, change routes and network here according to their scores!
 			Log.write("EVOLUTION at the end of GEN"+generationNr+":");
@@ -182,12 +182,12 @@ public class NetworkEvolutionXSimOnly {
 			double pMutation = 0.35;										// DEFAULT = 0.35 
 			double pBigChange = 0.2;										// DEFAULT = 0.20
 			double pSmallChange = 1.0-pBigChange;
-			if (generationNr != lastGeneration) {
-				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,
-						metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork, 
-						useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, 
-						logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, pMutation, pBigChange, pSmallChange);
-			}			
+//			if (generationNr != lastGeneration) {
+//				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,
+//						metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork, 
+//						useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, 
+//						logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, pMutation, pBigChange, pSmallChange);
+//			}			
 		}
 
 	// PLOT RESULTS

@@ -16,28 +16,15 @@ public class Run_ZurichScenario {
 static public void main(String[] args) {
 		
 		Config config = ConfigUtils.loadConfig(args[0]);
-		config.getModules().get("controler").addParam("lastIteration", "10");
+		config.getModules().get("controler").addParam("lastIteration", "100");
+		config.getModules().get("controler").addParam("writeEventsInterval", "1");
 
 		// config.transit().setTransitScheduleFile(null); // potentially "null", but should set TransitSchedule
 
 		Scenario scenario = ScenarioUtils.createScenario(config);
 		scenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class,
 				new DefaultEnrichedTransitRouteFactory());
-		ScenarioUtils.loadScenario(scenario);							// do I have to load scenario here due to having set the new route factory or would I have to load anyways
-		
-		// Input Sebastian
-		/*new TransitScheduleReader(scenario).readFile(filename);
-		new TransitScheduleWriter(scenario.getTransitSchedule()).writeFile(filename);
-		TransitSchedule transitSchedule = scenario.getTransitSchedule();
-		transitSchedule.addTransitLine(line);
-		transitSchedule.removeTransitLine(line); 
-		TransitScheduleFactory factory = scenario.getTransitSchedule().getFactory();
-		TransitLine line = factory.createTransitLine(Id.create("myline", TransitLine.class));
-		transitSchedule.addTransitLine(line);
-		NetworkRoute networkROute = new LinkNetworkRouteFactory().createRoute(startLinkId, endLinkId);
-		TransitRoute route = factory.createTransitRoute(routeId, route, stops, mode);
-		line.addRoute(route);
-		route.addDeparture(departure);*/
+		ScenarioUtils.loadScenario(scenario);
 		
 		Controler controler = new Controler(scenario);
 

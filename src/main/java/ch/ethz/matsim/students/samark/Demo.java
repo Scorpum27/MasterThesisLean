@@ -1,44 +1,28 @@
 package ch.ethz.matsim.students.samark;
 
-import java.io.File;
-import java.io.FileInputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.PrintWriter;
-import java.io.Reader;
-import java.nio.charset.Charset;
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
-import javax.xml.stream.XMLInputFactory;
 import javax.xml.stream.XMLStreamException;
-import javax.xml.stream.XMLStreamReader;
 
-import org.apache.commons.io.FileUtils;
-import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
-import org.matsim.api.core.v01.network.NetworkFactory;
-import org.matsim.api.core.v01.network.Node;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Plan;
+import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.pt.transitSchedule.api.TransitRoute;
-import org.matsim.pt.transitSchedule.api.TransitRouteStop;
-import org.matsim.pt.transitSchedule.api.TransitStopFacility;
-import org.xml.sax.InputSource;
-import org.xml.sax.helpers.DefaultHandler;
 
 
 public class Demo {
@@ -48,8 +32,183 @@ public class Demo {
 	
 	
 	public static void main(String[] args) throws IOException, XMLStreamException {
+
+		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
 		
-		Config c2 = ConfigUtils.createConfig();
+		MNetworkPop mnpop = new MNetworkPop("evoNetworks");
+		MNetwork mn1 = XMLOps.readFromFile(MNetwork.class, "Network1TEMP.xml");
+//		MNetwork mn1x = XMLOps.readFromFileMNetwork("Network1TEMP.xml");
+		MNetwork mn2 = XMLOps.readFromFile(MNetwork.class, "Network2TEMP.xml");
+		mnpop.addNetwork(mn1);
+		mnpop.addNetwork(mn2);
+		int lastIterationOriginal = 1;
+		double populationFactor = 1000;
+		
+		Config config = ConfigUtils.createConfig();
+		config.getModules().get("network").addParam("inputNetworkFile", "C:\\Users\\Sascha\\eclipse-workspace\\MATSim-Workspace\\MasterThesis\\zurich_1pm\\Evolution\\Population\\BaseInfrastructure/GlobalNetwork.xml");
+		Scenario scenario = ScenarioUtils.loadScenario(config);
+		Network globalNetwork = scenario.getNetwork();
+		
+		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes =
+				XMLOps.readFromFile((new HashMap<Id<Link>, CustomMetroLinkAttributes>()).getClass(), "C:\\Users\\Sascha\\eclipse-workspace\\MATSim-Workspace\\MasterThesis\\zurich_1pm\\Evolution\\Population\\BaseInfrastructure/metroLinkAttributes.xml");
+		
+		for (MNetwork mn : mnpop.networkMap.values()) {
+			mn.calculateNetworkScore2(lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes); // include here also part of routesHandling
+			System.out.println(mn.overallScore);
+		}
+		
+		
+		/*
+//		Config config = ConfigUtils.createConfig();
+//		int n = 20;
+//		//String plans = "C:\\Users\\Sascha\\eclipse-workspace\\MATSim-Workspace\\MasterThesis\\zurich_1pm\\Evolution\\Population\\Network1\\Simulation_Output\\ITERS\\it."+n;
+//		//config.getModules().get("plans").addParam("inputPlansFile", plans+"/"+n+".plans.xml.gz");
+//		String plans = "C:\\Users\\Sascha\\eclipse-workspace\\MATSim-Workspace\\MasterThesis\\zurich_1pm\\Zurich_1pm_SimulationOutput\\ITERS\\it.100\\100.plans.xml.gz";
+//		config.getModules().get("plans").addParam("inputPlansFile", plans);
+//		Scenario s = ScenarioUtils.loadScenario(config);
+//		
+//
+//		double totalPersons = 0.0;
+//		double ptPersons = 0.0;
+//		double carPersons = 0.0;
+//		double otherTravelTypePersons = 0.0;
+//		double carTime = 0.0;
+//		double carDist = 0.0;
+//		double ptTime = 0.0;
+//		double ptDist = 0.0;
+//		
+//		for (Person p : s.getPopulation().getPersons().values()) {
+//			boolean isPtTraveler = false;
+//			boolean isCarTraveler = false;
+//			totalPersons++;
+//			Plan selectedPlan = p.getSelectedPlan();
+//			for (PlanElement e : selectedPlan.getPlanElements()) {
+//				if (e instanceof Leg) {
+//					Leg leg = (Leg) e;
+//					if (leg.getMode().contains("car")) {
+//						carTime += leg.getTravelTime();
+//						carDist += leg.getRoute().getDistance();
+//						isCarTraveler = true;
+//					}
+//					if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
+//							leg.getMode().contains("transit_walk") || leg.getMode().contains("egress_walk")) {
+//						ptTime += leg.getTravelTime();
+//						ptDist += leg.getRoute().getDistance();
+//						isPtTraveler = true;
+//					}
+//				}
+//			}
+//			if (isCarTraveler && isPtTraveler) {
+//				ptPersons += 0.5;
+//				carPersons += 0.5;
+//			}
+//			else if (isCarTraveler) {
+//				carPersons ++;
+//			}
+//			else if (isPtTraveler) {
+//				ptPersons ++;
+//			}
+//			else {
+//				otherTravelTypePersons ++;
+//			}
+//		}
+//		System.out.println("CarTravelers = "+carPersons);
+//		System.out.println("PtTravelers = "+ptPersons);
+//		System.out.println("OtherTypeTravelers = "+otherTravelTypePersons);
+//		System.out.println("Average CarTime [min] = "+carTime/60/carPersons);
+//		System.out.println("Average PtTime [min] = "+ptTime/60/ptPersons);
+//		System.out.println("Average CarDist [km] = "+carDist/1000/carPersons);
+//		System.out.println("Average PtDist [km] = "+ptDist/1000/ptPersons);
+		*/
+		
+		// test plans %%%%%%%%%%%%%%%%%%%%%
+		
+		/*List<Strings>
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+		for (MNetwork mNetwork : latestPopulation.getNetworks().values()) {
+			if (latestPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())==false) {
+				// must not simulate this loop again, because it has not been changed in last evolution
+				// Comment this if lastIteration changes over evolutions !!
+				continue;
+			}
+			mNetwork.evolutionGeneration = generationNr;
+			String initialConfig = "zurich_1pm/zurich_config.xml";
+			MATSimRunnable matsimrunnable = new MATSimRunnable(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+			executor.execute(matsimrunnable);
+			NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+		} // End Network Simulation Loop
+        executor.shutdown();			        // Wait until all threads are finished
+        try {
+        	  executor.awaitTermination(180*60, TimeUnit.SECONDS);
+        	} catch (InterruptedException e) {
+        	  Log.writeAndDisplay(e.getMessage().toString());
+        }
+		Log.write("Completed all MATSim runs.");*/
+		
+		// another stream 
+		/*NetworkEvolutionImpl.saveCurrentMRoutes2HistoryLog(latestPopulation, generationNr, globalNetwork, storeScheduleInterval);			
+		
+		// - SIMULATION LOOP:
+	
+		Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
+		Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
+		final int tmpGen = generationNr;
+
+		ForkJoinPool fork.JoinPool = new ForkJoinPool(nrThreads);
+		forkJoinPool.submit(()-> plans.parallelStream().forEach(plan->getPlanAlgoInstance().run(plan)));
+		
+		final MNetworkPop tmpPop = latestPopulation;
+		final int tmpGen = generationNr;
+		ForkJoinPool forkJoinPool = new ForkJoinPool(4);
+		forkJoinPool.submit(()-> tmpPop.getNetworks().values().parallelStream().forEach(mNetwork -> {
+			mNetwork.evolutionGeneration = tmpGen;
+			String initialConfig = "zurich_1pm/zurich_config.xml";
+			try {
+				Log.write("Inside parallel MATSim loop of network " + mNetwork.networkID);
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+				try {
+					NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+				} catch (ConfigurationException | IOException e) {
+					e.printStackTrace();
+				}
+		}));
+		
+		---
+		latestPopulation.getNetworks().values().parallelstream().filter(mNetwork -> tmp.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())).forEach(mNetwork -> {
+//			if (==false) {
+//				// must not simulate this loop again, because it has not been changed in last evolution
+//				// Comment this if lastIteration changes over evolutions !!
+//				continue;
+//			}
+			mNetwork.evolutionGeneration = tmpGen;
+			String initialConfig = "zurich_1pm/zurich_config.xml";
+//			MATSimRunnable matsimrunnable = new MATSimRunnable(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+//			executor.execute(matsimrunnable);
+			// Alternative: (new ThreadMATSimRun(args, mNetwork, initialRouteType, initialConfig, lastIteration)).start();
+			try {
+				NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+			} catch (ConfigurationException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}); 
+//		{
+//        executor.shutdown();			        // Wait until all threads are finished
+//		} // End Network Simulation Loop
+
+//        try {
+//        	  executor.awaitTermination(120*60, TimeUnit.SECONDS);
+//        	} catch (InterruptedException e) {
+//        	  Log.writeAndDisplay(e.getMessage().toString());
+//        	}
+		Log.write("Completed all MATSim runs.");
+		*/
+		
+		
+		/*Config c2 = ConfigUtils.createConfig();
 		c2.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/TotalMetroNetwork.xml");
 		Network metroNetwork = ScenarioUtils.loadScenario(c2).getNetwork();
 		
@@ -69,7 +228,11 @@ public class Demo {
 		}
 		
 		
-		
+//		List<String> strings = new LinkedList<>();
+//		strings.stream().parallel().forEach(string -> {
+//			
+//		});
+		*/
 		
 		
 		
