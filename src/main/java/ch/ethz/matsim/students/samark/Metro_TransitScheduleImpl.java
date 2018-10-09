@@ -60,6 +60,7 @@ public class Metro_TransitScheduleImpl {
 
 			TransitScheduleFactory transitScheduleFactory = transitSchedule.getFactory();
 			List<TransitRouteStop> stopArray = new ArrayList<TransitRouteStop>();				// prepare an array for stop facilities on new networkRoute
+			List<TransitStopFacility> newlyAddedTSF = new ArrayList<TransitStopFacility>();				// prepare an array for stop facilities on new networkRoute
 			
 			int stopCount = 0;
 			double accumulatedDrivingTime = 0;
@@ -75,7 +76,8 @@ public class Metro_TransitScheduleImpl {
 			TransitStopFacility lastStopFacility = selectStopFacilityOnLink(metroLinkAttributes, network.getLinks().get(lastStopLinkId), null);
 			for (Id<Link> currentLinkID : routeLinkList) {
 				if (mRoute.facilityBlockedLinks.contains(currentLinkID)) {
-					Log.write("Jumping over link with a blocked StopFacility, i.e. a stop chosen not to be serviced on this route!");
+//					Log.write("Jumping over link with a blocked StopFacility, i.e. a stop chosen not to be serviced on this route!");
+					continue;
 				}
 				Link currentLink = network.getLinks().get(currentLinkID);
 				if (currentLink.equals(null)) {
@@ -107,6 +109,7 @@ public class Metro_TransitScheduleImpl {
 					if (transitSchedule.getFacilities().containsKey(transitStopFacility.getId())==false) {
 						transitStopFacility.setLinkId(currentLinkID); // IMPORTANT - Is necessary for MATSim!
 						transitSchedule.addStopFacility(transitStopFacility);
+						newlyAddedTSF.add(transitStopFacility);
 					}
 					stopArray.add(transitRouteStop);
 				}
@@ -119,6 +122,10 @@ public class Metro_TransitScheduleImpl {
 				// length two would mean same stop is services one time there and one time back, while length three means an additional link 
 				// with a stop must be involved and the vehicle must actually drive off from first stop to get to the second one.
 				Log.write("CAUTION: too small stopArray = "+stopArray.toString() + " --> Returning NULL and will be removing mRoute from network.");
+				// IMPORTANT: remove again all newly added transitStopFacilities in order to avoid SwissRaptor routing issues
+				for (TransitStopFacility tsfToRemoveAgain : newlyAddedTSF) {
+					transitSchedule.removeStopFacility(tsfToRemoveAgain);
+				}
 				return null;
 			}
 			if (stopArray.get(0).getStopFacility().getId().equals(stopArray.get(stopArray.size()-1).getStopFacility().getId()) == false) {

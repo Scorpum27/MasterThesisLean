@@ -103,7 +103,7 @@ public class Clone {
 		
 		copy.eventsFile = o.eventsFile;
 		copy.nBoardings = o.nBoardings;
-		copy.personMetroKM = o.personMetroKM;
+		copy.personMetroDist = o.personMetroDist;
 		
 		copy.nDepartures = o.nDepartures;
 		copy.departureSpacing = o.departureSpacing;
@@ -111,7 +111,7 @@ public class Clone {
 		copy.lastDeparture = o.lastDeparture;
 		copy.roundtripTravelTime = o.roundtripTravelTime;
 		copy.transitScheduleFile = o.transitScheduleFile;
-		copy.drivenKM = o.drivenKM;
+		copy.totalDrivenDist = o.totalDrivenDist;
 		copy.nStationsExtend = o.nStationsExtend;
 		copy.nStationsNew = o.nStationsNew;
 		copy.opsCost = o.opsCost;
@@ -197,12 +197,12 @@ public class Clone {
 		//copy.transitSchedule = o.transitSchedule;
 		//copy.vehicles = o.getVehicles();
 
-		copy.totalMetroPersonKM = o.totalMetroPersonKM;		// NetworkEvolutionRunSim.runEventsProcessing
+		copy.personMetroDist = o.personMetroDist;		// NetworkEvolutionRunSim.runEventsProcessing
 		copy.personKMdirect = o.personKMdirect;			// to be implemented in: NetworkEvolutionRunSim.runEventsProcessing
 		copy.nMetroUsers = o.nMetroUsers;				// NetworkEvolutionRunSim.runEventsProcessing
-		copy.totalPtTransitPersonKM = o.totalPtTransitPersonKM;
+		copy.totalPtPersonDist = o.totalPtPersonDist;
 
-		copy.drivenKM = o.drivenKM;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
+		copy.totalDrivenDist = o.totalDrivenDist;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
 		copy.totalVehiclesNr = o.totalVehiclesNr;
 		copy.opsCost = o.opsCost;					// to be implemented in NetworkEvolution
 		copy.constrCost = o.constrCost;				// to be implemented in NetworkEvolution

@@ -25,7 +25,8 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 /* java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT
  * 
- * TODO PlansProcessing: Make nicer with travelTime
+ * TODO SIMULATION: ProportionalRoulette vs. ExponentialRoulette
+ * TODO SIMULATION: ModificationProb with Mutation etc...
  * TODO Tuning of EvoAlgo's
  * TODO Combining routes procedures when they come close etc...
  * TODO Different Scoring functions (--> Literature as well) (all roulette wheels, proportional choices, metro cost etc.)
@@ -37,14 +38,11 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  * 			- Make it manual
  * 			- Or take a Djikstra from internet
  * DIVERSE
- *  - TODO What happens if I delete very short links (are they really worth using as feasible links or are they just a product of a crossing bottleneck?)
- *  - GlobalNetwork: Does it have to be with zurichPT or can it be only Metro?! --> Try it!
+ *  - PlansProcessing: Make nicer with travelTime
+ *  - What happens if I delete very short links (are they really worth using as feasible links or are they just a product of a crossing bottleneck?)
  *  - Compare metro KM to SBahn KMs
  *  - Total beeline distance in NetworkEvolutionRunSim (mNetwork.mPersonKMdirect = beelinedistances)
  *  - Make proper IDs to get objects
- *  - Make a GeographyProcessor that calculates the OG/UG percentage from given regions
- *  - Check, where VC fails --> The population is zero from the start (also check event handlers for their naming and if they can be detected by algorithm!) --- VC - also store global network that one can refer to when merging together new routes!
- *  - Generics: Not all links of a route have a stop: Must mark links with stop and not make a stop for every link!
  * 
  * OD-OPTIONS
  *  - TODO Make outer loop to connect existing routes that suddenly touch!
@@ -83,13 +81,13 @@ public class NetworkEvolution {
 		PrintWriter pwEvo = new PrintWriter("zurich_1pm/Evolution/Population/LogEvo.txt");	pwEvo.close();				// Prepare empty evoLog file for run
 		Log.write("START TIME = "+(new SimpleDateFormat("HH:mm:ss")).format(Calendar.getInstance().getTime()));
 
-		
+	
 	// INITIALIZATIon
 		// if desired, process raw existing network for its performance for reference : NetworkScoreLog rawNetworkPerformance = 			NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240);		
 		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240); or 			("zurich_1pm/Zurich_1pm_SimulationOutput_BACKUP__10/output_plans.xml.gz", 240); or ("zurich_1pm/Evolution/Population/Network1/Simulation_Output/output_plans.xml.gz", 			240);
 	// - Initiate N networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 2;													// how many networks should be developed in parallel
+		int populationSize = 12;													// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
 		boolean mergeMetroWithRailway = true;
@@ -120,7 +118,7 @@ public class NetworkEvolution {
 		double railway2metroCatchmentArea = 150;									// DEFAULT 150 or metroProximityRadius/3
 		double metro2metroCatchmentArea = 400;										// DEFAULT = 400  (merge metro stops within 400 meters)
 		double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing 																						routes)
-		int lastIterationOriginal = 1;
+		int lastIterationOriginal = 20;
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
 		String vehicleTypeName = "metro";  double maxVelocity = 80/3.6 /*[m/s]*/;
@@ -146,13 +144,13 @@ public class NetworkEvolution {
 		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
 		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
 		// Uncomment until here for RECALL
-		
+	
 		
 		// RECALL MODULE
 		// - Uncomment "LogCleaner" & "Network Creation"
 		// - firstGeneration=generationToRecall
 //				Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
-//				int generationToRecall = 1;	// it is recommended to use the Generation before the one that failed in order
+//				int generationToRecall = 3;	// it is recommended to use the Generation before the one that failed in order
 //											// to make sure it's data is complete and ready for next clean generation
 //				MNetworkPop latestPopulation = new MNetworkPop(populationName);
 //				NetworkEvolutionRunSim.recallSimulation(latestPopulation, metroLinkAttributes, generationToRecall, "evoNetworks", populationSize, initialRoutesPerNetwork);
@@ -167,7 +165,7 @@ public class NetworkEvolution {
 
 		
 		int firstGeneration = 1;
-		int lastGeneration = 2;
+		int lastGeneration = 36;
 		int lastIteration = lastIterationOriginal;
 
 		double averageTravelTimePerformanceGoal = 40.0;
@@ -229,7 +227,7 @@ public class NetworkEvolution {
 		// - PLANS PROCESSING:
 			Log.write("PLANS PROCESSING of GEN"+generationNr+"");
 			int maxConsideredTravelTimeInMin = 240;
-			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInMin, lastIterationOriginal);
+			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInMin, lastIterationOriginal, (int) populationFactor);
 			
 		// - TOTAL SCORE CALCULATOR & HISTORY LOGGER & SCORE CHECK: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
 			Log.write("LOGGING SCORES of GEN"+generationNr+":");
@@ -251,12 +249,12 @@ public class NetworkEvolution {
 				// - applyPT: make functions for depSpacing = f(nVehicles, total route length) while total route length = f(linkList or stopArray)
 			
 			double alpha = 10.0;											// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and 																				decreases probability to choose a weak network more than linearly -> linearly would be p_i = 																				Score_i/Score_tot)
-			double pCrossOver = 0.00; 										// DEFAULT = 0.35
+			double pCrossOver = 0.35; 										// DEFAULT = 0.35
 			double minCrossingDistanceFactorFromRouteEnd = 0.3; 			// DEFAULT = 0.30; MINIMUM = 0.25
 			boolean logEntireRoutes = false;
 			double maxCrossingAngle = 110; 									// DEFAULT = 110
-			double pMutation = 1.00;										// DEFAULT = 0.35
-			double pBigChange = 1.0;										// DEFAULT = 0.20
+			double pMutation = 0.35;											// DEFAULT = 0.35
+			double pBigChange = 0.25;										// DEFAULT = 0.20
 			double pSmallChange = 1.0-pBigChange;
 			if (generationNr != lastGeneration) {
 				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,

@@ -35,16 +35,17 @@ public class MRoute implements Serializable{
 	// from eventsFile
 	String eventsFile;
 	int nBoardings;
-	double personMetroKM;
+	double personMetroDist;
 	
 	// from transitScheduleFile
+	int lifeTime = 40; // default value set to 40!
 	int nDepartures;
 	double departureSpacing;
 	double firstDeparture;
 	double lastDeparture;
 	double roundtripTravelTime;
 	String transitScheduleFile;
-	double drivenKM;
+	double totalDrivenDist;		// [m] = old:drivenKM total distance traveled by pt vehicles of this mroute
 	double opsCost;
 	double constrCost;
 	double undergroundPercentage;
@@ -64,6 +65,7 @@ public class MRoute implements Serializable{
 	}
 	
 	public MRoute(String name) {
+		this.lifeTime = 40;
 		this.routeLength = Double.MAX_VALUE;
 		this.eventsFile = "";
 		this.routeID = name;
@@ -73,14 +75,14 @@ public class MRoute implements Serializable{
 		this.NewOGpercentage = 0.0;
 		this.EquipOGPercentage = 0.0;
 		this.DevelopOGPercentage = 0.0;
-		this.personMetroKM = 0.0;
+		this.personMetroDist = 0.0;
 		this.nBoardings = 0;
 		this.nDepartures = 0;
 		this.departureSpacing = 0.0;
 		this.firstDeparture = 0.0;
 		this.lastDeparture = 0.0;
 		this.transitScheduleFile = "";
-		this.drivenKM = 0.0;
+		this.totalDrivenDist = 0.0;
 		this.opsCost = Double.MAX_VALUE;
 		this.constrCost = Double.MAX_VALUE;
 		this.vehiclesNr = 0;
@@ -140,6 +142,8 @@ public class MRoute implements Serializable{
 			}
 		}
 		
+		this.routeLength = totalLength;
+		
 		this.undergroundPercentage = ugLength/totalLength;
 		if (this.undergroundPercentage > 0.0) {
 			this.NewUGpercentage = ugNewLength/ugLength;
@@ -150,58 +154,68 @@ public class MRoute implements Serializable{
 			this.EquipOGPercentage = ogEquipLength/ogLength;
 			this.DevelopOGPercentage = ogDevelopLength/ogLength;			
 		}
-		Log.write(Double.toString(this.undergroundPercentage));
-		Log.write(Double.toString(this.NewUGpercentage));
-		Log.write(Double.toString(this.DevelopUGPercentage));
-		Log.write(Double.toString(this.NewOGpercentage));
-		Log.write(Double.toString(this.EquipOGPercentage));		
-		Log.write(Double.toString(this.DevelopOGPercentage));
+//		Log.write(Double.toString(this.undergroundPercentage));
+//		Log.write(Double.toString(this.NewUGpercentage));
+//		Log.write(Double.toString(this.DevelopUGPercentage));
+//		Log.write(Double.toString(this.NewOGpercentage));
+//		Log.write(Double.toString(this.EquipOGPercentage));		
+//		Log.write(Double.toString(this.DevelopOGPercentage));
 	}
 	
-	final double ConstrCostPerKmUGnew = 1.5E8;
-	final double ConstrCostPerKmUGdevelop = 1.0E8;
-	final double ConstrCostPerKmOGnew = 4.0E7;
-	final double ConstrCostPerKmOGdevelop = 3.0E7;
-	final double ConstrCostPerKmOGequip = 0.5E7;
-	final double ConstrCostPerStationNew = 6.0E7;
-	final double ConstrCostPerStationExtend = 3.0E7;
-	final double costPerVehicle = 2*6.0E6;	// x2 because assumed to be replaced once for 40y total lifetime (=2x20y)
-
-	final double OpsCostPerVehicleKmUG = 17.0;
-	final double OpsCostPerVehicleKmOG = 11.3;
+	final double ConstrCostUGnew = 1.5E5; 						// [CHF/m]
+	final double ConstrCostUGdevelop = 1.0E5;					// [CHF/m]
+	final double ConstrCostOGnew = 4.0E4;	 					// [CHF/m]
+	final double ConstrCostOGdevelop = 3.0E4;	 				// [CHF/m]
+	final double ConstrCostOGequip = 0.5E4;	 					// [CHF/m]
+	final double ConstrCostPerStationNew = 6.0E4;	 			// [CHF]
+	final double ConstrCostPerStationExtend = 3.0E4;			// [CHF]
+	final double costVehicle = 2*6.0E6;		 					// [CHF] x2 because assumed to be replaced once for 40y total lifetime (=2x20y)
+	
+	final double OpsCostPerVehDistUG = 17.0/1000;
+	final double OpsCostPerVehDistOG = 11.3/1000;
 	final double EnergyCost = 0.03; // 0.03.-/kWh = 30.-/MWh
-	final double energyPerPtPersonKM = 0.157; // kWh/personKM
-	final double PtVehicleKM = this.drivenKM;
-	final double taxPerVehicleKM = 0.06;
+	final double energyPerPtPersDist = 0.157/1000; // kWh/personKM
+	final double PtVehicleDist = totalDrivenDist;
+//	final double energyPerPtVehDist = energyPerPtPersDist*newCase.ptPersonDist/PtVehicleDist;
+	final double taxPerVehicleDist = 0.06/1000;
 	final double occupancyRate = 1.42; // personsPerVehicle
-	final double ptPassengerCostPerKM = 0.1407; // average price/km to buy a ticket for a trip with a certain distance
-	final double carCostPerVehicleKM = 0.1403; // CHF/KM
-	final double externalVehicleCosts = 0.0111 + 0.0179 + 0.008 + 0.2862 + 0.11 + 0.13;  // noise, pollution, climate, accidents, fuel, write-off
+	final double ptPassengerCostPerDist = 0.1407/1000; // average price/km to buy a ticket for a trip with a certain distance
+	final double carCostPerVehDist = 0.1403/1000; // CHF/KM (operations such as service, repairs etc.)
+	final double externalVehicleCosts = (0.06 + 0.11 + 0.13)/1000;  // noise, pollution, climate, accidents, fuel, write-off
+//	final double externalVehicleCosts = (0.0111 + 0.0179 + 0.008 + 0.2862 + 0.11 + 0.13)/1000;  // noise, pollution, climate, accidents, fuel, write-off
 	final double VATPercentage = 0.08;
 	final double utilityOfTimePT = 14.43/3600; // CHF/s
 	final double utilityOfTimeCar = 23.29/3600; // CHF/s
+
+	
+	double lengthUG = this.routeLength*this.undergroundPercentage;
+	double lengthOG = this.routeLength*(1-this.undergroundPercentage);
+	double lengthOGnew = lengthOG*this.NewOGpercentage*(1-this.undergroundPercentage);
+	double lengthOGequip = lengthOG*this.EquipOGPercentage*(1-this.undergroundPercentage);
+	double lengthOGdevelopExisting = lengthOG*this.DevelopOGPercentage*(1-this.undergroundPercentage);
+	double lengthUGnew = lengthUG*this.NewUGpercentage*this.undergroundPercentage;
+	double lengthUGdevelopExisting = lengthUG*this.DevelopUGPercentage*this.undergroundPercentage;		
+	double ptVehicleLengthDrivenUG = totalDrivenDist*this.undergroundPercentage;
+	double ptVehicleLengthDrivenOG = totalDrivenDist*(1-this.undergroundPercentage);
+	
 	
 	public double calculateConstCost() throws IOException {
 		double constructionCost = ConstrCostPerStationNew*nStationsNew + ConstrCostPerStationExtend*nStationsExtend +
-				ConstrCostPerKmUGnew*this.NewUGpercentage*this.undergroundPercentage*this.routeLength/1000 + 
-				ConstrCostPerKmUGdevelop*this.DevelopUGPercentage*this.undergroundPercentage*this.routeLength/1000 +
-				ConstrCostPerKmOGnew*this.NewOGpercentage*(1-this.undergroundPercentage)*this.routeLength/1000 +
-				ConstrCostPerKmOGdevelop*this.DevelopOGPercentage*(1-this.undergroundPercentage)*this.routeLength/1000
-				+ ConstrCostPerKmOGequip*this.EquipOGPercentage*(1-this.undergroundPercentage)*this.routeLength/1000;
+				ConstrCostUGnew*lengthUGnew + ConstrCostUGdevelop*lengthUGdevelopExisting +
+				ConstrCostOGnew*lengthOGnew + ConstrCostOGdevelop*lengthOGdevelopExisting + ConstrCostOGequip*lengthOGequip;
 		double landCost = 0.01*constructionCost;
-		double rollingStockCost = this.vehiclesNr*costPerVehicle; // TODO: Norm this (maybe for 10min frequency case)
-		this.constrCost = landCost + constructionCost + rollingStockCost;
-		Log.write("Overall ConstrCost ENTIRE LIFETIME(40y)= "+this.constrCost);
+		double rollingStockCost = this.vehiclesNr*costVehicle;
+		this.constrCost = (landCost + constructionCost + rollingStockCost);
+		Log.write("Overall Yearly ConstrCost (Split onto 40y)= "+this.constrCost/40);
 		return this.constrCost;
 	}
 
+
 	public double calculateOpsCost(double populationFactor) throws IOException {
-//		final double energyPerPtVehicleKMx = energyPerPtPersonKM*(this.personMetroKM*populationFactor/PtVehicleKM);
-		double opsCost = OpsCostPerVehicleKmUG*PtVehicleKM*this.undergroundPercentage*365 +
-				OpsCostPerVehicleKmOG*PtVehicleKM*(1-this.undergroundPercentage)*365; // include here all ops cost of vehicles, infrastructure & overhead
+		double opsCost = OpsCostPerVehDistUG*ptVehicleLengthDrivenUG*365 + OpsCostPerVehDistOG*ptVehicleLengthDrivenOG*365; // include here all ops cost of vehicles, infrastructure & overhead
 		double maintenanceCost = 0.01*this.constrCost;	// CAUTION: Have to calculate MRoute.constrCost first!!	
 		double repairCost = 0.01*this.constrCost;
-		double externalCost = EnergyCost*energyPerPtPersonKM*this.personMetroKM*populationFactor*365;
+		double externalCost = EnergyCost*energyPerPtPersDist*this.personMetroDist*populationFactor*365;
 		this.opsCost = opsCost + maintenanceCost + repairCost + externalCost;
 		Log.write("Yearly(Ops)Cost = "+this.opsCost);
 		return this.opsCost;
@@ -278,18 +292,18 @@ public class MRoute implements Serializable{
 		this.eventsFile = eventsFile;
 	}
 	
-	public double getDrivenKM() {
-		return this.drivenKM;
+	public double getTotalDrivenDist() {
+		return this.totalDrivenDist;
 	}
-	public void setDrivenKM(double drivenKM) {
-		this.drivenKM = drivenKM;
+	public void setTotalDrivenDist(double totalDrivenDist) {
+		this.totalDrivenDist = totalDrivenDist;
 	}
 	
 	public double getPersonMetroKM() {
-		return this.personMetroKM;
+		return this.personMetroDist;
 	}
 	public void setMetroPersonKM(double personKM) {
-		this.personMetroKM = personKM;
+		this.personMetroDist = personKM;
 	}
 	
 	public Double getUndergroundPercentage() {

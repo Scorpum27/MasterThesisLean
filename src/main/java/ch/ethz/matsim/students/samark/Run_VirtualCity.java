@@ -161,7 +161,7 @@ public class Run_VirtualCity {
 				System.out.println("Network Stats: " + mnetwork.networkID);			// display most important analyzed data here
 				System.out.println("Average Travel Time = " + mnetwork.averageTravelTime);
 				System.out.println("Number of Metro Users = " + mnetwork.nMetroUsers);
-				System.out.println("Total Metro Passengers KM = " + mnetwork.totalMetroPersonKM);
+				System.out.println("Total Metro Passengers KM = " + mnetwork.personMetroDist);
 				mnetwork.network = null;		// set to null before storing to file bc would use up too much storage and is not needed (network can be created from other data)
 				XMLOps.writeToFile(mnetwork, historyFileLocation+"/"+mnetwork.networkID+".xml");
 			}
@@ -272,7 +272,7 @@ public class Run_VirtualCity {
 			mRoute.setNodeList(NetworkEvolutionImpl.NetworkRoute2NodeIdList(vcNetworkRoute, finalNetwork));
 			mRoute.setRouteLength(NetworkEvolutionImpl.NetworkRoute2TotalLength(vcNetworkRoute, finalNetwork));
 			mRoute.nDepartures = nDepartures;
-			mRoute.setDrivenKM(mRoute.routeLength*mRoute.nDepartures);
+			mRoute.setTotalDrivenDist(mRoute.routeLength*mRoute.nDepartures);
 			//mRoute.constrCost = mRoute.routeLength*(metroConstructionCostPerKmOverground*0.01*(100-mRoute.undergroundPercentage)+metroConstructionCostPerKmUnderground*0.01*mRoute.undergroundPercentage);
 			//mRoute.opsCost = mRoute.routeLength*(metroOpsCostPerKM*0.01*(100-mRoute.undergroundPercentage)+2*metroOpsCostPerKM*0.01*mRoute.undergroundPercentage);
 			mRoute.transitScheduleFile = mNetworkPath+"/vcSchedule.xml";

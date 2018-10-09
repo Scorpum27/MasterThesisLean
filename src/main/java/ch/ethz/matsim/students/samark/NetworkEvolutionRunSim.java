@@ -188,7 +188,7 @@ public class NetworkEvolutionRunSim {
 			for (String routeId : mNetwork.routeMap.keySet()) {
 				if (personKMonRoutes.containsKey(routeId)) {					
 					MRoute mRoute = mNetwork.routeMap.get(routeId);
-					mRoute.personMetroKM = personKMonRoutes.get(routeId);
+					mRoute.personMetroDist = personKMonRoutes.get(routeId);
 					mRoute.nBoardings = routeBoardingCounter.get(routeId);
 					mNetwork.routeMap.put(routeId, mRoute);
 				}
@@ -196,19 +196,20 @@ public class NetworkEvolutionRunSim {
 
 			// fill in performance indicators and scores in MNetworks
 			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
-			mNetwork.totalMetroPersonKM = totalMetroPersonKM;
+			mNetwork.personMetroDist = totalMetroPersonKM;
 			mNetwork.nMetroUsers = nMetroUsers;
-			mNetwork.totalPtTransitPersonKM = mPassengerHandler.totalPtTransitPersonKM;
+			mNetwork.totalPtPersonDist = mPassengerHandler.totalPtTransitPersonKM;
 			Log.write(mNetwork.networkID+" - totalPersonKM = "+totalMetroPersonKM);
 			Log.write(mNetwork.networkID+" - nMetroUsers = "+nMetroUsers);
-			Log.write(mNetwork.networkID+" - totalPtTransitPersonKM = "+mNetwork.totalPtTransitPersonKM);
+			Log.write(mNetwork.networkID+" - totalPtTransitPersonKM = "+mNetwork.totalPtPersonDist);
 		}	// END of NETWORK Loop
 
 		// - Maybe hand over score to a separate score map for sorting scores
 		return networkPopulation;
 	}
 	
-	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInMin, int lastIterationOriginal) throws IOException {
+	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInMin,
+			int lastIterationOriginal, int populationFactor) throws IOException {
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			String networkName = mNetwork.networkID;
 			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";			
@@ -269,7 +270,7 @@ public class NetworkEvolutionRunSim {
 			mNetwork.stdDeviationTravelTime = standardDeviation;
 
 			CostBenefitParameters cbpNew = NetworkEvolutionImpl.calculateCBAStats(finalPlansFile,
-					"zurich_1pm/Evolution/Population/"+networkName+"/cbaParameters"+lastIterationOriginal+".xml");
+					"zurich_1pm/Evolution/Population/"+networkName+"/cbaParameters"+lastIterationOriginal+".xml", populationFactor);
 		}
 		// Display Travel Time Stats
 		for (MNetwork network : networkPopulation.networkMap.values()) {

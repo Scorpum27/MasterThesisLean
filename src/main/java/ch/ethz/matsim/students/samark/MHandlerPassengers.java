@@ -64,65 +64,62 @@ public class MHandlerPassengers implements GenericEventHandler{
 				boolean accessLinkFound = false;
 				boolean egressLinkFound = false;
 				
-				try {
-					for (Id<Link> linkId : routeLinks) {
-						if (accessLinkFound == true) {
-							break;
-						}
-						Coord linkIdFromCoord = this.network.getLinks().get(linkId).getFromNode().getCoord();   // CAUTION: Use fromNode
-						for (TransitStopFacility tsf : this.transitSchedule.getFacilities().values()) {
-							if (tsf.getCoord().equals(linkIdFromCoord)) {
-								if(tsf.getId().equals(stopId1)) {
-									accessLinkId = linkId;
-									egressStopId = stopId2;
-									accessLinkFound = true;
-									break;
-								}
-								else if (tsf.getId().equals(stopId2)) {
-									accessLinkId = linkId;
-									egressStopId = stopId1;
-									accessLinkFound = true;
-									break;
-								}
+				for (Id<Link> linkId : routeLinks) {
+					if (accessLinkFound == true) {
+						break;
+					}
+					Coord linkIdFromCoord = this.network.getLinks().get(linkId).getFromNode().getCoord();   // CAUTION: Use fromNode
+					for (TransitStopFacility tsf : this.transitSchedule.getFacilities().values()) {
+						if (tsf.getCoord().equals(linkIdFromCoord)) {
+							if(tsf.getId().equals(stopId1)) {
+								accessLinkId = linkId;
+								egressStopId = stopId2;
+								accessLinkFound = true;
+								break;
+							}
+							else if (tsf.getId().equals(stopId2)) {
+								accessLinkId = linkId;
+								egressStopId = stopId1;
+								accessLinkFound = true;
+								break;
 							}
 						}
 					}
-					
-					for (Id<Link> linkId : routeLinks.subList(routeLinks.indexOf(accessLinkId), routeLinks.size())) { // continue at toNode from link where accessStop was found at fromNode
-						if (egressLinkFound == true) {
-							break;
-						}
-						Coord linkIdToCoord = this.network.getLinks().get(linkId).getToNode().getCoord();   // CAUTION: Use toNode
-						for (TransitStopFacility tsf : this.transitSchedule.getFacilities().values()) {
-							if (tsf.getCoord().equals(linkIdToCoord) && tsf.getId().equals(egressStopId)) {
-									egressLinkId = linkId;
-									egressLinkFound = true;
-									break;
-							}
+				}
+				
+				for (Id<Link> linkId : routeLinks.subList(routeLinks.indexOf(accessLinkId), routeLinks.size())) { // continue at toNode from link where accessStop was found at fromNode
+					if (egressLinkFound == true) {
+						break;
+					}
+					Coord linkIdToCoord = this.network.getLinks().get(linkId).getToNode().getCoord();   // CAUTION: Use toNode
+					for (TransitStopFacility tsf : this.transitSchedule.getFacilities().values()) {
+						if (tsf.getCoord().equals(linkIdToCoord) && tsf.getId().equals(egressStopId)) {
+								egressLinkId = linkId;
+								egressLinkFound = true;
+								break;
 						}
 					}
+				}
 
-					if (accessLinkId == null || egressLinkId == null) {	// if something fails and they cannot be found
-							Log.write("CAUTION: Stop facility not found. Not increasing distance value for within city for this metro access/egress");
-					}
-					else { // if both, access & egress, have been found
+				if (accessLinkId == null || egressLinkId == null) {	// if something fails and they cannot be found
+//							Log.write("CAUTION: Stop facility not found. Not increasing distance value for within city for this metro access/egress");
+				}
+				else { // if both, access & egress, have been found
 //							Log.write("Access StopFacility = "+accessStopId.toString());
 //							Log.write("Egress StopFacility = "+egressStopId.toString());
 //							Log.write("Access & Egress have been found: Access Link = "+accessLinkId.toString());
 //							Log.write("Access & Egress have been found: Egress Link= "+egressLinkId.toString());
 //							Log.write("Transit Route = "+ eventTransitRoute.getId().toString());
 //							Log.write("Route Links = "+ routeLinks.toString());
-						List<Id<Link>> travelledLinks = routeLinks.subList(routeLinks.indexOf(accessLinkId), routeLinks.indexOf(egressLinkId)+1);
-						for (Id<Link> thisTravelledLinkId : travelledLinks) {
-							Link thisTravelledLink = this.network.getLinks().get(thisTravelledLinkId);
-							if (GeomDistance.calculate(new Coord(2683114.0,1248092.0), thisTravelledLink.getFromNode().getCoord()) < 4400.0) {
-								distance += thisTravelledLink.getLength();
+					List<Id<Link>> travelledLinks = routeLinks.subList(routeLinks.indexOf(accessLinkId), routeLinks.indexOf(egressLinkId)+1);
+					for (Id<Link> thisTravelledLinkId : travelledLinks) {
+						Link thisTravelledLink = this.network.getLinks().get(thisTravelledLinkId);
+						if (GeomDistance.calculate(new Coord(2683114.0,1248092.0), thisTravelledLink.getFromNode().getCoord()) < 4400.0) {
+							distance += thisTravelledLink.getLength();
 //								Log.write("Adding an extra inner city CountDoubleDistance="+thisTravelledLink.getLength()+" --> Total="+distance);
-							}
 						}
 					}
-				}catch (IOException e) {e.printStackTrace();}
-				// ---
+				}
 				
 				String personId = event.getAttributes().get("person");
 				String route = event.getAttributes().get("route");

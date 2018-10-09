@@ -79,10 +79,9 @@ public class NetworkEvolutionImpl {
 			// -totalLegKM PT;		-totalLegKM MPT;
 			// -aveTravTime PT;		-aveTravTime MPT;
 		
-		String plansFile = "C:\\Users\\Sascha\\eclipse-workspace\\MATSim-Workspace\\MasterThesis\\zurich_1pm\\"
-				+ "Zurich_1pm_SimulationOutput\\ITERS\\it."+lastIterationOriginal+"\\"+lastIterationOriginal+".plans.xml.gz";
+		String plansFile = "zurich_1pm/Zurich_1pm_SimulationOutput/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
 		String outputFile = "zurich_1pm/cbaParametersOriginal"+lastIterationOriginal+".xml";
-		NetworkEvolutionImpl.calculateCBAStats(plansFile, outputFile);
+		NetworkEvolutionImpl.calculateCBAStats(plansFile, outputFile, (int) populationFactor);
 		
 		
 		// Initialize a customLinkMap with all links from original network
@@ -283,7 +282,7 @@ public class NetworkEvolutionImpl {
 				mRoute.setLinkList(NetworkRoute2LinkIdList(metroNetworkRoute));
 				mRoute.setNodeList(NetworkRoute2NodeIdList(metroNetworkRoute, metroNetwork));
 				mRoute.setRouteLength(metroNetwork);
-				mRoute.setDrivenKM(mRoute.routeLength * mRoute.nDepartures);
+				mRoute.setTotalDrivenDist(mRoute.routeLength * mRoute.nDepartures);
 //				mRoute.calculateConstCost();
 //				mRoute.calculateOpsCost(populationFactor);
 //				mRoute.constrCost = mRoute.routeLength
@@ -320,7 +319,7 @@ public class NetworkEvolutionImpl {
 	}
 		
 	
-	public static CostBenefitParameters calculateCBAStats(String plansFile, String outputFile) throws IOException {
+	public static CostBenefitParameters calculateCBAStats(String plansFile, String outputFile, int populationFactor) throws IOException {
 		Config blankConfig = ConfigUtils.createConfig();
 		blankConfig.getModules().get("plans").addParam("inputPlansFile", plansFile);
 		Scenario plansScenario = ScenarioUtils.loadScenario(blankConfig);		
@@ -330,9 +329,9 @@ public class NetworkEvolutionImpl {
 		double carUsers = 0.0;
 		double otherUsers = 0.0;
 		double carTimeTotal = 0.0;
-		double carPersonKM = 0.0;
+		double carPersonDist = 0.0;
 		double ptTimeTotal = 0.0;
-		double ptPersonKM = 0.0;
+		double ptPersonDist = 0.0;
 		
 		for (Person p : plansScenario.getPopulation().getPersons().values()) {
 			boolean isPtTraveler = false;
@@ -342,18 +341,18 @@ public class NetworkEvolutionImpl {
 			for (PlanElement e : selectedPlan.getPlanElements()) {
 				if (e instanceof Leg) {
 					Leg leg = (Leg) e;
-					Log.write("Current Selected Plan Leg = "+leg.toString()+" with mode = "+leg.getMode());
+//					Log.write("Current Selected Plan Leg = "+leg.toString()+" with mode = "+leg.getMode());
 					if (leg.getMode().contains("car")) {
 						carTimeTotal += leg.getTravelTime();
-						Log.write("Distance = " + leg.getRoute().getDistance());
-						carPersonKM += leg.getRoute().getDistance();
+//						Log.write("Distance = " + leg.getRoute().getDistance());
+						carPersonDist += leg.getRoute().getDistance();
 						isCarTraveler = true;
 					}
 					if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
 							leg.getMode().contains("transit_walk") || leg.getMode().contains("egress_walk")) {
 						ptTimeTotal += leg.getTravelTime();
-						ptPersonKM += leg.getRoute().getDistance();
-						Log.write("Distance = " + leg.getRoute().getDistance());
+						ptPersonDist += leg.getRoute().getDistance();
+//						Log.write("Distance = " + leg.getRoute().getDistance());
 						isPtTraveler = true;
 					}
 				}
@@ -372,8 +371,8 @@ public class NetworkEvolutionImpl {
 				otherUsers ++;
 			}
 		}
-		CostBenefitParameters cbp = new CostBenefitParameters(  ptUsers,  carUsers,  otherUsers,
-				 carTimeTotal,  carPersonKM,  ptTimeTotal,  ptPersonKM);
+		CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers, populationFactor*otherUsers,
+				populationFactor*carTimeTotal,  populationFactor*carPersonDist,  populationFactor*ptTimeTotal,  populationFactor*ptPersonDist);
 		XMLOps.writeToFile(cbp, outputFile);
 		return cbp;
 	}
@@ -1407,7 +1406,7 @@ public class NetworkEvolutionImpl {
 		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
 		for (int g = 1; g <= lastGeneration; g++) {
 			double averageNetworkScoreThisGeneration = 0.0;
-			double bestNetworkScoreThisGeneration = 0.0;
+			double bestNetworkScoreThisGeneration = -Double.MAX_VALUE;
 			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
 					generationPath + g + "/networkScoreMap.xml");
 			for (NetworkScoreLog nsl : networkScores.values()) {
@@ -1523,8 +1522,6 @@ public class NetworkEvolutionImpl {
 		Id<Link> reverseId = Id.createLinkId(linkIdStrings[1]+"_"+linkIdStrings[0]);
 		return reverseId;
 	}
-	
-	
 
 	
 	
@@ -1541,22 +1538,22 @@ public class NetworkEvolutionImpl {
 		MNetwork eliteMNetwork = NetworkEvolutionImpl.getEliteNetwork(networkScoreMap, evoNetworksToProcessPlans);
 
 		// FREQUENCY MODIFICATIONS (set nDepartures=0, keep first/lastDep, change nVehicles --> DepSpacing will be changed accordingly in applyPT)
-		newPopulation = NetworkEvolutionImpl.applyFrequencyModification(newPopulation);
+		newPopulation = EvoOpsFreqModifier.applyFrequencyModification(newPopulation);
 		// TODO might have vehicle pool: removed vehicle comes into pool first and is then redistributed. If route hits freq. < 4min, add vehicle to next strongest route
 		
 		// CROSS-OVERS (set nDepartures=0, average first/lastDep & nVehicles during mRouteCrossovers --> DepSpacing, nDep etc. will be changed accordingly in applyPT)
-		newPopulation = NetworkEvolutionImpl.applyCrossovers(globalNetwork,  networkScoreMap,  newPopulation,  populationName,
+		newPopulation = EvoOpsCrossover.applyCrossovers(globalNetwork,  networkScoreMap,  newPopulation,  populationName,
 				 eliteMNetwork, alpha, pCrossOver, metroConstructionCostPerKmOverground,  metroConstructionCostPerKmUnderground, 
 				 metroOpsCostPerKM, iterationToReadOriginalNetwork, useOdPairsForInitialRoutes, 
 				 vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane,
 				 logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
 		
 		// MUTATIONS (set nDepartures=0, keep nVehicles, keep first/lastDep, --> RouteLength, RoundTripTravelTime, DepSpacing will be changed accordingly in applyPT)
-		newPopulation = NetworkEvolutionImpl.applyMutations(newPopulation, globalNetwork, zurich_NetworkCenterCoord, pMutation, pBigChange, pSmallChange,
+		newPopulation = EvoOpsMutator.applyMutations(newPopulation, globalNetwork, zurich_NetworkCenterCoord, pMutation, pBigChange, pSmallChange,
 				maxCrossingAngle, eliteMNetwork.networkID, metroLinkAttributes);
 
 		// APPLY TRANSIT + STORE POPULATION & TRANSITSCHEDULE (calculates & updates: routeLength, roundTripTravelTimes, nDepartures, depSpacing=d(nVehicles))
-		NetworkEvolutionImpl.applyPT(newPopulation, globalNetwork, metroLinkAttributes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
+		EvoOpsPTEngine.applyPT(newPopulation, globalNetwork, metroLinkAttributes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
 				stopTime, blocksLane, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork,
 				useOdPairsForInitialRoutes);
 		
@@ -1573,59 +1570,6 @@ public class NetworkEvolutionImpl {
 		return newPopulation;
 	}
 
-	
-
-	private static MNetworkPop applyFrequencyModification(MNetworkPop newPopulation) throws IOException {
-		for(MNetwork mn : newPopulation.networkMap.values()) {
-			boolean hasHadMutation = false;
-			Map<String, Double> routePerformances = new HashMap<String, Double>();
-			for (MRoute mr : mn.routeMap.values()) {
-				routePerformances.put(mr.routeID, mr.personMetroKM/mr.drivenKM);
-			}
-			List<String> routePerformanceOrder = NetworkEvolutionImpl.sortMapByValueScore(routePerformances);
-			if (mn.routeMap.size()>3) {
-				Random r1 = new Random();
-				Random r2 = new Random();
-				if (r1.nextDouble() < 0.67) {
-					hasHadMutation = true;
-					Log.write("Shifting one vehicle from weakest " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " to strongest " + routePerformanceOrder.get(0));
-					mn.routeMap.get(routePerformanceOrder.get(0)).vehiclesNr++;
-					mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr--;
-					if (mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr < 1) {
-						Log.write("Oops, " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " has died due to no more vehicles");
-						mn.routeMap.remove(routePerformanceOrder.get(routePerformanceOrder.size()-1));
-					}
-				}
-				if (r2.nextDouble() < 0.33) {
-					hasHadMutation = true;
-					Log.write("Shifting one vehicle from second weakest " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " to second strongest" + routePerformanceOrder.get(0));
-					mn.routeMap.get(routePerformanceOrder.get(1)).vehiclesNr++;
-					mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-2)).vehiclesNr--;
-					if (mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-2)).vehiclesNr < 1) {
-						Log.write("Oops, " + routePerformanceOrder.get(routePerformanceOrder.size()-2) + " has died due to no more vehicles");
-						mn.routeMap.remove(routePerformanceOrder.get(routePerformanceOrder.size()-2));
-					}
-				}
-			}
-			else if ( 4 > mn.routeMap.size() && mn.routeMap.size() > 1 ) {
-				Random r1 = new Random();
-				if (r1.nextDouble() < 0.67) {
-					hasHadMutation = true;
-					// Log.write("Shifting one vehicle from weakest " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " to strongest " + routePerformanceOrder.get(0));
-					mn.routeMap.get(routePerformanceOrder.get(0)).vehiclesNr++;
-					mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr--;
-					if (mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr < 1) {
-						Log.write("   >> Oops, " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " has died due to no more vehicles");
-						mn.routeMap.remove(routePerformanceOrder.get(routePerformanceOrder.size()-1));
-					}
-				}
-			}
-			if (hasHadMutation && newPopulation.modifiedNetworksInLastEvolution.contains(mn.networkID) == false) {
-				newPopulation.modifiedNetworksInLastEvolution.add(mn.networkID);
-			}
-		}
-		return newPopulation;
-	}
 
 
 	public static MNetwork getEliteNetwork(Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop evoNetworksToProcessPlans) throws IOException {
@@ -1641,286 +1585,6 @@ public class NetworkEvolutionImpl {
 		MNetwork eliteMNetwork = evoNetworksToProcessPlans.getNetworks().get(eliteNetwork);
 		Log.writeAndDisplay("  >> EliteNetwork = "+eliteNetwork+"  [ Score = " + maxNetworkScore + " ]");
 		return eliteMNetwork;
-	}
-
-
-	public static MNetworkPop applyCrossovers(Network globalNetwork, Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop newPopulation, String populationName, 
-			MNetwork eliteMNetwork, double alpha, double pCrossOver, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground, 
-			double metroOpsCostPerKM, int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes, 
-			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats,
-			int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
-			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
-		int nOldPop = newPopulation.networkMap.size();
-		Log.writeEvo("START CROSS-OVER");
-		if (nOldPop<2) {
-			Log.write("Not enough network parents for crossover. Terminating...");
-			Log.writeEvo("Not enough network parents for crossover. Terminating...");
-			System.exit(0);
-		}
-		int nCrossOverCandidates = (int) Math.ceil(0.5*nOldPop);
-		List<MNetwork> newOffspring = new ArrayList<MNetwork>();
-		System.out.println("We will try nCrossOverCandidates="+nCrossOverCandidates);
-		
-		List<String> processedNetworks = new ArrayList<String>();
-		Map<Integer, List<String>> executedMergers = new HashMap<Integer, List<String>>();
-		CrossOverLoop:
-		for (int n=0; n<nCrossOverCandidates; n++) {
-			int nTries = 0;
-			Random r = new Random();
-			if (r.nextDouble()<pCrossOver) {
-				String nameParent1;
-				String nameParent2;
-				do {
-					nameParent1 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap);
-					System.out.println("ParentName 1="+nameParent1);
-					do{
-						nameParent2 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap);
-						System.out.println("ParentName 2="+nameParent2);
-						nTries ++;
-						if (nTries > 2000) {
-							continue CrossOverLoop;
-						}
-					}while(nameParent1.equals(nameParent2));
-				}while(NetworkEvolutionImpl.mergerHasBeenExecutedPreviously(executedMergers, nameParent1, nameParent2));
-				executedMergers.put(n, Arrays.asList(nameParent1, nameParent2));
-				Log.writeAndDisplay("  > Crossing:  " + nameParent1 + " X " + nameParent2);
-				Log.writeEvo(" > Crossing Parents:  " + nameParent1 + " X " + nameParent2);
-				MNetwork parentMNetwork1 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent1));
-				MNetwork parentMNetwork2 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent2));
-				MNetwork[] childrenMNetworks = NetworkEvolutionImpl.crossMNetworks(globalNetwork, parentMNetwork1, parentMNetwork2,
-						vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
-						stopTime, blocksLane, metroConstructionCostPerKmOverground,
-						metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork,
-						useOdPairsForInitialRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
-				childrenMNetworks[0].setParents(nameParent1, nameParent2);
-				newOffspring.add(childrenMNetworks[0]);
-				newOffspring.add(childrenMNetworks[1]);
-			}
-		}
-		int nNewOffspring = newOffspring.size();
-		System.out.println("nNewOffspring="+nNewOffspring);
-		if(nNewOffspring != 0) {
-			List<String> deletedNetworkNames = RemoveWeakestNetworks(newPopulation, nNewOffspring);
-			processedNetworks.addAll(deletedNetworkNames);
-			Log.write("  >> Replace weakest networks: " + deletedNetworkNames.toString() + " by "+nNewOffspring+" nNewOffspring");
-			Log.writeEvo(" > Replacing weakest parents: " + deletedNetworkNames.toString());
-			for (int i=0; i<newOffspring.size(); i++) {
-				RenameOffspring(deletedNetworkNames.get(i), newOffspring.get(i));	// renaming offspring with its MNetworkId and the Id of all its MRoutes
-				newPopulation.addNetwork(newOffspring.get(i));
-				Log.writeEvo(" >> New offspring network: " + newOffspring.get(i).networkID + "   parents=["+newOffspring.get(i).parents.get(0)+" / "+newOffspring.get(i).parents.get(1)+"]");
-				//Log.write("   >>> Putting New Offspring Network = " + newOffspring.get(i).networkID);
-			}
-		}
-		if (nNewOffspring == nOldPop) {										// check with this condition if all old networks have been deleted for new offspring
-			newPopulation.addNetwork(eliteMNetwork);						// if also elite network has been deleted, add manually again (it will replace the new one with the same name)
-			processedNetworks.remove(eliteMNetwork.networkID);							// because this network remains unchanged for this generation as if it were not processed
-			Log.write("   >>> Putting back removed ELITE NETWORK = " + eliteMNetwork.networkID);
-			Log.writeEvo(" >> Putting back removed ELITE NETWORK = " + eliteMNetwork.networkID);
-		}
-		Log.writeEvo(" >> Networks without crossover modifications: ");
-		for (String networkName : newPopulation.networkMap.keySet()) {
-			if (processedNetworks.contains(networkName)==false) {
-				Log.writeEvo("    > "+networkName + 
-					"   parents=["+newPopulation.networkMap.get(networkName).parents.get(0)+" / "+newPopulation.networkMap.get(networkName).parents.get(1)+"]"  );
-			}
-		}
-		
-		if (logEntireRoutes) {
-			for (MNetwork mn : newPopulation.networkMap.values()) {
-				for (String mString : mn.routeMap.keySet()) {
-					MRoute mr = mn.routeMap.get(mString);
-					Log.writeAndDisplay(
-							"   >>> " + mString + " = " + mr.linkList.subList(0, mr.linkList.size() / 2).toString());
-				}
-			}
-		}
-		for(String networkName : processedNetworks) {
-			if (newPopulation.modifiedNetworksInLastEvolution.contains(networkName)==false) {
-				newPopulation.modifiedNetworksInLastEvolution.add(networkName);
-			}
-		}
-		return newPopulation;
-	}
-
-
-	@SuppressWarnings("unchecked")
-	public static MNetworkPop applyMutations(MNetworkPop newPopulation, Network globalNetwork, Coord zurich_NetworkCenterCoord, double pMutation, double pBigChange, double pSmallChange,
-			double maxCrossingAngle, String eliteNetworkName, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
-		Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
-		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
-
-		List<String> mutatedNetworks = new ArrayList<String>();
-		List<Id<Link>> linkListMutate;
-		for (String mNetworkName : newPopulation.networkMap.keySet()) {
-			boolean hasHadMutation = false;
-//			if (mNetworkName.equals(eliteNetworkName)) {
-//				continue;
-//			}
-			MNetwork mNetwork = newPopulation.networkMap.get(mNetworkName);
-			double averageRouletteScore = 0.0;
-			for (MRoute mRoute : mNetwork.routeMap.values()) {
-				averageRouletteScore +=  (mRoute.personMetroKM/mRoute.drivenKM)/mNetwork.routeMap.size();
-			}
-			Iterator<Entry<String, MRoute>> mrouteIter = mNetwork.routeMap.entrySet().iterator();
-			while (mrouteIter.hasNext()) {
-				Entry<String, MRoute> mrouteEntry = mrouteIter.next();
-				MRoute mRoute = mrouteEntry.getValue();
-				Random rMutation = new Random();
-				if (rMutation.nextDouble() < pMutation) { 	// make mutation of this route
-					if ((new Random()).nextDouble() < 0.5) {
-						// do this to give 50/50 chance of taking either direction (this increases randomness e.g. for crawling along route when inserting new nodes)
-						linkListMutate = mRoute.linkList.subList(0, mRoute.linkList.size()/2);
-					}
-					else {
-						linkListMutate = mRoute.linkList.subList(mRoute.linkList.size()/2, mRoute.linkList.size());
-					}
-					Log.writeAndDisplay("  > Mutating route = "+mRoute.getId());
-					Random rBig = new Random();
-					if (rBig.nextDouble() < pBigChange) { // make big change
-						if(linkListMutate.size()>2) {
-							Log.writeAndDisplay("  >> Applying big change");
-							hasHadMutation = true;
-							NetworkMutationImpl.applyBigChange2(allMetroStops, linkListMutate, globalNetwork, maxCrossingAngle, zurich_NetworkCenterCoord,
-									mRoute, metroLinkAttributes);
-						}
-					}
-					else{ // make small change
-						Log.writeAndDisplay("  >> Applying small change");
-						hasHadMutation = true;
-						boolean smallChangeSucceeded = NetworkMutationImpl.applySmallChange(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, 
-								averageRouletteScore, metroLinkAttributes, mNetwork);
-						if (smallChangeSucceeded == false) {
-							continue;
-						}
-					}
-				}
-				else {
-					continue;
-				}
-			}
-			if (hasHadMutation) {
-				if (mutatedNetworks.contains(mNetworkName)==false) {
-					mutatedNetworks.add(mNetworkName);
-				}
-			}
-		}
-		for(String networkName : mutatedNetworks) {
-			if (newPopulation.modifiedNetworksInLastEvolution.contains(networkName)==false) {
-				newPopulation.modifiedNetworksInLastEvolution.add(networkName);
-			}
-		}
-		
-		NetworkWriter nw = new NetworkWriter(globalNetwork);
-		nw.write("zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
-		return newPopulation;
-	}
-	
-	
-	
-
-	public static MNetworkPop applyPT(MNetworkPop newPopulation, Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, String vehicleTypeName,
-			double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom, String defaultPtMode,
-			double stopTime, boolean blocksLane, double metroConstructionCostPerKmOverground,
-			double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM, int iterationToReadOriginalNetwork,
-			boolean useOdPairsForInitialRoutes) throws IOException {
-		
-		Config originalConfig = ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml");
-		Scenario originalScenario = ScenarioUtils.loadScenario(originalConfig);
-		originalScenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class, new DefaultEnrichedTransitRouteFactory());
-		Network originalNetwork = originalScenario.getNetwork();
-		TransitSchedule originalTransitSchedule = originalScenario.getTransitSchedule();
-		
-		for (MNetwork mNetwork : newPopulation.networkMap.values()) {
-			if (newPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
-				continue;
-			}
-//			Log.write("  > Adding PT to "+ mNetwork.networkID);
-			// Transit Schedule Implementations
-			Config newConfig = ConfigUtils.createConfig();
-			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
-			TransitSchedule metroSchedule = newScenario.getTransitSchedule();
-			TransitScheduleFactory metroScheduleFactory = metroSchedule.getFactory();
-			// Create a New Metro Vehicle
-			VehicleType newVehicleType = Metro_TransitScheduleImpl.createNewVehicleType(vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom);
-			newScenario.getTransitVehicles().addVehicleType(newVehicleType);
-			
-			// Generate TransitLines and Schedules on NetworkRoutes --> Add to Transit Schedule
-			int lineNr = 0;
-			Iterator<Entry<String, MRoute>> mRouteIter = mNetwork.routeMap.entrySet().iterator();
-			while (mRouteIter.hasNext()) {
-				Entry<String, MRoute> mRouteEntry = mRouteIter.next();
-				String mRouteName = mRouteEntry.getKey();
-				MRoute mRoute = mRouteEntry.getValue();
-				lineNr++;
-				// Create an array of stops along new networkRoute on the center of each of its individual links
-				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
-						metroLinkAttributes, metroSchedule, globalNetwork, mRoute, defaultPtMode, stopTime, maxVelocity, blocksLane);
-				if (stopArray == null) {
-					Log.write("CAUTION: stopArray was too short (see code for size limits) --> Therefore deleting mRoute = " +mRouteName);
-					mRouteIter.remove();
-					continue;
-				}
-				mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
-				mRoute.departureSpacing = NetworkEvolutionImpl.depSpacingCalculator(mRoute.vehiclesNr, mRoute.roundtripTravelTime);
-				
-				// Build TransitRoute from stops and NetworkRoute --> and add departures
-				TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create(mNetwork.networkID+"_Route"+lineNr, TransitRoute.class ), 
-						mRoute.networkRoute, stopArray, defaultPtMode);
-
-				String vehicleFileLocation = ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/Vehicles.xml");
-				// make sure mRoute.nDepartures and mRoute.depSpacing have been updated correctly during modifications
-				transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(mRoute, newScenario, metroSchedule, transitRoute,
-						newVehicleType, vehicleFileLocation);
-				// Build TransitLine from TrasitRoute
-				TransitLine transitLine = metroScheduleFactory.createTransitLine(Id.create("TransitLine_Nr" + lineNr, TransitLine.class));
-				transitLine.addRoute(transitRoute);
-				// Add new line to schedule
-				metroSchedule.addTransitLine(transitLine);
-				mRoute.setTransitLine(transitLine);
-				mRoute.setLinkList(NetworkRoute2LinkIdList(mRoute.networkRoute));
-				mRoute.setNodeList(NetworkRoute2NodeIdList(mRoute.networkRoute, globalNetwork));
-				mRoute.setRouteLength(NetworkRoute2TotalLength(mRoute.networkRoute, globalNetwork));
-				mRoute.setDrivenKM(mRoute.routeLength * mRoute.nDepartures);
-				mRoute.constrCost = mRoute.routeLength
-						* (metroConstructionCostPerKmOverground * 0.01 * (100 - mRoute.undergroundPercentage)
-								+ metroConstructionCostPerKmUnderground * 0.01 * mRoute.undergroundPercentage);
-				mRoute.opsCost = mRoute.routeLength * (metroOpsCostPerKM * 0.01 * (100 - mRoute.undergroundPercentage)
-						+ 2 * metroOpsCostPerKM * 0.01 * mRoute.undergroundPercentage);
-				mRoute.transitScheduleFile = "zurich_1pm/Evolution/Population/" + mNetwork.networkID
-						+ "/MetroSchedule.xml";
-				mRoute.setEventsFile("zurich_1pm/Zurich_1pm_SimulationOutput/ITERS/it." + iterationToReadOriginalNetwork
-						+ "/" + iterationToReadOriginalNetwork + ".events.xml.gz");
-			} // end of TransitLine creator loop
-		
-			// Write TransitSchedule to corresponding file
-			TransitScheduleWriter tsw = new TransitScheduleWriter(metroSchedule);
-			tsw.writeFile("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MetroSchedule.xml");
-						
-			String mergedNetworkFileName = "";
-			String separateRoutesNetworkFileName = "";
-			if (useOdPairsForInitialRoutes==true) {
-				mergedNetworkFileName = ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/OriginalNetwork_with_ODInitialRoutes.xml");
-				separateRoutesNetworkFileName = ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/0_MetroInitialRoutes_OD.xml");
-			}
-			else {
-				mergedNetworkFileName = ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/OriginalNetwork_with_RandomInitialRoutes.xml");
-				separateRoutesNetworkFileName = ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/0_MetroInitialRoutes_Random.xml");
-			}
-			Network separateRoutesNetwork = NetworkEvolutionImpl.MRoutesToNetwork(mNetwork.routeMap, globalNetwork, Sets.newHashSet("pt"), separateRoutesNetworkFileName);
-			// Network mergedNetwork = ...
-					Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(separateRoutesNetwork, originalNetwork, Sets.newHashSet("pt"), mergedNetworkFileName);
-			//TransitSchedule mergedTransitSchedule = ...
-					Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(metroSchedule, originalTransitSchedule, ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml"));
-			//Vehicles mergedVehicles = ...
-					Metro_TransitScheduleImpl.mergeAndWriteVehicles(newScenario.getTransitVehicles(), originalScenario.getTransitVehicles(), ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml"));
-			
-			// FOR DIRECT DATA TRANSPORT W/O SAVING TO FILES - fill in MNetwork Objects for this Network
-			//mNetwork.network = mergedNetwork;
-			//mNetwork.transitSchedule = mergedTransitSchedule;
-			//mNetwork.vehicles = mergedVehicles;
-		}
-		
-		return newPopulation;
 	}
 
 
@@ -2110,8 +1774,16 @@ public class NetworkEvolutionImpl {
 		// Map<String, Double> rouletteMap = new HashMap<String, Double>(newPopulation.getNetworks().size());
 		double totalRouletteScore = 0.0;
 		for (String networkName : networkScoreMap.keySet()) {
-			networkScoreMap.get(networkName).rouletteScore = Math.exp(alpha*networkScoreMap.get(networkName).overallScore);
-			totalRouletteScore += Math.exp(alpha*networkScoreMap.get(networkName).overallScore);
+			
+			// option1a: Weighted Exponential (negative overallScores)
+			networkScoreMap.get(networkName).rouletteScore = Math.exp(-alpha/(networkScoreMap.get(networkName).overallScore/(1.0E8)));
+			// option1b: Weighted Exponential (positive overallScores)
+//			 networkScoreMap.get(networkName).rouletteScore = Math.exp(alpha*networkScoreMap.get(networkName).overallScore*0.5/(1.0E8));
+			
+			totalRouletteScore += networkScoreMap.get(networkName).rouletteScore;
+//			// option2: Standard Proportional
+//			networkScoreMap.get(networkName).rouletteScore = networkScoreMap.get(networkName).overallScore;
+//			totalRouletteScore += networkScoreMap.get(networkName).overallScore;			
 		}
 		Random r = new Random();
 		double rD = r.nextDouble();
@@ -2128,39 +1800,7 @@ public class NetworkEvolutionImpl {
 	
 	
 	
-	public static void RenameOffspring(String newNetworkName, MNetwork mNetwork) {
-		mNetwork.networkID = newNetworkName;
-		//thisNewNetworkName+"_Route"+lineNr
-		Map<String, MRoute> newRoutesMap = new HashMap<String, MRoute>();
-		int counter = 1;
-		for (MRoute mRoute : mNetwork.routeMap.values()) {
-			MRoute mrTemp = Clone.mRoute(mRoute);
-			mrTemp.routeID = newNetworkName+"_Route"+counter;
-			newRoutesMap.put(mrTemp.routeID, mrTemp);
-			counter++;
-		}
-		mNetwork.routeMap = newRoutesMap;
-	}
-	
-	
 
-
-	public static List<String> RemoveWeakestNetworks(MNetworkPop newPopulation, int nDelete) {
-		List<String> deletedNetworks = new ArrayList<String>();
-		for (int n=0; n<nDelete; n++) {
-			String weakestNetworkName = "";
-			Double weakestScore = Double.MAX_VALUE;
-			for (String networkName : newPopulation.networkMap.keySet()) {
-				if (newPopulation.networkMap.get(networkName).overallScore < weakestScore) {
-					weakestNetworkName = networkName;
-					weakestScore = newPopulation.networkMap.get(networkName).overallScore;
-				}
-			}
-			deletedNetworks.add(weakestNetworkName);
-			newPopulation.networkMap.remove(weakestNetworkName);
-		}		
-		return deletedNetworks;
-	}
 	
 	public static Network MRoutesToNetwork(Map<String, MRoute> mRoutes, Network network, Set<String> networkRouteModes, String fileName) {
 		// Store all new networkRoutes in a separate network file for visualization
@@ -2286,9 +1926,9 @@ public class NetworkEvolutionImpl {
 			MNetwork mnetwork = latestPopulation.getNetworks().get(networkName);
 			if(latestPopulation.modifiedNetworksInLastEvolution.contains(mnetwork.getNetworkID())) {
 				mnetwork.calculateTotalRouteLengthAndDrivenKM();
-				XMLOps.writeToFile(mnetwork, mnetwork.networkID.toString()+"TEMP.xml");
 //				mnetwork.calculateNetworkScore();		// from internal scoring parameters calculate overall score according to internal function
 				mnetwork.calculateNetworkScore2(lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes); // include here also part of routesHandling
+				XMLOps.writeToFile(mnetwork, "zurich_1pm/Evolution/Population/"+mnetwork.networkID+"/M"+mnetwork.networkID+".xml");
 				if (performanceGoalAccomplished == false) {		// checking whether performance goal achieved
 					if (mnetwork.averageTravelTime < averageTravelTimePerformanceGoal) {
 						performanceGoalAccomplished = true;
@@ -2307,11 +1947,15 @@ public class NetworkEvolutionImpl {
 			nsl.NetworkScore2LogMap(mnetwork);			// copy network parameters to network score log for storing evolution
 			networkScoreMap.put(networkName, nsl);		// network score map is finally stored
 			Log.writeAndDisplay("   >>> "+mnetwork.networkID+": OVERALL SCORE = " + mnetwork.overallScore);
-			Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Total Metro Passengers KM = " + mnetwork.totalMetroPersonKM);
+			Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Total Metro Passengers KM = " + mnetwork.personMetroDist);
 			//Log.writeAndDisplay("   >>> "+mnetwork.networkID+": Average Travel Time = " + mnetwork.averageTravelTime);
 			
 			// mnetwork.network = null;		// set to null before storing to file bc would use up too much storage and is not needed (network can be created from other data)
 		}
+		for (MNetwork mn : latestPopulation.getNetworks().values()) {
+			Log.write(mn.networkID + " - Overall Score = " + mn.overallScore);
+		}
+		
 		XMLOps.writeToFile(networkScoreMap, networkScoreMapGeneralLocation);
 		XMLOps.writeToFile(networkScoreMap, historyFileLocation+"/networkScoreMap.xml");
 		

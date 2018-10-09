@@ -417,7 +417,7 @@ public class VC_NetworkImpl {
 			for (String routeId : mNetwork.routeMap.keySet()) {
 				if (personKMonRoutes.containsKey(routeId)) {					
 					MRoute mRoute = mNetwork.routeMap.get(routeId);
-					mRoute.personMetroKM = personKMonRoutes.get(routeId);
+					mRoute.personMetroDist = personKMonRoutes.get(routeId);
 					mRoute.nBoardings = routeBoardingCounter.get(routeId);
 					mNetwork.routeMap.put(routeId, mRoute);
 				}
@@ -425,7 +425,7 @@ public class VC_NetworkImpl {
 	
 			// fill in performance indicators and scores in MNetworks
 			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
-			mNetwork.totalMetroPersonKM = totalMetroPersonKM;
+			mNetwork.personMetroDist = totalMetroPersonKM;
 			mNetwork.nMetroUsers = nMetroUsers;
 		}		// END of NETWORK Loop
 

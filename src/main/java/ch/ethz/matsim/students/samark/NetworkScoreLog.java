@@ -5,10 +5,10 @@ public class NetworkScoreLog {
 	double averageTravelTime;
 	double stdDeviationTravelTime;
 	double totalTravelTime;
-	double totalMetroPersonKM;
+	double personMetroDist;
 	double personKMdirect;
 	int nMetroUsers;
-	double drivenKM;
+	double totalDrivenDist;
 	double opsCost;
 	double constrCost;
 	int evolutionGeneration;
@@ -19,14 +19,14 @@ public class NetworkScoreLog {
 
 
 	public NetworkScoreLog() {
-		this.totalMetroPersonKM = 0.0;
+		this.personMetroDist = 0.0;
 		this.averageTravelTime = Double.MAX_VALUE;
 		this.stdDeviationTravelTime = Double.MAX_VALUE;
 		this.totalTravelTime = Double.MAX_VALUE;
-		this.totalMetroPersonKM = 0.0;
+		this.personMetroDist = 0.0;
 		this.personKMdirect = 0.0;
 		this.nMetroUsers = 0;
-		this.drivenKM = 0.0;
+		this.totalDrivenDist = 0.0;
 		this.opsCost = Double.MAX_VALUE;
 		this.constrCost = Double.MAX_VALUE;
 		this.evolutionGeneration = 0;
@@ -39,10 +39,10 @@ public class NetworkScoreLog {
 		// this.averageTravelTime = mn.averageTravelTime;				// already done in main loop
 		// this.stdDeviationTravelTime = mn.stdDeviationTravelTime;		// already done in main loop
 		// this.totalTravelTime = mn.totalTravelTime;					// already done in main loop
-		this.totalMetroPersonKM = mn.totalMetroPersonKM;
+		this.personMetroDist = mn.personMetroDist;
 		this.personKMdirect = mn.personKMdirect;
 		this.nMetroUsers = mn.nMetroUsers;
-		this.drivenKM = mn.drivenKM;
+		this.totalDrivenDist = mn.totalDrivenDist;
 		this.opsCost = mn.opsCost;
 		this.constrCost = mn.constrCost;
 		this.evolutionGeneration = mn.evolutionGeneration;

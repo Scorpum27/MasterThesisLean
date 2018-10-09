@@ -36,26 +36,29 @@ public class Demo {
 		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
 		
 		MNetworkPop mnpop = new MNetworkPop("evoNetworks");
-		MNetwork mn1 = XMLOps.readFromFile(MNetwork.class, "Network1TEMP.xml");
-//		MNetwork mn1x = XMLOps.readFromFileMNetwork("Network1TEMP.xml");
-		MNetwork mn2 = XMLOps.readFromFile(MNetwork.class, "Network2TEMP.xml");
+
+		MNetwork mn1 = XMLOps.readFromFile(MNetwork.class, "zurich_1pm/Evolution/Population/"+"Network1"+"/M"+"Network1"+".xml");
+		MNetwork mn2 = XMLOps.readFromFile(MNetwork.class, "zurich_1pm/Evolution/Population/"+"Network2"+"/M"+"Network2"+".xml");
 		mnpop.addNetwork(mn1);
 		mnpop.addNetwork(mn2);
 		int lastIterationOriginal = 1;
 		double populationFactor = 1000;
 		
 		Config config = ConfigUtils.createConfig();
-		config.getModules().get("network").addParam("inputNetworkFile", "C:\\Users\\Sascha\\eclipse-workspace\\MATSim-Workspace\\MasterThesis\\zurich_1pm\\Evolution\\Population\\BaseInfrastructure/GlobalNetwork.xml");
+		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm\\Evolution\\Population\\BaseInfrastructure/GlobalNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
 		Network globalNetwork = scenario.getNetwork();
 		
 		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes =
-				XMLOps.readFromFile((new HashMap<Id<Link>, CustomMetroLinkAttributes>()).getClass(), "C:\\Users\\Sascha\\eclipse-workspace\\MATSim-Workspace\\MasterThesis\\zurich_1pm\\Evolution\\Population\\BaseInfrastructure/metroLinkAttributes.xml");
+				XMLOps.readFromFile((new HashMap<Id<Link>, CustomMetroLinkAttributes>()).getClass(), "zurich_1pm\\Evolution\\Population\\BaseInfrastructure/metroLinkAttributes.xml");
 		
 		for (MNetwork mn : mnpop.networkMap.values()) {
 			mn.calculateNetworkScore2(lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes); // include here also part of routesHandling
 			System.out.println(mn.overallScore);
+			XMLOps.writeToFile(mn, "zurich_1pm/Evolution/Population/"+mn.networkID+"/M"+mn.networkID+".xml");
 		}
+		
+		
 		
 		
 		/*
