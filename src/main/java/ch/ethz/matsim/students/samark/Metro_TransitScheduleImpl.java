@@ -271,22 +271,7 @@ public class Metro_TransitScheduleImpl {
 		return transitRoute;
 	}
 	
-	public static Network mergeRoutesNetworkToOriginalNetwork(Network routesNetwork, Network originalNetwork, Set<String> transportModes, String fileName) {
-		
-		Network mergedNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
-		
-		Metro_NetworkImpl.copyNetworkToNetwork(routesNetwork, mergedNetwork, transportModes);
-		Metro_NetworkImpl.copyNetworkToNetwork(originalNetwork, mergedNetwork, null);
-		
-		// BEFORE 06.09.2018: Add small connectors between metro links and original links
-		// Add this part to connect new network to old network. this is NOT NECESSARY as the agents will "telewalk" to the metro nodes of the new network.
-		// This would have to be added for new car links given the fact, that only walking is teleported and cars could not reach the new links.
-		
-		NetworkWriter initialRoutesNetworkWriter = new NetworkWriter(mergedNetwork);
-		initialRoutesNetworkWriter.write(fileName);
-		
-		return mergedNetwork;
-	}
+	
 
 	public static TransitSchedule mergeAndWriteTransitSchedules(TransitSchedule schedule1, TransitSchedule schedule2, String fileName) {
 		

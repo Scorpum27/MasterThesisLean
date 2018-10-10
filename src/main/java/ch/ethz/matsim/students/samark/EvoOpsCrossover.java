@@ -16,8 +16,7 @@ public class EvoOpsCrossover {
 	}
 
 	public static MNetworkPop applyCrossovers(Network globalNetwork, Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop newPopulation, String populationName, 
-			MNetwork eliteMNetwork, double alpha, double pCrossOver, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground, 
-			double metroOpsCostPerKM, int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes, 
+			MNetwork eliteMNetwork, double alpha, double pCrossOver, boolean useOdPairsForInitialRoutes, 
 			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats,
 			int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
@@ -60,8 +59,7 @@ public class EvoOpsCrossover {
 				MNetwork parentMNetwork2 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent2));
 				MNetwork[] childrenMNetworks = NetworkEvolutionImpl.crossMNetworks(globalNetwork, parentMNetwork1, parentMNetwork2,
 						vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
-						stopTime, blocksLane, metroConstructionCostPerKmOverground,
-						metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork,
+						stopTime, blocksLane,
 						useOdPairsForInitialRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
 				childrenMNetworks[0].setParents(nameParent1, nameParent2);
 				newOffspring.add(childrenMNetworks[0]);
@@ -112,6 +110,7 @@ public class EvoOpsCrossover {
 		}
 		return newPopulation;
 	}
+	
 	
 	public static void RenameOffspring(String newNetworkName, MNetwork mNetwork) {
 		mNetwork.networkID = newNetworkName;

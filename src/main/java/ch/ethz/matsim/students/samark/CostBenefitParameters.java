@@ -9,6 +9,8 @@ public class CostBenefitParameters {
 	double carPersonDist = 0.0;
 	double ptTimeTotal = 0.0;
 	double ptPersonDist = 0.0;
+	double averagePtTime = 0.0;
+	double averageCartime = 0.0;
 	
 	public CostBenefitParameters() {
 	}
@@ -22,8 +24,13 @@ public class CostBenefitParameters {
 		this.carPersonDist = carPersonDist;
 		this.ptTimeTotal = ptTimeTotal;
 		this.ptPersonDist = ptPersonDist;
+		this.averageCartime = carTimeTotal / carUsers;
+		this.averagePtTime = ptTimeTotal / ptUsers;
 	}
 
-	
+	public void calculateAverages() {
+//		this.averageCartime = this.carTimeTotal/this.carUsers;
+//		this.averagePtTime = this.ptTimeTotal/this.ptUsers;		
+	}
 	
 }

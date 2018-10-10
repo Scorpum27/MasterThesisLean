@@ -206,7 +206,7 @@ public class MRoute implements Serializable{
 		double landCost = 0.01*constructionCost;
 		double rollingStockCost = this.vehiclesNr*costVehicle;
 		this.constrCost = (landCost + constructionCost + rollingStockCost);
-		Log.write("Overall Yearly ConstrCost (Split onto 40y)= "+this.constrCost/40);
+//		Log.write("Overall Yearly ConstrCost (Split onto 40y)= "+this.constrCost/40);
 		return this.constrCost;
 	}
 
@@ -217,7 +217,7 @@ public class MRoute implements Serializable{
 		double repairCost = 0.01*this.constrCost;
 		double externalCost = EnergyCost*energyPerPtPersDist*this.personMetroDist*populationFactor*365;
 		this.opsCost = opsCost + maintenanceCost + repairCost + externalCost;
-		Log.write("Yearly(Ops)Cost = "+this.opsCost);
+//		Log.write("Yearly(Ops)Cost = "+this.opsCost);
 		return this.opsCost;
 	}
 	

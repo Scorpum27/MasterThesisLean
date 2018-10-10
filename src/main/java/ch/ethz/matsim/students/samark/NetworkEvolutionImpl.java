@@ -58,8 +58,8 @@ public class NetworkEvolutionImpl {
 			double minTerminalDistance, boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea,
 			double odConsiderationThreshold, boolean useOdPairsForInitialRoutes, double xOffset, double yOffset, double populationFactor,
 			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom,String defaultPtMode, 
-			boolean blocksLane, double stopTime, double maxVehicleSpeed, double tFirstDep, double tLastDep, double initialDepSpacing,
-			double metroOpsCostPerKM, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground) throws IOException {
+			boolean blocksLane, double stopTime, double maxVehicleSpeed, double tFirstDep, double tLastDep, double initialDepSpacing
+			) throws IOException {
 
 		String networkPath = "zurich_1pm/Evolution/Population/BaseInfrastructure";
 		new File(networkPath).mkdirs();
@@ -79,7 +79,7 @@ public class NetworkEvolutionImpl {
 			// -totalLegKM PT;		-totalLegKM MPT;
 			// -aveTravTime PT;		-aveTravTime MPT;
 		
-		String plansFile = "zurich_1pm/Zurich_1pm_SimulationOutput/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
+		String plansFile = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
 		String outputFile = "zurich_1pm/cbaParametersOriginal"+lastIterationOriginal+".xml";
 		NetworkEvolutionImpl.calculateCBAStats(plansFile, outputFile, (int) populationFactor);
 		
@@ -167,7 +167,8 @@ public class NetworkEvolutionImpl {
 					//null); // FOR SAVING: replace (null) by (networkPath+"/4_MetroNetwork.xml"))
 			// Merge innerCity newMetro network with outerCity (railway2newMetro) network if desired
 			// The schedule has already been merged on the way (contains only stopFacilities by this point)
-			metroNetwork = Metro_NetworkImpl.mergeNetworks(innerCityMetroNetwork, outerCityMetroNetwork, Sets.newHashSet("pt"));
+			metroNetwork = NetworkOperators.superimposeNetworks(
+					innerCityMetroNetwork, Sets.newHashSet("pt"), outerCityMetroNetwork, Sets.newHashSet("pt"), null);
 			allMetroStops.putAll(innerCityMetroStops);
 			allMetroStops.putAll(outerCityMetroStops);			
 		}
@@ -188,8 +189,10 @@ public class NetworkEvolutionImpl {
 		// STORE GLOBAL -NEW- NETWORK WITH ALL METRO LINKS + TOTALMETRONETWORK MERGED TO ZH_NETWORK
 		NetworkWriter metroNetworkWriter = new NetworkWriter(metroNetwork);
 		metroNetworkWriter.write("zurich_1pm/Evolution/Population/BaseInfrastructure/TotalMetroNetwork.xml");
-		Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(metroNetwork, originalNetwork,
-				Sets.newHashSet("pt"), "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");				
+//		NetworkOperators.superimposeNetworks(originalNetwork, null, metroNetwork, 
+//				Sets.newHashSet("pt"), "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
+		NetworkOperators.networkOntoNetwork(originalNetwork, null, metroNetwork,
+				"zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
 		XMLOps.writeToFile(metroLinkAttributes, "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml");
 		XMLOps.writeToFile(allMetroStops, "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml");
 		
@@ -290,9 +293,9 @@ public class NetworkEvolutionImpl {
 //								+ metroConstructionCostPerKmUnderground * 0.01 * mRoute.undergroundPercentage);
 //				mRoute.opsCost = mRoute.routeLength * (metroOpsCostPerKM * 0.01 * (100 - mRoute.undergroundPercentage)
 //						+ 2 * metroOpsCostPerKM * 0.01 * mRoute.undergroundPercentage);
-				mRoute.transitScheduleFile = mNetworkPath + "/MetroSchedule.xml";
-				mRoute.setEventsFile("zurich_1pm/Zurich_1pm_SimulationOutput/ITERS/it." + iterationToReadOriginalNetwork
-						+ "/" + iterationToReadOriginalNetwork + ".events.xml.gz");
+//				mRoute.transitScheduleFile = mNetworkPath + "/MetroSchedule.xml";
+//				mRoute.setEventsFile("zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS/it." + iterationToReadOriginalNetwork
+//						+ "/" + iterationToReadOriginalNetwork + ".events.xml.gz");
 				// Log.write(mRoute.routeID + " - Created route: " + "\r\n" + mRoute.linkList.toString());			
 			}	// end of TransitLine creator loop
 	
@@ -308,7 +311,7 @@ public class NetworkEvolutionImpl {
 				mergedNetworkFileName = (mNetworkPath+"/OriginalNetwork_with_RandomInitialRoutes.xml");
 			}
 			
-			Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(separateRoutesNetwork, originalNetwork, Sets.newHashSet("pt"), mergedNetworkFileName);
+			NetworkOperators.superimposeNetworks(originalNetwork, null, separateRoutesNetwork, Sets.newHashSet("pt"), mergedNetworkFileName);
 			Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(metroSchedule, originalTransitSchedule, (mNetworkPath+"/MergedSchedule.xml"));
 			Metro_TransitScheduleImpl.mergeAndWriteVehicles(newScenario.getTransitVehicles(), originalScenario.getTransitVehicles(), (mNetworkPath+"/MergedVehicles.xml"));
 			
@@ -373,10 +376,10 @@ public class NetworkEvolutionImpl {
 		}
 		CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers, populationFactor*otherUsers,
 				populationFactor*carTimeTotal,  populationFactor*carPersonDist,  populationFactor*ptTimeTotal,  populationFactor*ptPersonDist);
+		cbp.calculateAverages();
 		XMLOps.writeToFile(cbp, outputFile);
 		return cbp;
 	}
-
 	
 
 	public static void CalculateAverageNetworkSpeed(TransitSchedule originalTransitSchedule, Network originalNetwork,
@@ -589,7 +592,7 @@ public class NetworkEvolutionImpl {
 			EventsManager myEventsManager = EventsUtils.createEventsManager();
 			myEventsManager.addHandler(myPT_StopTrafficCounter);
 			MatsimEventsReader reader = new MatsimEventsReader(myEventsManager);
-			String eventsFile = "zurich_1pm/Zurich_1pm_SimulationOutput/ITERS/it." + iterationToRead + "/" + iterationToRead
+			String eventsFile = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS/it." + iterationToRead + "/" + iterationToRead
 					+ ".events.xml.gz";
 			reader.readFile(eventsFile);
 
@@ -1096,6 +1099,7 @@ public class NetworkEvolutionImpl {
 //				for (Id<Link> link: linkList) {
 //					Log.write(link.toString());
 //				}
+				Log.write("LinkList before adding reverse route: "+linkList.toString());
 				linkList.addAll(OppositeLinkListOf(linkList)); // extend linkList with its opposite direction for PT transportation!
 				NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, newMetroNetwork);
 
@@ -1527,8 +1531,8 @@ public class NetworkEvolutionImpl {
 	
 	public static MNetworkPop developGeneration(Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
 			Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop evoNetworksToProcessPlans, String populationName,
-			Double alpha, Double pCrossOver, double metroConstructionCostPerKmOverground, double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM,
-			int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes, String vehicleTypeName, double vehicleLength, double maxVelocity, 
+			Double alpha, Double pCrossOver,
+			boolean useOdPairsForInitialRoutes, String vehicleTypeName, double vehicleLength, double maxVelocity, 
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, Coord zurich_NetworkCenterCoord, double pMutation, double pBigChange, double pSmallChange) throws IOException {
 		
@@ -1543,8 +1547,7 @@ public class NetworkEvolutionImpl {
 		
 		// CROSS-OVERS (set nDepartures=0, average first/lastDep & nVehicles during mRouteCrossovers --> DepSpacing, nDep etc. will be changed accordingly in applyPT)
 		newPopulation = EvoOpsCrossover.applyCrossovers(globalNetwork,  networkScoreMap,  newPopulation,  populationName,
-				 eliteMNetwork, alpha, pCrossOver, metroConstructionCostPerKmOverground,  metroConstructionCostPerKmUnderground, 
-				 metroOpsCostPerKM, iterationToReadOriginalNetwork, useOdPairsForInitialRoutes, 
+				 eliteMNetwork, alpha, pCrossOver, useOdPairsForInitialRoutes, 
 				 vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane,
 				 logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
 		
@@ -1554,7 +1557,7 @@ public class NetworkEvolutionImpl {
 
 		// APPLY TRANSIT + STORE POPULATION & TRANSITSCHEDULE (calculates & updates: routeLength, roundTripTravelTimes, nDepartures, depSpacing=d(nVehicles))
 		EvoOpsPTEngine.applyPT(newPopulation, globalNetwork, metroLinkAttributes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
-				stopTime, blocksLane, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork,
+				stopTime, blocksLane,
 				useOdPairsForInitialRoutes);
 		
 		// calculate and Log total Nr of vehicles
@@ -1599,8 +1602,7 @@ public class NetworkEvolutionImpl {
 
 
 	public static MNetwork[] crossMNetworks(Network globalNetwork, MNetwork parentMNetwork1, MNetwork parentMNetwork2, String vehicleTypeName, double vehicleLength, double maxVelocity, 
-			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, double metroConstructionCostPerKmOverground,
-			double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM, int iterationToReadOriginalNetwork, boolean useOdPairsForInitialRoutes,
+			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean useOdPairsForInitialRoutes,
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
 			
 		Map<String, MRoute> routesParent1 = Clone.mRouteMap(parentMNetwork1.getRouteMap());

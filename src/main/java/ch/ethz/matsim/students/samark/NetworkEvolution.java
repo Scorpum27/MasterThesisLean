@@ -83,11 +83,9 @@ public class NetworkEvolution {
 
 	
 	// INITIALIZATIon
-		// if desired, process raw existing network for its performance for reference : NetworkScoreLog rawNetworkPerformance = 			NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240);		
-		// NetworkEvolutionRunSim.peoplePlansProcessingStandard("zurich_1pm/Zurich_1pm_SimulationOutput/output_plans.xml.gz", 240); or 			("zurich_1pm/Zurich_1pm_SimulationOutput_BACKUP__10/output_plans.xml.gz", 240); or ("zurich_1pm/Evolution/Population/Network1/Simulation_Output/output_plans.xml.gz", 			240);
 	// - Initiate N networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 12;													// how many networks should be developed in parallel
+		int populationSize = 2;													// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
 		boolean mergeMetroWithRailway = true;
@@ -118,14 +116,13 @@ public class NetworkEvolution {
 		double railway2metroCatchmentArea = 150;									// DEFAULT 150 or metroProximityRadius/3
 		double metro2metroCatchmentArea = 400;										// DEFAULT = 400  (merge metro stops within 400 meters)
 		double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing 																						routes)
-		int lastIterationOriginal = 20;
+		int lastIterationOriginal = 5;
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
-		String vehicleTypeName = "metro";  double maxVelocity = 80/3.6 /*[m/s]*/;
+		String vehicleTypeName = "metro";  double maxVelocity = 80.0/3.6 /*[m/s]*/;
 		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
-		double initialDepSpacing = 7.5*60.0; double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60; 
+		double initialDepSpacing = 10.0*60.0; double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60; 
 		double stopTime = 40.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
-		double metroOpsCostPerKM = 1000; double metroConstructionCostPerKmOverground = 1000000; double metroConstructionCostPerKmUnderground = 10000000;
 		
 	
 		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - START" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
@@ -135,8 +132,8 @@ public class NetworkEvolution {
 					minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
 					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, mergeMetroWithRailway, railway2metroCatchmentArea,
 					metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 
-					vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing,
-					metroOpsCostPerKM, metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground);
+					vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing
+					);
 		
 		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%" + "\r\n" + "NETWORK CREATION - END" + "\r\n" + "%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		
@@ -165,7 +162,7 @@ public class NetworkEvolution {
 
 		
 		int firstGeneration = 1;
-		int lastGeneration = 36;
+		int lastGeneration = 2;
 		int lastIteration = lastIterationOriginal;
 
 		double averageTravelTimePerformanceGoal = 40.0;
@@ -258,10 +255,10 @@ public class NetworkEvolution {
 			double pSmallChange = 1.0-pBigChange;
 			if (generationNr != lastGeneration) {
 				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,
-						metroConstructionCostPerKmOverground, metroConstructionCostPerKmUnderground, metroOpsCostPerKM, iterationToReadOriginalNetwork, 
 						useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, 
 						logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, zurich_NetworkCenterCoord, pMutation, pBigChange, pSmallChange);
-			}			
+			}		
+			
 		}
 
 	// PLOT RESULTS

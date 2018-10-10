@@ -59,6 +59,7 @@ public class NetworkEvolutionRunSim {
 		modConfig.getModules().get("controler").addParam("overwriteFiles", "overwriteExistingFiles");
 		modConfig.getModules().get("controler").addParam("lastIteration", Integer.toString(lastIteration));
 		modConfig.getModules().get("controler").addParam("writeEventsInterval", "1");
+		modConfig.getModules().get("controler").addParam("writePlansInterval", "1");
 		String inputNetworkFile = "Evolution/Population/BaseInfrastructure/GlobalNetwork.xml"; 
 		// See old versions BEFORE 06.09.2018 for how to load specific mergedNetworks OD/Random instead of Global Network with all links
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
@@ -212,7 +213,10 @@ public class NetworkEvolutionRunSim {
 			int lastIterationOriginal, int populationFactor) throws IOException {
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			String networkName = mNetwork.networkID;
-			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";			
+			
+//			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";
+			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
+			
 			Config newConfig = ConfigUtils.createConfig();
 			newConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
 			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
@@ -228,21 +232,23 @@ public class NetworkEvolutionRunSim {
 				Plan plan = person.getSelectedPlan();
 				for (PlanElement element : plan.getPlanElements()) {
 						if (element instanceof Leg) {
-							/*System.out.println("Plan Elements is: "+element.toString());
-							System.out.println("Plan Elements Attributes are: "+element.getAttributes().toString());
-							System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("mode"));
-							System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("travTime"));*/
-							String findString = "[travTime=";
-							int i1 = element.toString().indexOf(findString);
-							//System.out.println("i1 is: "+i1);
-							String travTime = element.toString().substring(i1+findString.length(), i1+findString.length()+8);
-							//System.out.println("Plan Elements Attribute travTime is: "+travTime);
-							//System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("trav_time"));
-							//System.out.println(element.getAttributes().getAttribute("travTime").getClass().getName());
-							String[] HourMinSec = travTime.split(":");
-							//System.out.println("Person Travel Time of this leg in [s] = "+travTime);
-							personTravelTime += (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
-							//System.out.println("Total Person Travel Time of this leg in [m] = "+personTravelTime);
+							Leg leg = (Leg) element;
+							personTravelTime += leg.getTravelTime();
+//							/*System.out.println("Plan Elements is: "+element.toString());
+//							System.out.println("Plan Elements Attributes are: "+element.getAttributes().toString());
+//							System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("mode"));
+//							System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("travTime"));*/
+//							String findString = "[travTime=";
+//							int i1 = element.toString().indexOf(findString);
+//							//System.out.println("i1 is: "+i1);
+//							String travTime = element.toString().substring(i1+findString.length(), i1+findString.length()+8);
+//							//System.out.println("Plan Elements Attribute travTime is: "+travTime);
+//							//System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("trav_time"));
+//							//System.out.println(element.getAttributes().getAttribute("travTime").getClass().getName());
+//							String[] HourMinSec = travTime.split(":");
+//							//System.out.println("Person Travel Time of this leg in [s] = "+travTime);
+//							personTravelTime += (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
+//							//System.out.println("Total Person Travel Time of this leg in [m] = "+personTravelTime);
 						}
 				}
 				if (personTravelTime>=maxTravelTimeInMin) {

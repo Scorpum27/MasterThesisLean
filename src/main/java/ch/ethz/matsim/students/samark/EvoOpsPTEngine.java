@@ -33,8 +33,7 @@ public class EvoOpsPTEngine {
 
 	public static MNetworkPop applyPT(MNetworkPop newPopulation, Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, String vehicleTypeName,
 			double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom, String defaultPtMode,
-			double stopTime, boolean blocksLane, double metroConstructionCostPerKmOverground,
-			double metroConstructionCostPerKmUnderground, double metroOpsCostPerKM, int iterationToReadOriginalNetwork,
+			double stopTime, boolean blocksLane,
 			boolean useOdPairsForInitialRoutes) throws IOException {
 		
 		Config originalConfig = ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml");
@@ -99,10 +98,10 @@ public class EvoOpsPTEngine {
 //								+ metroConstructionCostPerKmUnderground * 0.01 * mRoute.undergroundPercentage);
 //				mRoute.opsCost = mRoute.routeLength * (metroOpsCostPerKM * 0.01 * (100 - mRoute.undergroundPercentage)
 //						+ 2 * metroOpsCostPerKM * 0.01 * mRoute.undergroundPercentage);
-				mRoute.transitScheduleFile = "zurich_1pm/Evolution/Population/" + mNetwork.networkID
-						+ "/MetroSchedule.xml";
-				mRoute.setEventsFile("zurich_1pm/Zurich_1pm_SimulationOutput/ITERS/it." + iterationToReadOriginalNetwork
-						+ "/" + iterationToReadOriginalNetwork + ".events.xml.gz");
+//				mRoute.transitScheduleFile = "zurich_1pm/Evolution/Population/" + mNetwork.networkID
+//						+ "/MetroSchedule.xml";
+//				mRoute.setEventsFile("zurich_1pm/Zurich_1pm_SimulationOutput/ITERS/it." + iterationToReadOriginalNetwork
+//						+ "/" + iterationToReadOriginalNetwork + ".events.xml.gz");
 			} // end of TransitLine creator loop
 		
 			// Write TransitSchedule to corresponding file
@@ -121,7 +120,7 @@ public class EvoOpsPTEngine {
 			}
 			Network separateRoutesNetwork = NetworkEvolutionImpl.MRoutesToNetwork(mNetwork.routeMap, globalNetwork, Sets.newHashSet("pt"), separateRoutesNetworkFileName);
 			// Network mergedNetwork = ...
-					Metro_TransitScheduleImpl.mergeRoutesNetworkToOriginalNetwork(separateRoutesNetwork, originalNetwork, Sets.newHashSet("pt"), mergedNetworkFileName);
+			NetworkOperators.networkOntoNetwork(separateRoutesNetwork, Sets.newHashSet("pt"), originalNetwork, mergedNetworkFileName);
 			//TransitSchedule mergedTransitSchedule = ...
 					Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(metroSchedule, originalTransitSchedule, ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml"));
 			//Vehicles mergedVehicles = ...

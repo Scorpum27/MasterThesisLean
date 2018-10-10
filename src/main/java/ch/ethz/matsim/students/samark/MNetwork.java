@@ -160,16 +160,16 @@ public class MNetwork implements Serializable{
 			equipOGpercentage += mr.EquipOGPercentage*(1-overallUGpercentage)*routeWeight;
 			developOGpercentage += mr.DevelopOGPercentage*(1-overallUGpercentage)*routeWeight;
 		}
-		Log.write(Integer.toString(nVehicles));
-		Log.write(Integer.toString(nStationsNew));
-		Log.write(Integer.toString(nStationsExtend));
-		Log.write(Double.toString(routeWeight));
-		Log.write(Double.toString(overallUGpercentage));
-		Log.write(Double.toString(newUGpercentage));		
-		Log.write(Double.toString(developUGpercentage));
-		Log.write(Double.toString(newOGpercentage));		
-		Log.write(Double.toString(equipOGpercentage));
-		Log.write(Double.toString(developOGpercentage));		
+//		Log.write(Integer.toString(nVehicles));
+//		Log.write(Integer.toString(nStationsNew));
+//		Log.write(Integer.toString(nStationsExtend));
+//		Log.write(Double.toString(routeWeight));
+//		Log.write(Double.toString(overallUGpercentage));
+//		Log.write(Double.toString(newUGpercentage));		
+//		Log.write(Double.toString(developUGpercentage));
+//		Log.write(Double.toString(newOGpercentage));		
+//		Log.write(Double.toString(equipOGpercentage));
+//		Log.write(Double.toString(developOGpercentage));		
 		
 		this.overallScore = this.performCostBenefitAnalysis(40.0, populationFactor, cbpOriginal, cbpNew, this.totalRouteLength, this.totalDrivenDist, 
 				overallUGpercentage, newUGpercentage, developUGpercentage, newOGpercentage, equipOGpercentage, developOGpercentage,
@@ -206,25 +206,24 @@ public class MNetwork implements Serializable{
 		final double OpsCostPerVehDistOG = 11.3/1000;
 		final double EnergyCost = 0.03; // 0.03.-/kWh = 30.-/MWh
 		final double energyPerPtPersDist = 0.157/1000; // kWh/personKM
-		final double PtVehicleDist = totalDrivenDist;
-		final double energyPerPtVehDist = energyPerPtPersDist*newCase.ptPersonDist/PtVehicleDist;
-		final double taxPerVehicleDist = 0.06/1000;
+//		final double PtVehicleDist = totalDrivenDist;
+//		final double energyPerPtVehDist = energyPerPtPersDist*newCase.ptPersonDist/PtVehicleDist;
 		final double occupancyRate = 1.42; // personsPerVehicle
 		final double ptPassengerCostPerDist = 0.1407/1000; // average price/km to buy a ticket for a trip with a certain distance
-		final double carCostPerVehDist = 0.1403/1000; // CHF/KM (operations such as service, repairs etc.)
-		// These two options are experimented on:
-		final double externalVehicleCosts = (0.06 + 0.11 + 0.13)/1000;  // (negative) noise, pollution, climate, accidents, fuel, write-off
-//		final double externalVehicleCosts = (0.0111 + 0.0179 + 0.008 + 0.2862 + 0.11 + 0.13)/1000;  // (positive) noise, pollution, climate, accidents, fuel, write-off
+		final double taxPerVehicleDist = 0.06/1000;
+		final double carCostPerVehDist = (0.1403 + 0.11 + 0.13)/1000; 				// CHF/vehicleKM generalCost(repair etc.) + fuel + write-off
+		final double externalCarCosts = 0.077/1000;  	// CHF/personKM  [noise, pollution, climate, accidents, energy]    OLD:(0.0111 + 0.0179 + 0.008 + 0.03)/1000
+		final double externalPtCosts = 0.032/1000;	// CHF/personKM [noise, pollution, climate, accidents] + [energyForInfrastructure]   || OLD: 0.023/1000 + EnergyCost*energyPerPtPersDist;
 
 		final double VATPercentage = 0.08;
 		final double utilityOfTimePT = 14.43/3600; // CHF/s
 		final double utilityOfTimeCar = 23.29/3600; // CHF/s
-		
-		
+
+		// ---- 
 		double deltaCarPersonDist = newCase.carPersonDist-refCase.carPersonDist;
 		double deltaCarVehicleDist = deltaCarPersonDist/occupancyRate;
 		double deltaPtPersonDist = newCase.ptPersonDist-refCase.ptPersonDist;
-
+		// ---- 
 		double constructionCost = ConstrCostPerStationNew*nStationsNew + ConstrCostPerStationExtend*nStationsExtend +
 				ConstrCostUGnew*lengthUGnew + ConstrCostUGdevelop*lengthUGdevelopExisting +
 				ConstrCostOGnew*lengthOGnew + ConstrCostOGdevelop*lengthOGdevelopExisting + ConstrCostOGequip*lengthOGequip;
@@ -232,16 +231,32 @@ public class MNetwork implements Serializable{
 		double landCost = 0.01*constructionCost;
 		double maintenanceCost = 0.01*constructionCost;
 		double repairCost = 0.01*constructionCost;
-		double rollingStockCost = nVehicles*costVehicle; // TODO: Norm this (maybe for 10min frequency case)
-		double externalCost = EnergyCost*energyPerPtVehDist*totalDrivenDist*365 + taxPerVehicleDist*(-deltaCarPersonDist)/occupancyRate*365
-				+ 0.023/1000*(newCase.ptPersonDist-refCase.ptPersonDist);		// 2.3Rp./1000PersKM for external noise/accident/pollution costs (SBB green class slides)
-//		double externalCost = EnergyCost*energyPerPtVehDist*totalDrivenDist*365 + taxPerVehicleDist*(-deltaCarPersonDist)/occupancyRate*365
-//				+ (0.0111 + 0.0179 + 0.008 + 0.2862)/occupancyRate*(2.3/6.0)*(newCase.ptPersonDist-refCase.ptPersonDist);		// externalCostCarVehicleDist / OccupancyRate * ratioCar2PT (SBB green class slides)
-		double ptCost = deltaPtPersonDist*ptPassengerCostPerDist*365;
-		// --------------------- annual total cost change
-		double totalCost = (constructionCost+landCost+rollingStockCost)/lifeTime + opsCost + maintenanceCost + repairCost + externalCost + ptCost;
-		// --------------------------------------------
+		double rollingStockCost = nVehicles*costVehicle;
+		double externalCost = externalPtCosts*deltaPtPersonDist*365 + taxPerVehicleDist*(-deltaCarPersonDist)/occupancyRate*365;	// external PT cost + MPT tax-losses
+		double ptPassengerCost = deltaPtPersonDist*ptPassengerCostPerDist*365;
+		// ---- 
+		double vehicleSavings = carCostPerVehDist*(-deltaCarPersonDist)/occupancyRate*365;
+		double extCostSavingsCar = externalCarCosts*(-deltaCarPersonDist)*365;		// *0.70 at the end to account for externalCostPT, which are not considered above (see SBB)
+		double ptVatIncrease = VATPercentage*deltaPtPersonDist*ptPassengerCostPerDist*365;	
+
+		// Option 1 : Total Utility of Time Approach
+			double travelTimeGains = 365*((refCase.carTimeTotal-newCase.carTimeTotal)*utilityOfTimeCar+(refCase.ptTimeTotal-newCase.ptTimeTotal)*utilityOfTimePT);
+		// Option 2 : Combined Approach
+		//	double travelTimeGains = 365*(
+		//		(refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers*utilityOfTimeCar-newCase.ptTimeTotal/newCase.ptUsers*utilityOfTimePT)
+		//		+refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers)*utilityOfTimePT
+		//	);
+		// Option 3 : Marginal Utility for Delta Approach
+		//	double travelTimeGains = 365*(
+		//		((refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers-newCase.ptTimeTotal/newCase.ptUsers)
+		//		+refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers))*utilityOfTimePT
+		//	);
 		
+		// ---- annual total cost change
+		double totalCost = (constructionCost+landCost+rollingStockCost)/lifeTime + opsCost + maintenanceCost + repairCost + externalCost + ptPassengerCost;
+		// ---- annual total utility change
+		double totalUtility = vehicleSavings + extCostSavingsCar + ptVatIncrease + travelTimeGains;
+
 		Log.write("--------------------    ------------------------");
 		Log.write("deltaCarPersonDistDaily [km] = "+deltaCarPersonDist/1000);
 		Log.write("deltaCarVehicleDistDaily [km] = "+deltaCarVehicleDist/1000);
@@ -252,28 +267,18 @@ public class MNetwork implements Serializable{
 		Log.write("maintenanceCostAnnual = "+maintenanceCost);
 		Log.write("repairCostAnnual = "+repairCost);
 		Log.write("rollingStockCostAnnual = "+rollingStockCost/lifeTime);
-		Log.write("externalCostAnnual = EnergyPTCost + Other + TaxLossCars = "+ EnergyCost*energyPerPtVehDist*totalDrivenDist*365 + "+" + (0.0111 + 0.0179 + 0.008 + 0.2862)/occupancyRate*(2.3/6.0)*(newCase.ptPersonDist-refCase.ptPersonDist) + "+" + taxPerVehicleDist*(-deltaCarPersonDist)/occupancyRate*365 + "=" + externalCost);
-		Log.write("ptCostAnnual = "+ptCost);
+		Log.write("externalCostAnnual = ExternalPTCost + TaxLossCars = "+ externalPtCosts*deltaPtPersonDist*365 + "+" + taxPerVehicleDist*(-deltaCarPersonDist)/occupancyRate*365 + "=" + externalCost);
+		Log.write("ptCostAnnual = "+ptPassengerCost);
 		Log.write("--------------------    ------------------------");
 		Log.write("TOTAL COST PER YEAR = "+totalCost);
 		
-		double vehicleSavings = carCostPerVehDist*(-deltaCarPersonDist)/occupancyRate*365;
-		double extCostSavings = -deltaCarVehicleDist*externalVehicleCosts*365;		// *0.70 at the end to account for externalCostPT, which are not considered above (see SBB)
-		double ptVatIncrease = VATPercentage*deltaPtPersonDist*ptPassengerCostPerDist*365;
-		double travelTimeGains = 365*(
-				(refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers*utilityOfTimeCar-newCase.ptTimeTotal/newCase.ptUsers*utilityOfTimePT)
-				+refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers)*utilityOfTimePT
-				);
-		// --------------------- annual total utility change
-		double totalUtility = vehicleSavings + extCostSavings + ptVatIncrease + travelTimeGains;
-		// --------------------------------------------
 		Log.write("--------------------    ------------------------");
 		Log.write("vehicleSavingsAnnual = "+vehicleSavings);
-		Log.write("extCostSavingsAnnual = "+extCostSavings);
+		Log.write("extCostSavingsAnnual = "+extCostSavingsCar);
 		Log.write("ptVatIncreaseAnnual = "+ptVatIncrease);
 		Log.write("travelTimeGainsAnnual = car2PtGainsAnnual + pt2PtGainsAnnual = "+travelTimeGains + " = " +
-				365*(refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers*utilityOfTimeCar-newCase.ptTimeTotal/newCase.ptUsers*utilityOfTimePT) +
-				" + " + 365*(refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers)*utilityOfTimePT));
+				365*(refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers-newCase.ptTimeTotal/newCase.ptUsers)*utilityOfTimePT +
+				" + " + 365*refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers)*utilityOfTimePT);
 		Log.write("--------------------    ------------------------");
 		Log.write("TOTAL UTILITY PER YEAR = "+totalUtility);
 		Log.write("--------------------    ------------------------");
@@ -282,7 +287,37 @@ public class MNetwork implements Serializable{
 		Log.write("--------------------    ------------------------");
 
 		return totalUtility-totalCost;
+		
+//		double constructionCost = ConstrCostPerStationNew*nStationsNew + ConstrCostPerStationExtend*nStationsExtend +
+//		ConstrCostUGnew*lengthUGnew + ConstrCostUGdevelop*lengthUGdevelopExisting +
+//		ConstrCostOGnew*lengthOGnew + ConstrCostOGdevelop*lengthOGdevelopExisting + ConstrCostOGequip*lengthOGequip;
+//double opsCost = OpsCostPerVehDistUG*ptVehicleLengthDrivenUG*365 + OpsCostPerVehDistOG*ptVehicleLengthDrivenOG*365; // include here all ops cost of vehicles, infrastructure & overhead
+//double landCost = 0.01*constructionCost;
+//double maintenanceCost = 0.01*constructionCost;
+//double repairCost = 0.01*constructionCost;
+//double rollingStockCost = nVehicles*costVehicle; // TODO: Norm this (maybe for 10min frequency case)
+//double externalCost = EnergyCost*energyPerPtVehDist*totalDrivenDist*365 + taxPerVehicleDist*(-deltaCarPersonDist)/occupancyRate*365
+//		+ 0.023/1000*(newCase.ptPersonDist-refCase.ptPersonDist);		// 2.3Rp./1000PersKM for external noise/accident/pollution costs (SBB green class slides)
+////double externalCost = EnergyCost*energyPerPtVehDist*totalDrivenDist*365 + taxPerVehicleDist*(-deltaCarPersonDist)/occupancyRate*365
+////		+ (0.0111 + 0.0179 + 0.008 + 0.2862)/occupancyRate*(2.3/6.0)*(newCase.ptPersonDist-refCase.ptPersonDist);		// externalCostCarVehicleDist / OccupancyRate * ratioCar2PT (SBB green class slides)
+//double ptCost = deltaPtPersonDist*ptPassengerCostPerDist*365;
+//// --------------------- annual total cost change
+//double totalCost = (constructionCost+landCost+rollingStockCost)/lifeTime + opsCost + maintenanceCost + repairCost + externalCost + ptCost;
+//// --------------------------------------------
+
+//double vehicleSavings = carCostPerVehDist*(-deltaCarPersonDist)/occupancyRate*365;
+//double extCostSavings = -deltaCarVehicleDist*externalVehicleCosts*365;		// *0.70 at the end to account for externalCostPT, which are not considered above (see SBB)
+//double ptVatIncrease = VATPercentage*deltaPtPersonDist*ptPassengerCostPerDist*365;
+//double travelTimeGains = 365*(
+//		(refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers*utilityOfTimeCar-newCase.ptTimeTotal/newCase.ptUsers*utilityOfTimePT)
+//		+refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers)*utilityOfTimePT
+//		);
+//// --------------------- annual total utility change
+//double totalUtility = vehicleSavings + extCostSavings + ptVatIncrease + travelTimeGains;
+//// --------------------------------------------
 	}
+	
+	
 	
 	public void calculateTotalRouteLengthAndDrivenKM() {
 		double totalRouteLength = 0.0;

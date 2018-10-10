@@ -477,19 +477,24 @@ public class Metro_NetworkImpl {
 			Node tempToNode = networkFactory.createNode(Id.createNodeId(link.getToNode().getId()), link.getToNode().getCoord());
 			Link tempLink = networkFactory.createLink(Id.createLinkId(link.getId()), tempFromNode, tempToNode);
 			
-			if (transportModes == null) {
-				tempLink.setAllowedModes(link.getAllowedModes());				
-			}
-			else {
-				tempLink.setAllowedModes(transportModes);
-			}
-			if (toNetwork.getNodes().keySet().contains(tempFromNode.getId())==false) {
+
+			if (! toNetwork.getNodes().keySet().contains(tempFromNode.getId())) {
 				toNetwork.addNode(tempFromNode);
 			}
-			if (toNetwork.getNodes().keySet().contains(tempToNode.getId())==false) {
+			if (! toNetwork.getNodes().keySet().contains(tempToNode.getId())) {
 				toNetwork.addNode(tempToNode);
 			}
-			if (toNetwork.getLinks().keySet().contains(tempLink.getId())==false) {
+			if (! toNetwork.getLinks().keySet().contains(tempLink.getId())) {
+				if (transportModes == null) {
+					tempLink.setAllowedModes(link.getAllowedModes());				
+				}
+				else {
+					tempLink.setAllowedModes(transportModes);
+				}
+				tempLink.setCapacity(link.getCapacity());
+				tempLink.setFreespeed(link.getFreespeed());
+				tempLink.setNumberOfLanes(link.getNumberOfLanes());
+				tempLink.setLength(link.getLength());
 				toNetwork.addLink(tempLink);
 			}
 		}

@@ -1,28 +1,25 @@
 package ch.ethz.matsim.students.samark;
 
 import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 
 import javax.xml.stream.XMLStreamException;
 
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
-import org.matsim.api.core.v01.network.Link;
-import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.api.core.v01.population.Population;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.pt.transitSchedule.api.TransitLine;
+import org.matsim.pt.transitSchedule.api.TransitSchedule;
+import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
+import org.matsim.vehicles.Vehicles;
 
 
 public class Demo {
@@ -33,33 +30,37 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
-		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
 		
-		MNetworkPop mnpop = new MNetworkPop("evoNetworks");
 
-		MNetwork mn1 = XMLOps.readFromFile(MNetwork.class, "zurich_1pm/Evolution/Population/"+"Network1"+"/M"+"Network1"+".xml");
-		MNetwork mn2 = XMLOps.readFromFile(MNetwork.class, "zurich_1pm/Evolution/Population/"+"Network2"+"/M"+"Network2"+".xml");
-		mnpop.addNetwork(mn1);
-		mnpop.addNetwork(mn2);
-		int lastIterationOriginal = 1;
-		double populationFactor = 1000;
+		/*
+		Config czh = ConfigUtils.createConfig();
+		czh.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/CBA_Study/zurich_transit_schedule.xml");
+		czh.getModules().get("transit").addParam("vehiclesFile","zurich_1pm/CBA_Study/zurich_transit_vehicles.xml");
+		Scenario szh = ScenarioUtils.loadScenario(czh);
+		TransitSchedule schedulezh = szh.getTransitSchedule();
+		Vehicles vehicleszh = szh.getTransitVehicles();
 		
-		Config config = ConfigUtils.createConfig();
-		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm\\Evolution\\Population\\BaseInfrastructure/GlobalNetwork.xml");
-		Scenario scenario = ScenarioUtils.loadScenario(config);
-		Network globalNetwork = scenario.getNetwork();
+		Config cme = ConfigUtils.createConfig();
+		cme.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/CBA_Study/MergedSchedule.xml");
+		cme.getModules().get("transit").addParam("vehiclesFile","zurich_1pm/CBA_Study/MergedVehicles.xml");		
+		Scenario sme = ScenarioUtils.loadScenario(czh);
+		TransitSchedule scheduleme = szh.getTransitSchedule();
+		Vehicles vehiclesme = szh.getTransitVehicles();
 		
-		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes =
-				XMLOps.readFromFile((new HashMap<Id<Link>, CustomMetroLinkAttributes>()).getClass(), "zurich_1pm\\Evolution\\Population\\BaseInfrastructure/metroLinkAttributes.xml");
+		Config c = ConfigUtils.createConfig();
+		Scenario s = ScenarioUtils.loadScenario(c);
+		TransitSchedule ts = s.getTransitSchedule();
+		Vehicles v = s.getTransitVehicles();
 		
-		for (MNetwork mn : mnpop.networkMap.values()) {
-			mn.calculateNetworkScore2(lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes); // include here also part of routesHandling
-			System.out.println(mn.overallScore);
-			XMLOps.writeToFile(mn, "zurich_1pm/Evolution/Population/"+mn.networkID+"/M"+mn.networkID+".xml");
+		for (Id<TransitLine> tl : scheduleme.getTransitLines().keySet()) {
+			if (schedulezh.getTransitLines().containsKey(tl)) {
+				ts.addTransitLine(scheduleme.getTransitLines().get(tl));
+			}
 		}
-		
-		
-		
+		TransitScheduleWriter tsw = new TransitScheduleWriter(ts);
+		tsw.writeFile("zurich_1pm/CBA_Study/SubtractedSchedule.xml");
+		*/
+
 		
 		/*
 //		Config config = ConfigUtils.createConfig();
