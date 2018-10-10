@@ -469,88 +469,9 @@ public class Metro_NetworkImpl {
 		return linkList;
 	}
 
-	public static Network copyNetworkToNetwork(Network fromNetwork, Network toNetwork, Set<String> transportModes) {
-		NetworkFactory networkFactory = toNetwork.getFactory();
-		// connectingLinkToToNode.setAllowedModes(transportModes);
-		for (Link link : fromNetwork.getLinks().values()) {
-			Node tempFromNode = networkFactory.createNode(Id.createNodeId(link.getFromNode().getId()), link.getFromNode().getCoord());
-			Node tempToNode = networkFactory.createNode(Id.createNodeId(link.getToNode().getId()), link.getToNode().getCoord());
-			Link tempLink = networkFactory.createLink(Id.createLinkId(link.getId()), tempFromNode, tempToNode);
-			
-
-			if (! toNetwork.getNodes().keySet().contains(tempFromNode.getId())) {
-				toNetwork.addNode(tempFromNode);
-			}
-			if (! toNetwork.getNodes().keySet().contains(tempToNode.getId())) {
-				toNetwork.addNode(tempToNode);
-			}
-			if (! toNetwork.getLinks().keySet().contains(tempLink.getId())) {
-				if (transportModes == null) {
-					tempLink.setAllowedModes(link.getAllowedModes());				
-				}
-				else {
-					tempLink.setAllowedModes(transportModes);
-				}
-				tempLink.setCapacity(link.getCapacity());
-				tempLink.setFreespeed(link.getFreespeed());
-				tempLink.setNumberOfLanes(link.getNumberOfLanes());
-				tempLink.setLength(link.getLength());
-				toNetwork.addLink(tempLink);
-			}
-		}
-		
-		return toNetwork;
-	}
 	
-	public static Network mergeNetworks(Network Network1, Network Network2, Set<String> transportModes) {
-		
-		
-		Network outNetwork = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
-		NetworkFactory networkFactory = outNetwork.getFactory();
- 		for (Link link : Network1.getLinks().values()) {
-			Node tempFromNode = networkFactory.createNode(Id.createNodeId(link.getFromNode().getId()), link.getFromNode().getCoord());
-			Node tempToNode = networkFactory.createNode(Id.createNodeId(link.getToNode().getId()), link.getToNode().getCoord());
-			Link tempLink = networkFactory.createLink(Id.createLinkId(link.getId()), tempFromNode, tempToNode);
-			if (transportModes == null) {
-				tempLink.setAllowedModes(link.getAllowedModes());				
-			}
-			else {
-				tempLink.setAllowedModes(transportModes);
-			}
-			if (outNetwork.getNodes().keySet().contains(tempFromNode.getId())==false) {
-				outNetwork.addNode(tempFromNode);
-			}
-			if (outNetwork.getNodes().keySet().contains(tempToNode.getId())==false) {
-				outNetwork.addNode(tempToNode);
-			}
-			if (outNetwork.getLinks().keySet().contains(tempLink.getId())==false) {
-				outNetwork.addLink(tempLink);
-			}
-		}
-		
-		for (Link link : Network2.getLinks().values()) {
-			Node tempFromNode = networkFactory.createNode(Id.createNodeId(link.getFromNode().getId()), link.getFromNode().getCoord());
-			Node tempToNode = networkFactory.createNode(Id.createNodeId(link.getToNode().getId()), link.getToNode().getCoord());
-			Link tempLink = networkFactory.createLink(Id.createLinkId(link.getId()), tempFromNode, tempToNode);
-			if (transportModes == null) {
-				tempLink.setAllowedModes(link.getAllowedModes());				
-			}
-			else {
-				tempLink.setAllowedModes(transportModes);
-			}
-			if (outNetwork.getNodes().keySet().contains(tempFromNode.getId())==false) {
-				outNetwork.addNode(tempFromNode);
-			}
-			if (outNetwork.getNodes().keySet().contains(tempToNode.getId())==false) {
-				outNetwork.addNode(tempToNode);
-			}
-			if (outNetwork.getLinks().keySet().contains(tempLink.getId())==false) {
-				outNetwork.addLink(tempLink);
-			}
-		}
-		
-		return outNetwork;
-	}
+	
+
 	
 	
 	public static void createNetworkFromCustomLinks(Map<Id<Link>,CustomLinkAttributes> customLinkMap, Network oldNetwork, String linksString) {

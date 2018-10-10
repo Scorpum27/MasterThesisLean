@@ -85,7 +85,7 @@ public class NetworkEvolution {
 	// INITIALIZATIon
 	// - Initiate N networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 2;													// how many networks should be developed in parallel
+		int populationSize = 3;													// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
 		boolean mergeMetroWithRailway = true;
@@ -113,10 +113,10 @@ public class NetworkEvolution {
 																					// DEFAULT = 0.20*metroCityRadius for RandomRoutes (1.50)
 		double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
 		double minTerminalDistance = 0.80*maxMetroRadiusFromCenter;					// DEFAULT = 0.70*maxMetroRadiusFromCenter (4.00)
-		double railway2metroCatchmentArea = 150;									// DEFAULT 150 or metroProximityRadius/3
+		double railway2metroCatchmentArea = 150;									// DEFAULT = 150 or metroProximityRadius/3
 		double metro2metroCatchmentArea = 400;										// DEFAULT = 400  (merge metro stops within 400 meters)
 		double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing 																						routes)
-		int lastIterationOriginal = 5;
+		int lastIterationOriginal = 20;
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
 		String vehicleTypeName = "metro";  double maxVelocity = 80.0/3.6 /*[m/s]*/;
@@ -162,7 +162,7 @@ public class NetworkEvolution {
 
 		
 		int firstGeneration = 1;
-		int lastGeneration = 2;
+		int lastGeneration = 1;
 		int lastIteration = lastIterationOriginal;
 
 		double averageTravelTimePerformanceGoal = 40.0;

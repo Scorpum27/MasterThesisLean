@@ -167,7 +167,7 @@ public class NetworkEvolutionImpl {
 					//null); // FOR SAVING: replace (null) by (networkPath+"/4_MetroNetwork.xml"))
 			// Merge innerCity newMetro network with outerCity (railway2newMetro) network if desired
 			// The schedule has already been merged on the way (contains only stopFacilities by this point)
-			metroNetwork = NetworkOperators.superimposeNetworks(
+			metroNetwork = NetworkOperators.superimpose2separateNetwork(
 					innerCityMetroNetwork, Sets.newHashSet("pt"), outerCityMetroNetwork, Sets.newHashSet("pt"), null);
 			allMetroStops.putAll(innerCityMetroStops);
 			allMetroStops.putAll(outerCityMetroStops);			
@@ -191,7 +191,7 @@ public class NetworkEvolutionImpl {
 		metroNetworkWriter.write("zurich_1pm/Evolution/Population/BaseInfrastructure/TotalMetroNetwork.xml");
 //		NetworkOperators.superimposeNetworks(originalNetwork, null, metroNetwork, 
 //				Sets.newHashSet("pt"), "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
-		NetworkOperators.networkOntoNetwork(originalNetwork, null, metroNetwork,
+		NetworkOperators.superimpose2separateNetwork(originalNetwork, null, metroNetwork,  Sets.newHashSet("pt"),
 				"zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
 		XMLOps.writeToFile(metroLinkAttributes, "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml");
 		XMLOps.writeToFile(allMetroStops, "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml");
@@ -214,7 +214,7 @@ public class NetworkEvolutionImpl {
 				initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork, shortestPathStrategy,
 						terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, minTerminalDistance);
 				// CAUTION: If NullPointerException, probably maxTerminalRadius >  metroNetworkRadius
-				separateRoutesNetwork = NetworkEvolutionImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork,
+				separateRoutesNetwork = NetworkOperators.networkRoutesToNetwork(initialMetroRoutes, metroNetwork,
 						Sets.newHashSet("pt"), (mNetworkPath + "/0_MetroInitialRoutes_Random.xml"));
 			}
 			else if (useOdPairsForInitialRoutes==true) {	
@@ -224,7 +224,7 @@ public class NetworkEvolutionImpl {
 						zurich_NetworkCenterCoord, "zurich_1pm/Evolution/Input/Data/OD_Input/Demand2013_PT.csv",
 						"zurich_1pm/Evolution/Input/Data/OD_Input/OD_ZoneCodesLocations.csv", xOffset, yOffset);
 				// CAUTION: Make sure .csv is separated by semi-colon because location names also include commas sometimes and lead to failure!!
-				separateRoutesNetwork = NetworkEvolutionImpl.networkRoutesToNetwork(initialMetroRoutes, metroNetwork,
+				separateRoutesNetwork = NetworkOperators.networkRoutesToNetwork(initialMetroRoutes, metroNetwork,
 						Sets.newHashSet("pt"), (mNetworkPath + "/0_MetroInitialRoutes_OD.xml"));
 			}
 			
@@ -311,7 +311,7 @@ public class NetworkEvolutionImpl {
 				mergedNetworkFileName = (mNetworkPath+"/OriginalNetwork_with_RandomInitialRoutes.xml");
 			}
 			
-			NetworkOperators.superimposeNetworks(originalNetwork, null, separateRoutesNetwork, Sets.newHashSet("pt"), mergedNetworkFileName);
+			NetworkOperators.superimpose2separateNetwork(originalNetwork, null, separateRoutesNetwork, Sets.newHashSet("pt"), mergedNetworkFileName);
 			Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(metroSchedule, originalTransitSchedule, (mNetworkPath+"/MergedSchedule.xml"));
 			Metro_TransitScheduleImpl.mergeAndWriteVehicles(newScenario.getTransitVehicles(), originalScenario.getTransitVehicles(), (mNetworkPath+"/MergedVehicles.xml"));
 			
@@ -1099,7 +1099,6 @@ public class NetworkEvolutionImpl {
 //				for (Id<Link> link: linkList) {
 //					Log.write(link.toString());
 //				}
-				Log.write("LinkList before adding reverse route: "+linkList.toString());
 				linkList.addAll(OppositeLinkListOf(linkList)); // extend linkList with its opposite direction for PT transportation!
 				NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, newMetroNetwork);
 
@@ -1123,68 +1122,7 @@ public class NetworkEvolutionImpl {
 		}
 
 
-		public static Network networkRoutesToNetwork(ArrayList<NetworkRoute> networkRoutes, Network network, Set<String> networkRouteModes, String fileName) {
-			// Store all new networkRoutes in a separate network file for visualization
-				Network routesNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
-				NetworkFactory networkFactory = routesNetwork.getFactory();
-				for (NetworkRoute nR : networkRoutes) {
-					List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
-					routeLinkList.add(nR.getStartLinkId());
-					routeLinkList.addAll(nR.getLinkIds());
-					routeLinkList.add(nR.getEndLinkId());
-					for (Id<Link> linkID : routeLinkList) {
-						Node tempToNode = networkFactory.createNode(network.getLinks().get(linkID).getToNode().getId(),
-								network.getLinks().get(linkID).getToNode().getCoord());
-						Node tempFromNode = networkFactory.createNode( network.getLinks().get(linkID).getFromNode().getId(),
-								network.getLinks().get(linkID).getFromNode().getCoord());
-						Link tempLink = networkFactory.createLink(network.getLinks().get(linkID).getId(), tempFromNode, tempToNode);
-						tempLink.setAllowedModes(networkRouteModes);
-						if (routesNetwork.getNodes().containsKey(tempToNode.getId()) == false) {
-							routesNetwork.addNode(tempToNode);
-						}
-						if (routesNetwork.getNodes().containsKey(tempFromNode.getId()) == false) {
-							routesNetwork.addNode(tempFromNode);
-						}
-						if (routesNetwork.getLinks().containsKey(tempLink.getId()) == false) {
-							routesNetwork.addLink(tempLink);
-						}
-					}
-				}
-			NetworkWriter initialRoutesNetworkWriter = new NetworkWriter(routesNetwork);
-			initialRoutesNetworkWriter.write(fileName);
-			
-			return routesNetwork;
-		}
 		
-		public static Network NetworkRouteToNetwork(NetworkRoute networkRoute, Network metroNetwork, Set<String> networkRouteModes, String fileName) {
-			// Store all new networkRoutes in a separate network file for visualization
-				Network routesNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
-				NetworkFactory networkFactory = routesNetwork.getFactory();
-					List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
-					routeLinkList.add(networkRoute.getStartLinkId());
-					routeLinkList.addAll(networkRoute.getLinkIds());
-					routeLinkList.add(networkRoute.getEndLinkId());
-					for (Id<Link> linkID : routeLinkList) {
-						Node tempToNode = networkFactory.createNode(metroNetwork.getLinks().get(linkID).getToNode().getId(),
-								metroNetwork.getLinks().get(linkID).getToNode().getCoord());
-						Node tempFromNode = networkFactory.createNode( metroNetwork.getLinks().get(linkID).getFromNode().getId(),
-								metroNetwork.getLinks().get(linkID).getFromNode().getCoord());
-						Link tempLink = networkFactory.createLink(metroNetwork.getLinks().get(linkID).getId(), tempFromNode, tempToNode);
-						tempLink.setAllowedModes(networkRouteModes);
-						if (routesNetwork.getNodes().containsKey(tempToNode.getId()) == false) {
-							routesNetwork.addNode(tempToNode);
-						}
-						if (routesNetwork.getNodes().containsKey(tempFromNode.getId()) == false) {
-							routesNetwork.addNode(tempFromNode);
-						}
-						if (routesNetwork.getLinks().containsKey(tempLink.getId()) == false) {
-							routesNetwork.addLink(tempLink);
-						}
-					}
-			NetworkWriter initialRoutesNetworkWriter = new NetworkWriter(routesNetwork);
-			initialRoutesNetworkWriter.write(fileName);
-			return routesNetwork;
-		}
 		
 		public static Id<Link> getRandomLink(Set<Id<Link>> linkSet) {
 			Random rand = new Random();
