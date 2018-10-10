@@ -226,7 +226,7 @@ public class Run_VirtualCity {
 			initialVCRoutes.add(networkRoute);
 		}
 		//Network separateRoutesNetwork = NetworkEvolutionImpl.networkRoutesToNetwork(initialVCRoutes, finalNetwork, Sets.newHashSet("pt"), (mNetworkPath+"/InitialNetworkRoutes.xml"));
-		NetworkEvolutionImpl.networkRoutesToNetwork(initialVCRoutes, finalNetwork, Sets.newHashSet("pt"), (mNetworkPath+"/InitialNetworkRoutes.xml"));
+		NetworkOperators.networkRoutesToNetwork(initialVCRoutes, finalNetwork, Sets.newHashSet("pt"), (mNetworkPath+"/InitialNetworkRoutes.xml"));
 
 		
 		// Load & Create Schedules and Factories

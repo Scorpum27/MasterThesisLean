@@ -15,8 +15,9 @@ public class EvoOpsCrossover {
 	public EvoOpsCrossover() {
 	}
 
-	public static MNetworkPop applyCrossovers(Network globalNetwork, Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop newPopulation, String populationName, 
-			MNetwork eliteMNetwork, double alpha, double pCrossOver, boolean useOdPairsForInitialRoutes, 
+	public static MNetworkPop applyCrossovers(Network globalNetwork, Map<String, NetworkScoreLog> networkScoreMap,
+			MNetworkPop newPopulation, String populationName, 
+			MNetwork eliteMNetwork, double alpha, double pCrossOver, String crossoverRouletteStrategy, boolean useOdPairsForInitialRoutes, 
 			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats,
 			int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
@@ -41,10 +42,10 @@ public class EvoOpsCrossover {
 				String nameParent1;
 				String nameParent2;
 				do {
-					nameParent1 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap);
+					nameParent1 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap, crossoverRouletteStrategy);
 					System.out.println("ParentName 1="+nameParent1);
 					do{
-						nameParent2 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap);
+						nameParent2 = NetworkEvolutionImpl.selectMNetworkByRoulette(alpha, networkScoreMap, crossoverRouletteStrategy);
 						System.out.println("ParentName 2="+nameParent2);
 						nTries ++;
 						if (nTries > 2000) {

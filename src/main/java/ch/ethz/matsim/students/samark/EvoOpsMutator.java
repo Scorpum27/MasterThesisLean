@@ -174,10 +174,10 @@ public class EvoOpsMutator {
 		Random rExt = new Random();
 		double rExtDouble = rExt.nextDouble();
 		if (rExtDouble < pExtend) { // extend route // TODO this should be done with better condition e.g. abs. profitability instead of rel. performance!
-			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, averageRouletteScore, metroLinkAttributes, mNetwork);
+			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes, mNetwork);
 		}
 		else { // shorten route
-			shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, averageRouletteScore, metroLinkAttributes, mNetwork);
+			shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes, mNetwork);
 		}
 		if (linkListMutate.size() < 2) {
 			Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);
@@ -191,7 +191,7 @@ public class EvoOpsMutator {
 	}
 	
 	public static void shortenRoute(Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, 
-			double maxCrossingAngle, MRoute mRoute, double averageRouletteScore,
+			double maxCrossingAngle, MRoute mRoute,
 			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, MNetwork mNetwork) throws IOException {
 		Random rEnd = new Random();
 		if(rEnd.nextDouble() < 0.5) { // shorten on start link
@@ -251,7 +251,7 @@ public class EvoOpsMutator {
 	// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%  HELPER METHODS %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 	
 	public static void extendRoute(Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, 
-			double maxCrossingAngle, MRoute mRoute, double averageRouletteScore,
+			double maxCrossingAngle, MRoute mRoute,
 			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, MNetwork mNetwork) throws IOException {
 		Random rEnd = new Random();
 		if(rEnd.nextDouble() < 0.5) { // add on start link

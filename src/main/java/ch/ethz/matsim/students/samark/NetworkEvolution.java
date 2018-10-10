@@ -85,7 +85,7 @@ public class NetworkEvolution {
 	// INITIALIZATIon
 	// - Initiate N networks to make a population
 		// % Parameters for Population: %
-		int populationSize = 3;													// how many networks should be developed in parallel
+		int populationSize = 16;													// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		int initialRoutesPerNetwork = 5;
 		boolean mergeMetroWithRailway = true;
@@ -162,7 +162,7 @@ public class NetworkEvolution {
 
 		
 		int firstGeneration = 1;
-		int lastGeneration = 1;
+		int lastGeneration = 50;
 		int lastIteration = lastIterationOriginal;
 
 		double averageTravelTimePerformanceGoal = 40.0;
@@ -246,17 +246,22 @@ public class NetworkEvolution {
 				// - applyPT: make functions for depSpacing = f(nVehicles, total route length) while total route length = f(linkList or stopArray)
 			
 			double alpha = 10.0;											// tunes roulette wheel choice: high alpha (>5) enhances probability to choose a high-score network and 																				decreases probability to choose a weak network more than linearly -> linearly would be p_i = 																				Score_i/Score_tot)
-			double pCrossOver = 0.35; 										// DEFAULT = 0.35
+			double pCrossOver = 0.45; 										// DEFAULT = 0.35
 			double minCrossingDistanceFactorFromRouteEnd = 0.3; 			// DEFAULT = 0.30; MINIMUM = 0.25
 			boolean logEntireRoutes = false;
 			double maxCrossingAngle = 110; 									// DEFAULT = 110
-			double pMutation = 0.35;											// DEFAULT = 0.35
+			double pMutation = 0.35;										// DEFAULT = 0.35
 			double pBigChange = 0.25;										// DEFAULT = 0.20
 			double pSmallChange = 1.0-pBigChange;
+			String crossoverRouletteStrategy = "allPositiveProportional";
+//			String crossoverRouletteStrategy = "rank";
+//			String crossoverRouletteStrategy = "tournamentSelection3";
 			if (generationNr != lastGeneration) {
-				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMap, latestPopulation, populationName, alpha, pCrossOver,
-						useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, 
-						logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, zurich_NetworkCenterCoord, pMutation, pBigChange, pSmallChange);
+				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMap,
+						latestPopulation, populationName, alpha, pCrossOver, crossoverRouletteStrategy,
+						useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
+						defaultPtMode, stopTime, blocksLane, logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
+						zurich_NetworkCenterCoord, pMutation, pBigChange, pSmallChange);
 			}		
 			
 		}

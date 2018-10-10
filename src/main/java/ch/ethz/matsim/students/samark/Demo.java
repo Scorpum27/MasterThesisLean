@@ -2,7 +2,14 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Random;
+import java.util.Set;
+import java.util.Map.Entry;
 
 import javax.xml.stream.XMLStreamException;
 
@@ -16,7 +23,101 @@ public class Demo {
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
 		
+		List<String> rankedNetworks = Arrays.asList("1","2","3","4","5","6","7","8","9","10");
+		int N = rankedNetworks.size();
+		Random r = new Random();
+		double rD = r.nextDouble();
+		System.out.println("rD = "+rD);
+		double attemptedProb = 0.0;
+		for (int n=1; n<=N; n++) {
+			System.out.println("attemptedProb = "+attemptedProb);
+			System.out.println("n = "+n);
+			if (attemptedProb <= rD   &&   rD < (attemptedProb+(N-n+1)/(N*(0.5*N+0.5)))) {
+				System.out.println("We have a lucky winner: Nr="+rankedNetworks.get(n-1));
+				break;
+			}
+			attemptedProb += (N-n+1)/(N*(0.5*N+0.5));
+		}
+		
+		
+		
+		
+//			Set<String> allNetworks = new HashSet<String>();
+//			allNetworks.add("b");
+//			allNetworks.add("f");
+//			allNetworks.add("a");
+//			allNetworks.add("d");
+//			allNetworks.add("c");
+//			int n = 3;
+//			List<String> chosenNetworks = new ArrayList<String>();
+//			
+//			outerLoop:
+//			while(chosenNetworks.size()<n) {
+//				Random r = new Random();
+//				int index = r.nextInt(allNetworks.size());
+//				int i = 0;
+//				for (String network : allNetworks) {
+//					if (i == index) {
+//						if ( ! chosenNetworks.contains(network)) {
+//							chosenNetworks.add(network);
+//						}
+//						continue outerLoop;
+//					}
+//					i++;
+//				}
+//			}
+//			System.out.println(chosenNetworks);
 
+		
+		
+//		Map<String, Double> scoreMap = new HashMap<String, Double>();
+//		scoreMap.put("d", 4.0);
+//		scoreMap.put("a", 1.0);
+//		scoreMap.put("f", 6.0);
+//		scoreMap.put("b", 2.0);
+//		scoreMap.put("c", 3.0);
+//		scoreMap.put("e", 5.0);
+//		List<String> tournamentNetworks = new ArrayList<String>();
+//		tournamentNetworks.add("c");
+//		tournamentNetworks.add("f");
+//		tournamentNetworks.add("a");
+//		String winnerNetwork = tournamentNetworks.get(0);
+//		double max = scoreMap.get(tournamentNetworks.get(0));
+//		for (String network : tournamentNetworks) {
+//			if (scoreMap.get(network) > max) {
+//				winnerNetwork = network;
+//				max = scoreMap.get(network);
+//			}
+//		}
+//		System.out.println(winnerNetwork);
+		
+		
+//		Map<String, Double> scoreMap = new HashMap<String, Double>();
+//		scoreMap.put("d", 4.0);
+//		scoreMap.put("a", 1.0);
+//		scoreMap.put("f", 6.0);
+//		scoreMap.put("b", 2.0);
+//		scoreMap.put("c", 3.0);
+//		scoreMap.put("e", 5.0);
+//		System.out.println(scoreMap.toString());
+//		List<String> sortedNetworks = new ArrayList<String>();
+//		sortedNetworks.add("");	// do this just as a helper to start off with so that valueArray we compare to is not empty
+//		List<Double> sortedValues = new ArrayList<Double>();
+//		sortedValues.add(Double.MAX_VALUE);
+//		for (Entry<String,Double> entry : scoreMap.entrySet()) {
+//			System.out.println(sortedNetworks.toString());
+//			for (int index=0; index < sortedNetworks.size(); index++) {
+//				if (entry.getValue() < sortedValues.get(index)) {
+//					sortedNetworks.add(index, entry.getKey());
+//					sortedValues.add(index, entry.getValue());
+//					break;
+//				}
+//			}
+//		}
+//		sortedNetworks.remove(sortedNetworks.size()-1); // removing the "" entry at the end again.
+//		// sortedValues.remove(sortedValues.size()-1);
+//		System.out.println(sortedNetworks.toString());
+		
 		/*
 		Config czh = ConfigUtils.createConfig();
 		czh.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/CBA_Study/zurich_transit_schedule.xml");

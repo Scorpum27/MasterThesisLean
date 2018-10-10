@@ -1469,10 +1469,11 @@ public class NetworkEvolutionImpl {
 	
 	public static MNetworkPop developGeneration(Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
 			Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop evoNetworksToProcessPlans, String populationName,
-			Double alpha, Double pCrossOver,
+			Double alpha, Double pCrossOver, String crossoverRouletteStrategy,
 			boolean useOdPairsForInitialRoutes, String vehicleTypeName, double vehicleLength, double maxVelocity, 
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
-			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, Coord zurich_NetworkCenterCoord, double pMutation, double pBigChange, double pSmallChange) throws IOException {
+			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, Coord zurich_NetworkCenterCoord,
+			double pMutation, double pBigChange, double pSmallChange) throws IOException {
 		
 		MNetworkPop newPopulation = Clone.mNetworkPop(evoNetworksToProcessPlans);
 		
@@ -1485,7 +1486,7 @@ public class NetworkEvolutionImpl {
 		
 		// CROSS-OVERS (set nDepartures=0, average first/lastDep & nVehicles during mRouteCrossovers --> DepSpacing, nDep etc. will be changed accordingly in applyPT)
 		newPopulation = EvoOpsCrossover.applyCrossovers(globalNetwork,  networkScoreMap,  newPopulation,  populationName,
-				 eliteMNetwork, alpha, pCrossOver, useOdPairsForInitialRoutes, 
+				 eliteMNetwork, alpha, pCrossOver, crossoverRouletteStrategy, useOdPairsForInitialRoutes, 
 				 vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane,
 				 logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
 		
@@ -1710,38 +1711,138 @@ public class NetworkEvolutionImpl {
 
 	
 	
-	public static String selectMNetworkByRoulette(double alpha, Map<String, NetworkScoreLog> networkScoreMap) {
+	public static String selectMNetworkByRoulette(double alpha, Map<String, NetworkScoreLog> networkScoreMap, String strategy) throws IOException {
 		// Map<String, Double> rouletteMap = new HashMap<String, Double>(newPopulation.getNetworks().size());
-		double totalRouletteScore = 0.0;
-		for (String networkName : networkScoreMap.keySet()) {
-			
-			// option1a: Weighted Exponential (negative overallScores)
-			networkScoreMap.get(networkName).rouletteScore = Math.exp(-alpha/(networkScoreMap.get(networkName).overallScore/(1.0E8)));
-			// option1b: Weighted Exponential (positive overallScores)
-//			 networkScoreMap.get(networkName).rouletteScore = Math.exp(alpha*networkScoreMap.get(networkName).overallScore*0.5/(1.0E8));
-			
-			totalRouletteScore += networkScoreMap.get(networkName).rouletteScore;
-//			// option2: Standard Proportional
-//			networkScoreMap.get(networkName).rouletteScore = networkScoreMap.get(networkName).overallScore;
-//			totalRouletteScore += networkScoreMap.get(networkName).overallScore;			
-		}
-		Random r = new Random();
-		double rD = r.nextDouble();
-		double attemptedProb = 0.0;
-		for (String networkName : networkScoreMap.keySet()) {
-			if (attemptedProb/totalRouletteScore <= rD   &&   rD < (attemptedProb+networkScoreMap.get(networkName).rouletteScore)/totalRouletteScore) {
-				return networkName;
+		
+		// Option 1 : All positive overallScoreProportional
+		if (strategy.equals("allPositiveProportional")) {
+			double totalRouletteScore = 0.0;
+			for (String networkName : networkScoreMap.keySet()) {
+				networkScoreMap.get(networkName).rouletteScore = networkScoreMap.get(networkName).overallScore/(1.0E8) + 1.5;
+				totalRouletteScore += networkScoreMap.get(networkName).rouletteScore;		
 			}
-			attemptedProb += networkScoreMap.get(networkName).rouletteScore;
+			Random r = new Random();
+			double rD = r.nextDouble();
+			double attemptedProb = 0.0;
+			for (String networkName : networkScoreMap.keySet()) {
+				if (attemptedProb/totalRouletteScore <= rD   &&   rD < (attemptedProb+networkScoreMap.get(networkName).rouletteScore)/totalRouletteScore) {
+					return networkName;
+				}
+				attemptedProb += networkScoreMap.get(networkName).rouletteScore;
+			}
+			System.out.println("Roulette has not selected any network! Returning NULL...");
+			return null;
 		}
-		System.out.println("Roulette has not selected any network! Returning NULL...");
-		return null;
+		// Option 2 : overallScoreRank
+		else if (strategy.equals("rank")) {
+			List<String> rankedNetworks = sortNetworksByScore(networkScoreMap);
+			int N = networkScoreMap.size();
+			Random r = new Random();
+			double rD = r.nextDouble();
+			double attemptedProb = 0.0;
+			for (int n=1; n<=N; n++) {
+				if (attemptedProb <= rD   &&   rD < (attemptedProb+(N-n+1)/(N*(0.5*N+0.5)))) {
+					return rankedNetworks.get(n-1);
+				}
+				attemptedProb += (N-n+1)/(N*(0.5*N+0.5));
+			}
+			System.out.println("Roulette has not selected any network! Returning NULL...");
+			return null;
+		}
+		// Option 3 : Tournament selection
+		else if (strategy.equals("tournamentSelection3")) {
+			int n=3;
+			if (n > networkScoreMap.size()) {
+				Log.write("Tournament has less than n="+n+" networks. Therefore, n is set to tournament size -> n="+n);
+				n = networkScoreMap.size();
+			}
+			List<String> tournamentNetworks = nRandomNetworks(networkScoreMap.keySet(), n);
+			String winnerNetwork = getTournamentWinner(tournamentNetworks, networkScoreMap);
+			return winnerNetwork;
+		}
+		// Option 4 : logarithmic
+		else if (strategy.equals("logarithmic")) {
+//			double totalRouletteScore = 0.0;
+//			for (String networkName : networkScoreMap.keySet()) {
+////				networkScoreMap.get(networkName).rouletteScore = Math.exp(alpha*networkScoreMap.get(networkName).overallScore*0.5/(1.0E8));
+//				networkScoreMap.get(networkName).rouletteScore = networkScoreMap.get(networkName).overallScore/(1.0E8) + 1.5;
+//				totalRouletteScore += networkScoreMap.get(networkName).rouletteScore;		
+//			}
+//			Random r = new Random();
+//			double rD = r.nextDouble();
+//			double attemptedProb = 0.0;
+//			for (String networkName : networkScoreMap.keySet()) {
+//				if (attemptedProb/totalRouletteScore <= rD   &&   rD < (attemptedProb+networkScoreMap.get(networkName).rouletteScore)/totalRouletteScore) {
+//					return networkName;
+//				}
+//				attemptedProb += networkScoreMap.get(networkName).rouletteScore;
+//			}
+			System.out.println("Logarithmic strategy has not yet been defined! Returning NULL...");
+			return null;
+		}
+		else {
+			Log.write("Roulette strategy does not confrom to any of the stored strategies. Please check spelling and existence. Returning NULL ...");
+			return null;			
+		}
+		
 	}
-	
-	
-	
 
 	
+	public static List<String> sortNetworksByScore(Map<String, NetworkScoreLog> networkScoreMap) {
+		List<String> sortedNetworks = new ArrayList<String>();
+		sortedNetworks.add("");	// do this just as a helper to start off with so that valueArray we compare to is not empty
+		List<Double> sortedValues = new ArrayList<Double>();
+		sortedValues.add(-Double.MAX_VALUE);
+		for (Entry<String,NetworkScoreLog> entry : networkScoreMap.entrySet()) {
+			for (int index=0; index < sortedNetworks.size(); index++) {
+				if (entry.getValue().overallScore > sortedValues.get(index)) {
+					sortedNetworks.add(index, entry.getKey());
+					sortedValues.add(index, entry.getValue().overallScore);
+					break;
+				}
+			}
+		}
+		sortedNetworks.remove(sortedNetworks.size()-1); // removing the "" entry at the end again.
+		// sortedValues.remove(sortedValues.size()-1);
+		return sortedNetworks;
+	}
+
+
+	public static String getTournamentWinner(List<String> tournamentNetworks, Map<String, NetworkScoreLog> networkScoreMap) {
+		String winnerNetwork = tournamentNetworks.get(0);
+		double max = networkScoreMap.get(tournamentNetworks.get(0)).overallScore;
+		for (String network : tournamentNetworks) {
+			if (networkScoreMap.get(network).overallScore > max) {
+				winnerNetwork = network;
+				max = networkScoreMap.get(network).overallScore;
+			}
+		}
+		return winnerNetwork;
+	}
+
+
+	public static List<String> nRandomNetworks(Set<String> allNetworks, int n) {
+		List<String> chosenNetworks = new ArrayList<String>();
+		outerLoop:
+		while(chosenNetworks.size()<n) {
+			Random r = new Random();
+			int index = r.nextInt(allNetworks.size());
+			int i = 0;
+			for (String network : allNetworks) {
+				if (i == index) {
+					if ( ! chosenNetworks.contains(network)) {
+						chosenNetworks.add(network);
+					}
+					continue outerLoop;
+				}
+				i++;
+			}
+		}
+		
+		return chosenNetworks;
+	}
+
+
 	public static Network MRoutesToNetwork(Map<String, MRoute> mRoutes, Network network, Set<String> networkRouteModes, String fileName) {
 		// Store all new networkRoutes in a separate network file for visualization
 		// Usually Set<String> networkRouteModes = Sets.newHashSet("pt")
