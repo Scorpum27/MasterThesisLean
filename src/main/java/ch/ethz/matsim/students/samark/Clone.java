@@ -100,6 +100,7 @@ public class Clone {
 		}
 		copy.routeLength = o.routeLength;
 		copy.vehiclesNr = o.vehiclesNr;
+		copy.lifeTime = o.lifeTime;
 		
 		copy.eventsFile = o.eventsFile;
 		copy.nBoardings = o.nBoardings;
@@ -116,6 +117,7 @@ public class Clone {
 		copy.nStationsNew = o.nStationsNew;
 		copy.opsCost = o.opsCost;
 		copy.constrCost = o.constrCost;
+		copy.utilityBalance = o.utilityBalance;
 		copy.undergroundPercentage = o.undergroundPercentage;
 		copy.NewUGpercentage = o.NewUGpercentage;
 		copy.DevelopUGPercentage = o.DevelopUGPercentage;
@@ -194,6 +196,7 @@ public class Clone {
 		copy.networkID = o.networkID;
 		copy.routeMap = Clone.mRouteMap(o.routeMap);
 		copy.totalRouteLength = o.totalRouteLength;			// calculate from individual route lengths (one-way only) 
+		copy.lifeTime = o.lifeTime;
 		//copy.transitSchedule = o.transitSchedule;
 		//copy.vehicles = o.getVehicles();
 
@@ -204,8 +207,8 @@ public class Clone {
 
 		copy.totalDrivenDist = o.totalDrivenDist;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
 		copy.totalVehiclesNr = o.totalVehiclesNr;
-		copy.opsCost = o.opsCost;					// to be implemented in NetworkEvolution
-		copy.constrCost = o.constrCost;				// to be implemented in NetworkEvolution
+		copy.annualCost = o.annualCost;					// to be implemented in NetworkEvolution
+		copy.annualBenefit = o.annualBenefit;				// to be implemented in NetworkEvolution
 
 		copy.evolutionGeneration = o.evolutionGeneration;		// NetworkEvolution --> Evolutionary loop
 		copy.averageTravelTime = o.averageTravelTime;		// NetworkEvolutionRunSim.peoplePlansProcessingM

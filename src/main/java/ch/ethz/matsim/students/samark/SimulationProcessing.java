@@ -56,10 +56,12 @@ public class SimulationProcessing {
 		String inputFileName = folderName + "zurich_1pm/Evolution/Population/HistoryLog/";
 		String outputFileName1 = folderName + "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png";
 		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName1);
-		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimes44GEN.png");
+		SimulationProcessing.travelTimesEvolutionMap(
+				generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimes44GEN.png");
 		String outputFileName2 = folderName + "zurich_1pm/Evolution/Population/networkScoreEvo.png";
 		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName2);
-		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvo44GEN.png");
+		SimulationProcessing.scoreEvolutionMap(
+				generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvo44GEN.png");
 		
 	// %%% END - Plots From History Log %%%
 	
@@ -452,8 +454,7 @@ public class SimulationProcessing {
 		
 		for (String networkName : latestPopulation.getNetworks().keySet()) {
 			MNetwork mnetwork = latestPopulation.getNetworks().get(networkName);
-			mnetwork.calculateTotalRouteLengthAndDrivenKM();
-			mnetwork.calculateNetworkScore();		// from internal scoring parameters calculate overall score according to internal function
+//			mnetwork.calculateRoutesAndNetworkScore(lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes);;		// from internal scoring parameters calculate overall score according to internal function
 			if (performanceGoalAccomplished == false) {		// checking whether performance goal achieved
 				if (mnetwork.averageTravelTime < averageTravelTimePerformanceGoal) {
 					performanceGoalAccomplished = true;

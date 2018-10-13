@@ -25,29 +25,44 @@ public class EvoOpsMutator {
 
 	
 	@SuppressWarnings("unchecked")
-	public static MNetworkPop applyMutations(MNetworkPop newPopulation, Network globalNetwork, Coord zurich_NetworkCenterCoord, double pMutation, double pBigChange, double pSmallChange,
+	public static MNetworkPop applyMutations(MNetworkPop newPopulation, Network globalNetwork, Coord zurich_NetworkCenterCoord, int lastIterationOriginal,
+			double pMutation, double pBigChange, double pSmallChange,
 			double maxCrossingAngle, String eliteNetworkName, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 		Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
 		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
 
 		List<String> mutatedNetworks = new ArrayList<String>();
 		List<Id<Link>> linkListMutate;
-		for (String mNetworkName : newPopulation.networkMap.keySet()) {
+		for (MNetwork mNetwork : newPopulation.networkMap.values()) {
+			String mNetworkName = mNetwork.networkID;
 			boolean hasHadMutation = false;
 			if (mNetworkName.equals(eliteNetworkName)) {
 				continue;
 			}
-			MNetwork mNetwork = newPopulation.networkMap.get(mNetworkName);
-			double averageRouletteScore = 0.0;
+			CostBenefitParameters cbpOriginal =
+					XMLOps.readFromFile((new CostBenefitParameters()).getClass(), 
+							"zurich_1pm/cbaParametersOriginal"+lastIterationOriginal+".xml");
+			CostBenefitParameters cbpNew = XMLOps.readFromFile((new CostBenefitParameters()).getClass(), 
+					"zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/cbaParameters"+lastIterationOriginal+".xml");
+			Map<String, Double> routeScoreMap = new HashMap<String, Double>();
+			Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String, Double>();
 			for (MRoute mRoute : mNetwork.routeMap.values()) {
-				averageRouletteScore +=  mRoute.personMetroDist/(mRoute.constrCost/mRoute.lifeTime+mRoute.opsCost)/mNetwork.routeMap.size();
+				routeScoreMap.put(mRoute.routeID, mRoute.personMetroDist/(mRoute.constrCost/mRoute.lifeTime+mRoute.opsCost));
+			}
+//			double averageRouletteScore = 0.0;
+			List<String> rankedNetworks = EvoOpsMutator.sortRoutesByScore(routeScoreMap);	// highest first
+			int N = routeScoreMap.size();
+			for (int n=0; n<N; n++) {
+				routeMutationProbabilitiesMap.put(rankedNetworks.get(n), 1-(N-n)/(N*(0.5*N+0.5))-(N-2.0)/N);
+				// 1-p(n), because highest score should least likely be mutated
 			}
 			Iterator<Entry<String, MRoute>> mrouteIter = mNetwork.routeMap.entrySet().iterator();
 			while (mrouteIter.hasNext()) {
 				Entry<String, MRoute> mrouteEntry = mrouteIter.next();
 				MRoute mRoute = mrouteEntry.getValue();
 				Random rMutation = new Random();
-				if (rMutation.nextDouble() < pMutation) { 	// make mutation of this route
+				if (rMutation.nextDouble() < routeMutationProbabilitiesMap.get(mRoute.routeID) * pMutation/0.5 ) {
+					// meanMutationRate=0.5 by nature of rankMethod. xpMutation for bringing down overall mutation rate to a desired value.
 					if ((new Random()).nextDouble() < 0.5) {
 						// do this to give 50/50 chance of taking either direction (this increases randomness e.g. for crawling along route when inserting new nodes)
 						linkListMutate = mRoute.linkList.subList(0, mRoute.linkList.size()/2);
@@ -68,8 +83,8 @@ public class EvoOpsMutator {
 					else{ // make small change
 						Log.writeAndDisplay("  >> Applying small change");
 						hasHadMutation = true;
-						boolean smallChangeSucceeded = EvoOpsMutator.applySmallChange(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, 
-								averageRouletteScore, metroLinkAttributes, mNetwork);
+						boolean smallChangeSucceeded = EvoOpsMutator.applySmallChange(cbpOriginal, cbpNew, mrouteIter, linkListMutate, 
+								globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 						if (smallChangeSucceeded == false) {
 							continue;
 						}
@@ -98,6 +113,26 @@ public class EvoOpsMutator {
 	
 	
 	
+	public static List<String> sortRoutesByScore(Map<String, Double> routeScoreMap) {
+		List<String> sortedNetworks = new ArrayList<String>();
+		sortedNetworks.add(""); // do this just as a helper to start off with so that valueArray we compare to is not empty
+		List<Double> sortedValues = new ArrayList<Double>();
+		sortedValues.add(-Double.MAX_VALUE);
+		for (Entry<String, Double> entry : routeScoreMap.entrySet()) {
+			for (int index = 0; index < sortedNetworks.size(); index++) {
+				if (entry.getValue() > sortedValues.get(index)) {
+					sortedNetworks.add(index, entry.getKey());
+					sortedValues.add(index, entry.getValue());
+					break;
+				}
+			}
+		}
+		sortedNetworks.remove(sortedNetworks.size() - 1); // removing the "" entry at the end again.
+		// sortedValues.remove(sortedValues.size() - 1); // not necessary, just here for completion and possible extensions
+		return sortedNetworks;
+	}
+
+
 	public static void applyBigChange(Map<String, CustomStop> allMetroStops, List<Id<Link>> linkListMutate, Network globalNetwork, double maxCrossingAngle, MRoute mRoute) throws IOException {
 
 		boolean feasibleCutLinkFound = false;
@@ -165,19 +200,15 @@ public class EvoOpsMutator {
 	}
 
 	
-	public static boolean applySmallChange(Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork,
-			double maxCrossingAngle, MRoute mRoute, double averageRouletteScore,
-			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, MNetwork mNetwork) throws IOException {
-		double weakeningFactor = 0.8; // factor to weaken dominant routes, which would just extend and extend (maybe make here like network score with exp function)
-		double thisRouletteScore = mRoute.personMetroDist/mRoute.totalDrivenDist;
-		double pExtend = weakeningFactor*thisRouletteScore / (weakeningFactor*thisRouletteScore + averageRouletteScore);
-		Random rExt = new Random();
-		double rExtDouble = rExt.nextDouble();
-		if (rExtDouble < pExtend) { // extend route // TODO this should be done with better condition e.g. abs. profitability instead of rel. performance!
-			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes, mNetwork);
+	public static boolean applySmallChange(CostBenefitParameters refCase, CostBenefitParameters newCase,
+			Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, Double maxCrossingAngle, MRoute mRoute,
+			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+
+		if (mRoute.utilityBalance > 0.0) { // extend route // TODO this should be done with better condition e.g. abs. profitability instead of rel. performance!
+			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 		}
 		else { // shorten route
-			shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes, mNetwork);
+			shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 		}
 		if (linkListMutate.size() < 2) {
 			Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);
@@ -192,7 +223,7 @@ public class EvoOpsMutator {
 	
 	public static void shortenRoute(Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, 
 			double maxCrossingAngle, MRoute mRoute,
-			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, MNetwork mNetwork) throws IOException {
+			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 		Random rEnd = new Random();
 		if(rEnd.nextDouble() < 0.5) { // shorten on start link
 			Id<Link> nextLinkWithFacility = null;
@@ -252,7 +283,7 @@ public class EvoOpsMutator {
 	
 	public static void extendRoute(Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, 
 			double maxCrossingAngle, MRoute mRoute,
-			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, MNetwork mNetwork) throws IOException {
+			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 		Random rEnd = new Random();
 		if(rEnd.nextDouble() < 0.5) { // add on start link
 //			Log.write("Trying to add extension before start link");
@@ -571,7 +602,7 @@ public class EvoOpsMutator {
 		Node startNode = globalNetwork.getNodes().get(startLink.getFromNode().getId());
 		if (lowestTreeLevel == 1) {
 			for (Link previousLink : startNode.getInLinks().values()) {
-				if (GeomDistance.angleBetweenLinks(previousLink, startLink) > maxCrossingAngle) {
+				if (GeomDistance.angleBetweenLinks(previousLink, startLink) > maxCrossingAngle || metroLinkAttributes.get(startLink.getId()) == null) {
 					continue;
 				}
 				if (searchAcceptableStopFacilitiesOnLink(metroLinkAttributes, previousLink, metroLinkAttributes.get(startLink.getId()).fromNodeStopFacility) != null) {
@@ -607,7 +638,7 @@ public class EvoOpsMutator {
 		Node endNode = globalNetwork.getNodes().get(endLink.getToNode().getId());
 		if (lowestTreeLevel == 1) {
 			for (Link nextLink : endNode.getOutLinks().values()) {
-				if (GeomDistance.angleBetweenLinks(nextLink, endLink) > maxCrossingAngle) {
+				if (GeomDistance.angleBetweenLinks(nextLink, endLink) > maxCrossingAngle || metroLinkAttributes.get(endLink.getId()) == null) {
 					continue;
 				}
 				if (searchAcceptableStopFacilitiesOnLink(metroLinkAttributes, nextLink, metroLinkAttributes.get(endLink.getId()).toNodeStopFacility) != null) {

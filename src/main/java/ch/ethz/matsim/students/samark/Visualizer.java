@@ -11,22 +11,37 @@ public class Visualizer {
 
 		// %%% Calculate CBA %%%
 		
-		int lastIterationOriginal = 100;
+//		int lastIterationOriginal = 100;
+//		
+//		String finalPlansFile1 = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
+//		String finalPlansFile2 = "zurich_1pm/Zurich_1pm_SimulationOutputBasic/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
+//		String finalPlansFile3 = "zurich_1pm/Evolution/Population/Network1/Simulation_Output/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
+//		
+//		CostBenefitParameters cbp1 = NetworkEvolutionImpl.calculateCBAStats(finalPlansFile1,
+//				"zurich_1pm/CBA_Study/cbaParameters"+lastIterationOriginal+"ZurichOriginalEnriched.xml", 1);
+//		
+//		CostBenefitParameters cbp2 = NetworkEvolutionImpl.calculateCBAStats(finalPlansFile2,
+//				"zurich_1pm/CBA_Study/cbaParameters"+lastIterationOriginal+"ZurichOriginalBasic.xml", 1);
+//		
+//		CostBenefitParameters cbp3 = NetworkEvolutionImpl.calculateCBAStats(finalPlansFile3,
+//				"zurich_1pm/CBA_Study/cbaParameters"+lastIterationOriginal+"Metro.xml", 1);	
 		
-		String finalPlansFile1 = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
-		String finalPlansFile2 = "zurich_1pm/Zurich_1pm_SimulationOutputBasic/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
-		String finalPlansFile3 = "zurich_1pm/Evolution/Population/Network1/Simulation_Output/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
+	// %%% START - Plots From History Log %%%
 		
-		CostBenefitParameters cbp1 = NetworkEvolutionImpl.calculateCBAStats(finalPlansFile1,
-				"zurich_1pm/CBA_Study/cbaParameters"+lastIterationOriginal+"ZurichOriginalEnriched.xml", 1);
-		
-		CostBenefitParameters cbp2 = NetworkEvolutionImpl.calculateCBAStats(finalPlansFile2,
-				"zurich_1pm/CBA_Study/cbaParameters"+lastIterationOriginal+"ZurichOriginalBasic.xml", 1);
-		
-		CostBenefitParameters cbp3 = NetworkEvolutionImpl.calculateCBAStats(finalPlansFile3,
-				"zurich_1pm/CBA_Study/cbaParameters"+lastIterationOriginal+"Metro.xml", 1);	
-		
-		
+		int populationSize = 16;
+		int initialRoutesPerNetwork = 5;
+		int generationsToPlot = 14; // = nEvolutions    (NOT nEvolutions-1 !!)
+		int lastIteration = 20;
+		String folderName = "ForExport/17_XOverTournamentSelection/";
+		String inputFileName = folderName + "zurich_1pm/Evolution/Population/HistoryLog/";
+		String outputFileName1 = folderName + "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png";
+		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName1);
+		SimulationProcessing.travelTimesEvolutionMap(
+				generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimes14GEN.png");
+		String outputFileName2 = folderName + "zurich_1pm/Evolution/Population/networkScoreEvo.png";
+		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName2);
+		SimulationProcessing.scoreEvolutionMap(
+				generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvo14GEN.png");
 		
 		
 		

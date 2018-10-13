@@ -11,12 +11,15 @@ public class EvoOpsFreqModifier {
 	public EvoOpsFreqModifier() {
 	}
 
-	public static MNetworkPop applyFrequencyModification(MNetworkPop newPopulation) throws IOException {
+	public static MNetworkPop applyFrequencyModification(MNetworkPop newPopulation, String eliteNetworkName) throws IOException {
 		for(MNetwork mn : newPopulation.networkMap.values()) {
+			if (mn.networkID.toString().equals(eliteNetworkName)) {
+				continue;
+			}
 			boolean hasHadMutation = false;
 			Map<String, Double> routePerformances = new HashMap<String, Double>();
 			for (MRoute mr : mn.routeMap.values()) {
-				routePerformances.put(mr.routeID, mr.personMetroDist/(mr.constrCost/mr.lifeTime+mr.opsCost));
+				routePerformances.put(mr.routeID, mr.utilityBalance);
 			}
 			List<String> routePerformanceOrder = NetworkEvolutionImpl.sortMapByValueScore(routePerformances);
 			if (mn.routeMap.size()>3) {

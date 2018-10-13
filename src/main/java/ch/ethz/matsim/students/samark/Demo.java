@@ -5,6 +5,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -22,22 +23,130 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
+		MRoute mr1 = new MRoute("MRoute_1");
+		MRoute mr2 = new MRoute("MRoute_2");
+		MRoute mr3 = new MRoute("MRoute_3");
+		MRoute mr4 = new MRoute("MRoute_4");
+		mr1.constrCost = 10.0;
+		mr1.opsCost = 10.0;
+		mr1.personMetroDist = 20;
+		mr2.constrCost = 20.0;
+		mr2.opsCost = 13.0;
+		mr2.personMetroDist = 10;
+		mr3.constrCost = 20.0;
+		mr3.opsCost = 1.0;
+		mr3.personMetroDist = 20;
+		mr4.constrCost = 10.0;
+		mr4.opsCost = 10.0;
+		mr4.personMetroDist = 20;
+		MNetwork mn1 = new MNetwork("MNetwork1");
+		mn1.addNetworkRoute(mr1);
+		mn1.addNetworkRoute(mr2);
+		mn1.addNetworkRoute(mr3);
+		mn1.addNetworkRoute(mr4);
+
 		
-		List<String> rankedNetworks = Arrays.asList("1","2","3","4","5","6","7","8","9","10");
-		int N = rankedNetworks.size();
-		Random r = new Random();
-		double rD = r.nextDouble();
-		System.out.println("rD = "+rD);
-		double attemptedProb = 0.0;
-		for (int n=1; n<=N; n++) {
-			System.out.println("attemptedProb = "+attemptedProb);
-			System.out.println("n = "+n);
-			if (attemptedProb <= rD   &&   rD < (attemptedProb+(N-n+1)/(N*(0.5*N+0.5)))) {
-				System.out.println("We have a lucky winner: Nr="+rankedNetworks.get(n-1));
-				break;
-			}
-			attemptedProb += (N-n+1)/(N*(0.5*N+0.5));
-		}
+		// %%% insert this after a customLinkMap to get totalTraffic
+		
+//		Double totalTraffic = 0.0;
+//		double max = 0.0;
+//		Map<String, Double> traffics = new HashMap<String,Double>();
+//		for (CustomLinkAttributes cla : mergedLinks_mostFrequentInRadiusMainFacilitiesSet.values()) {
+//			if ( ! traffics.containsKey(Double.toString(cla.getTotalTraffic()))) {
+//				traffics.put(Double.toString(cla.getTotalTraffic()), 1.0);
+//			}
+//			else {
+//				traffics.put(Double.toString(cla.getTotalTraffic()), traffics.get(Double.toString(cla.getTotalTraffic()))+1.0);
+//			}
+////			Log.write("traffic.txt", Double.toString(cla.getTotalTraffic()));
+//			if (max < cla.getTotalTraffic()) {
+//				max = cla.getTotalTraffic();
+//			}
+//			totalTraffic += cla.getTotalTraffic();
+//		}
+//		Log.write("traffic.txt", "Average/Max traffic="+totalTraffic/mergedLinks_mostFrequentInRadiusMainFacilitiesSet.size()+"/"+max+" "
+//				+ "  at nLinks="+mergedLinks_mostFrequentInRadiusMainFacilitiesSet.size());
+//		Log.write("traffic.txt", traffics.toString());
+//		System.exit(0);
+		
+		
+		// %%% 
+		
+//		Map<String, Double> routeScoreMap = new HashMap<String, Double>();
+//		Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String, Double>();
+//		for (MRoute mRoute : mn1.routeMap.values()) {
+//			routeScoreMap.put(mRoute.routeID, mRoute.personMetroDist/(mRoute.constrCost/mRoute.lifeTime+mRoute.opsCost));
+//		}
+//		List<String> rankedNetworks = EvoOpsMutator.sortRoutesByScore(routeScoreMap);	// highest first
+//		int N = routeScoreMap.size();
+//		for (int n=0; n<N; n++) {
+//			routeMutationProbabilitiesMap.put(rankedNetworks.get(n), 1-(N-n)/(N*(0.5*N+0.5))-(N-2.0)/N);
+//			// 1-p(n), because highest score should least likely be mutated
+//		}
+//		System.out.println(routeMutationProbabilitiesMap.toString());
+//		Iterator<Entry<String, MRoute>> mrouteIter = mn1.routeMap.entrySet().iterator();
+//		while (mrouteIter.hasNext()) {
+//			Entry<String, MRoute> mrouteEntry = mrouteIter.next();
+//			MRoute mRoute = mrouteEntry.getValue();
+//			Random rMutation = new Random();
+//			System.out.println("pMutation = "+rMutation.nextDouble());
+//			System.out.println("routeMutationProb = "+routeMutationProbabilitiesMap.get(mRoute.routeID));
+//			if (rMutation.nextDouble() < routeMutationProbabilitiesMap.get(mRoute.routeID)) { 	// make mutation of this route
+//				System.out.println("It worked ;-)");
+//			}
+//		}
+		
+		
+		
+		
+//		Map<String,Double> overallMap = new HashMap<String,Double>();
+//		overallMap.put("a", 1.00);
+//		overallMap.put("b", 1.50);
+//		overallMap.put("c", 1.50);
+//		overallMap.put("d", 2.00);
+//		overallMap.put("e", 0.00);
+//		Map<String,Double> rouletteMap = new HashMap<String,Double>();
+//
+//		double alpha = 1.3;
+//		
+//		int N = overallMap.size();
+//		double totalRouletteScore = 0.0;
+//		for (String networkName : overallMap.keySet()) {
+//			double value = Math.exp(alpha*overallMap.get(networkName));
+//			rouletteMap.put(networkName, value);
+//			totalRouletteScore += Math.exp(alpha*overallMap.get(networkName));	
+//		}
+//		for (Entry<String,Double> entry : rouletteMap.entrySet()) {
+//			System.out.println(entry.getKey().toString() + " = " + entry.getValue()/totalRouletteScore);
+//		}
+//		
+//		Random r = new Random();
+//		double rD = r.nextDouble();
+//		double attemptedProb = 0.0;
+//		for (String networkName : overallMap.keySet()) {
+//			if (attemptedProb/totalRouletteScore <= rD   &&   rD < (attemptedProb+rouletteMap.get(networkName))/totalRouletteScore) {
+//				System.out.println("Winner = "+networkName);
+//				break;
+//			}
+//			attemptedProb += rouletteMap.get(networkName);
+//		}
+		
+		
+//		List<String> rankedNetworks = Arrays.asList("1","2","3","4","5","6","7","8","9","10");
+//		int N = rankedNetworks.size();
+//		Random r = new Random();
+//		double rD = r.nextDouble();
+//		System.out.println("rD = "+rD);
+//		double attemptedProb = 0.0;
+//		for (int n=1; n<=N; n++) {
+//			System.out.println("attemptedProb = "+attemptedProb);
+//			System.out.println("n = "+n);
+//			if (attemptedProb <= rD   &&   rD < (attemptedProb+(N-n+1)/(N*(0.5*N+0.5)))) {
+//				System.out.println("We have a lucky winner: Nr="+rankedNetworks.get(n-1));
+//				break;
+//			}
+//			attemptedProb += (N-n+1)/(N*(0.5*N+0.5));
+//		}
 		
 		
 		
