@@ -4,8 +4,10 @@ import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -125,7 +127,7 @@ public class NetworkEvolution {
 		// %% Parameters Simulation, Events & Plans Processing %%
 		int firstGeneration = 1;
 		int lastGeneration = 2;
-		int lastIterationOriginal = 1;
+		int lastIterationOriginal = 20;
 		int lastIteration = lastIterationOriginal;
 		int storeScheduleInterval = 1;	// every X generations the mergedSchedule/Vehicles are saved for continuation of simulation after undesired breakdown
 
@@ -144,7 +146,7 @@ public class NetworkEvolution {
 		double pMutation = 0.35;									// DEFAULT = 0.35; <=0.5, because used rankMethod has meanProbability of 0.5 by nature
 		double pBigChange = 0.25;									// DEFAULT = 0.25
 		double pSmallChange = 1.0-pBigChange;
-		String crossoverRouletteStrategy = "logarithmic";	// Options: allPositiveProportional, rank, tournamentSelection3, logarithmic
+		String crossoverRouletteStrategy = "allPositiveProportional";	// Options: allPositiveProportional, rank, tournamentSelection3, logarithmic
 
 		
 		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    " + "NETWORK CREATION - START" + "    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
@@ -159,18 +161,21 @@ public class NetworkEvolution {
 		MNetworkPop latestPopulation = networkPopulation;
 		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
 		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
+		List<Map<String, NetworkScoreLog>> networkScoreMaps = new ArrayList<Map<String, NetworkScoreLog>>();
 		// Uncomment until here for RECALL
 		
 		
 		// RECALL MODULE
 		// - Uncomment "LogCleaner" & "Network Creation"
 		// - firstGeneration=generationToRecall
-//				Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
-//				int generationToRecall = 8;	// it is recommended to use the Generation before the one that failed in order
+//				int generationToRecall = 3;	// it is recommended to use the Generation before the one that failed in order
 //											// to make sure it's data is complete and ready for next clean generation
+//				Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+//				List<Map<String, NetworkScoreLog>> networkScoreMaps = new ArrayList<Map<String, NetworkScoreLog>>();
 //				MNetworkPop latestPopulation = new MNetworkPop(populationName);
-//				NetworkEvolutionRunSim.recallSimulation(latestPopulation, metroLinkAttributes, generationToRecall, "evoNetworks", populationSize, initialRoutesPerNetwork);
-		
+//				NetworkEvolutionRunSim.recallSimulation(latestPopulation, metroLinkAttributes, generationToRecall, networkScoreMaps, 
+//														 "evoNetworks", populationSize, initialRoutesPerNetwork);
+				
 		
 	// EVOLUTIONARY PROCESS
 		Config config = ConfigUtils.createConfig();
@@ -215,9 +220,9 @@ public class NetworkEvolution {
 		// - TOTAL SCORE CALCULATOR & HISTORY LOGGER & SCORE CHECK: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
 			Log.write("LOGGING SCORES of GEN"+generationNr+":");
 			String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr;
-			String networkScoreMapGeneralLocation = "zurich_1pm/Evolution/Population/networkScoreMap.xml";
-			Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
-			boolean performanceGoalAccomplished = NetworkEvolutionImpl.logResults(networkScoreMap, historyFileLocation, networkScoreMapGeneralLocation, 
+			String networkScoreMapGeneralLocation = "zurich_1pm/Evolution/Population/networkScoreMaps.xml";
+//			Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
+			boolean performanceGoalAccomplished = NetworkEvolutionImpl.logResults(networkScoreMaps, historyFileLocation, networkScoreMapGeneralLocation, 
 					latestPopulation, averageTravelTimePerformanceGoal, generationNr, lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes, lifeTime);
 			if(performanceGoalAccomplished == true) {		// 
 				break;
@@ -232,7 +237,7 @@ public class NetworkEvolution {
 				// - applyPT: make functions for depSpacing = f(nVehicles, total route length) while total route length = f(linkList or stopArray)
 			
 			if (generationNr != lastGeneration) {
-				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMap,
+				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMaps.get(generationNr-1),
 						latestPopulation, populationName, alphaXover, pCrossOver, crossoverRouletteStrategy,
 						useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
 						defaultPtMode, stopTime, blocksLane, logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
@@ -243,8 +248,10 @@ public class NetworkEvolution {
 
 	// PLOT RESULTS
 		int generationsToPlot = lastGeneration;
-		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png");
-		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, "zurich_1pm/Evolution/Population/networkScoreEvo.png");
+		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration,
+				"zurich_1pm/Evolution/Population/networkScoreMaps.xml", "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png");
+		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration,
+				"zurich_1pm/Evolution/Population/networkScoreMaps.xml", "zurich_1pm/Evolution/Population/networkScoreEvo.png");
 	
 	// LOG GLOBAL SIMULATION PARAMETERS
 		PrintWriter pwParams = new PrintWriter("zurich_1pm/Evolution/Population/runParameters.txt");	pwParams.close();	// Prepare empty defaultLog file for run

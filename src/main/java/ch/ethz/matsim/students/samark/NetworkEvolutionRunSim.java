@@ -3,6 +3,7 @@ package ch.ethz.matsim.students.samark;
 import java.io.File;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.io.FileUtils;
@@ -346,11 +347,16 @@ public class NetworkEvolutionRunSim {
 
 	@SuppressWarnings("unchecked")
 	public static void recallSimulation(MNetworkPop latestPopulation, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
-			int generationToRecall, String populationName, int populationSize, int initialRoutesPerNetwork) throws IOException {
+			int generationToRecall, List<Map<String, NetworkScoreLog>> networkScoreMaps, String populationName, int populationSize, int initialRoutesPerNetwork) throws IOException {
 		Log.write("%%%%%%%%%%%%%%%%%%%            %%%%%%%%%%%%%% RECALLING END STATE OF GEN=\"+ generationToRecall %%%%%%%%%%%%%%%            %%%%%%%%%%%%%%%%%%");
 		Log.write(" "); Log.write(" "); Log.write(" ");
 		Log.write("%%%%%%%%%%%%%%%%%%%            %%%%%%%%%%%%%% ------------------------------------------------- %%%%%%%%%%%%%%%            %%%%%%%%%%%%%%%%%%");
 		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
+		networkScoreMaps.addAll(XMLOps.readFromFile(networkScoreMaps.getClass(),"zurich_1pm/Evolution/Population/networkScoreMaps.xml"));
+		if (networkScoreMaps.size() >= generationToRecall) {
+			networkScoreMaps.removeAll(networkScoreMaps.subList(generationToRecall-1, networkScoreMaps.size()));
+			// delete logs, which may have been added in a last simulation after storing the networks and could therefore be faulty
+		}
 		for (int n=1; n<=populationSize; n++) {
 			MNetwork loadedNetwork = new MNetwork("Network"+n);
 			latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);

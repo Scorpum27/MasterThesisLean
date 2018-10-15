@@ -896,7 +896,7 @@ public class NetworkEvolutionImpl {
 				metroStopFacilities.addStopFacility(stopFacility);
 //				Log.write("StopFacility added: "+stopFacility.getId().toString());
 				// make sure to have created a metroNode above with the same name but without the "metro" suffix
-				allMetroStops.put(stopEntry.getKey(), new CustomStop(stopFacility, Id.createNodeId(removeString(stopEntry.getKey(), "metro")), "newMetro", true));
+				allMetroStops.put(stopEntry.getKey(), new CustomStop(stopFacility, Id.createNodeId(removeString(stopEntry.getKey(), "Metro")), "newMetro", true));
 			}
 			TransitScheduleWriter tsw = new TransitScheduleWriter(metroStopFacilities);
 			tsw.writeFile(transitScheduleFileName);
@@ -1479,52 +1479,61 @@ public class NetworkEvolutionImpl {
 // %%%%%%%%%%%%% Plot Makers %%%%%%%%%%%%%%%%%%%%%
 
 	@SuppressWarnings("unchecked")
-	public static void writeChartNetworkScore(int lastGeneration, int populationSize, int routesPerNetwork, int lastIteration, String fileName) throws FileNotFoundException {
+	public static void writeChartNetworkScore(int lastGeneration, int populationSize, int routesPerNetwork,
+			int lastIteration, String inFileName, String outFileName) throws FileNotFoundException {
+
+		List<Map<String, NetworkScoreLog>> networkScoreMaps = new ArrayList<Map<String, NetworkScoreLog>>();
+		networkScoreMaps.addAll(XMLOps.readFromFile(networkScoreMaps.getClass(), inFileName));
+
 		Map<Integer, Double> generationsAverageNetworkScore = new HashMap<Integer, Double>();
-		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
 		Map<Integer, Double> generationsBestNetworkScore = new HashMap<Integer, Double>();
-		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
-		for (int g = 1; g <= lastGeneration; g++) {
+		
+		int g = 0;
+		for (Map<String, NetworkScoreLog> networkScoreMap : networkScoreMaps.subList(0, lastGeneration-1)) {
+			g++;
 			double averageNetworkScoreThisGeneration = 0.0;
 			double bestNetworkScoreThisGeneration = -Double.MAX_VALUE;
-			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
-					generationPath + g + "/networkScoreMap.xml");
-			for (NetworkScoreLog nsl : networkScores.values()) {
+			for (NetworkScoreLog nsl : networkScoreMap.values()) {
 				if (nsl.overallScore > bestNetworkScoreThisGeneration) {
 					bestNetworkScoreThisGeneration = nsl.overallScore;
 				}
-				averageNetworkScoreThisGeneration += nsl.overallScore / networkScores.size();
+				averageNetworkScoreThisGeneration += nsl.overallScore / networkScoreMap.size();
 			}
 			System.out.println("Best    Network Score This Generation = " + bestNetworkScoreThisGeneration);
 			System.out.println("Average Network Score This Generation = " + averageNetworkScoreThisGeneration);
 			generationsAverageNetworkScore.put(g, averageNetworkScoreThisGeneration);
 			generationsBestNetworkScore.put(g, bestNetworkScoreThisGeneration);
 		}
+		
 		XYLineChart chart = new XYLineChart("Perform. Evol. [nNetw="+populationSize+"], [nSimIter="+lastIteration+"], [nInitRoutes/Netw="+routesPerNetwork+"]", "Generation", "Score");
 		chart.addSeries("Average Network Score", generationsAverageNetworkScore);
 		chart.addSeries("Best Network Score in Generation", generationsBestNetworkScore);
-		chart.saveAsPng(fileName, 800, 600);
+		chart.saveAsPng(outFileName, 800, 600);
 	}
 			
 	@SuppressWarnings("unchecked")
-	public static void writeChartAverageTravelTimes(int lastGeneration, int populationSize, int routesPerNetwork, int lastIteration, String fileName) throws FileNotFoundException { 	// Average and Best Scores
+	public static void writeChartAverageTravelTimes(int lastGeneration, int populationSize, int routesPerNetwork, 	
+		int lastIteration, String inFileName, String outFileName) throws FileNotFoundException {
+
+		List<Map<String, NetworkScoreLog>> networkScoreMaps = new ArrayList<Map<String, NetworkScoreLog>>();
+		networkScoreMaps.addAll(XMLOps.readFromFile(networkScoreMaps.getClass(), inFileName));
+
 		Map<Integer, Double> generationsAverageTravelTime = new HashMap<Integer, Double>();
 		Map<Integer, Double> generationsAverageTravelTimeStdDev = new HashMap<Integer, Double>();
-		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
 		Map<Integer, Double> generationsBestTravelTime = new HashMap<Integer, Double>();
-		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
-		for (int g = 1; g <= lastGeneration; g++) {
+		
+		int g = 0;
+		for (Map<String, NetworkScoreLog> networkScoreMap : networkScoreMaps.subList(0, lastGeneration-1)) {
+			g++;
 			double averageTravelTimeThisGeneration = 0.0;
 			double averageTravelTimeStdDevThisGeneration = 0.0;
 			double bestAverageTravelTimeThisGeneration = Double.MAX_VALUE;
-			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
-					generationPath + g + "/networkScoreMap.xml");
-			for (NetworkScoreLog nsl : networkScores.values()) {
+			for (NetworkScoreLog nsl : networkScoreMap.values()) {
 				if (nsl.averageTravelTime < bestAverageTravelTimeThisGeneration) {
 					bestAverageTravelTimeThisGeneration = nsl.averageTravelTime;
 				}
-				averageTravelTimeThisGeneration += nsl.averageTravelTime / networkScores.size();
-				averageTravelTimeStdDevThisGeneration += nsl.stdDeviationTravelTime / networkScores.size();
+				averageTravelTimeThisGeneration += nsl.averageTravelTime / networkScoreMap.size();
+				averageTravelTimeStdDevThisGeneration += nsl.stdDeviationTravelTime / networkScoreMap.size();
 			}
 			System.out.println("bestAverageTravelTimeThisGeneration = " + bestAverageTravelTimeThisGeneration);
 			System.out.println("Average AverageTravelTime This Generation = " + averageTravelTimeThisGeneration);
@@ -1536,57 +1545,56 @@ public class NetworkEvolutionImpl {
 		chart.addSeries("Average Travel Time [min]", generationsAverageTravelTime);
 		chart.addSeries("Average Travel Time - Std Deviation [min]", generationsAverageTravelTimeStdDev);
 		chart.addSeries("Best Average Travel Time [min]", generationsBestTravelTime);
-		chart.saveAsPng(fileName, 800, 600);
-		
+		chart.saveAsPng(outFileName, 800, 600);
 	}
 
-	@SuppressWarnings("unchecked")
-	public static void writeChartAverageGenerationNetworkAverageTravelTimes(int lastGeneration, String fileName) 	// only average scores
-			throws FileNotFoundException {
-		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
-		Map<Integer, Double> generationsAverageTravelTime = new HashMap<Integer, Double>();
-		Map<Integer, Double> generationsAverageTravelTimeStdDev = new HashMap<Integer, Double>();
-		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
-		for (int g = 1; g <= lastGeneration; g++) {
-			double averageTravelTimeThisGeneration = 0.0;
-			double averageTravelTimeStdDevThisGeneration = 0.0;
-			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
-					generationPath + g + "/networkScoreMap.xml");
-			for (NetworkScoreLog nsl : networkScores.values()) {
-				averageTravelTimeThisGeneration += nsl.averageTravelTime / networkScores.size();
-				averageTravelTimeStdDevThisGeneration += nsl.stdDeviationTravelTime / networkScores.size();
-			}
-			generationsAverageTravelTime.put(g, averageTravelTimeThisGeneration);
-			generationsAverageTravelTimeStdDev.put(g, averageTravelTimeStdDevThisGeneration);
-		}
-		XYLineChart chart = new XYLineChart("Evolution of Network Performance", "Generation", "Score");
-		chart.addSeries("Average Travel Time [min]", generationsAverageTravelTime);
-		chart.addSeries("Average Travel Time - Std Deviation [min]", generationsAverageTravelTimeStdDev);
-		chart.saveAsPng(fileName, 800, 600);
-	}
-
-	@SuppressWarnings("unchecked")
-	public static void writeChartBestGenerationNetworkAverageTravelTimes(int lastGeneration, String fileName) 	// only best scores
-			throws FileNotFoundException {
-		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
-		Map<Integer, Double> generationsBestTravelTime = new HashMap<Integer, Double>();
-		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
-		for (int g = 1; g <= lastGeneration; g++) {
-			double bestAverageTravelTimeThisGeneration = Double.MAX_VALUE;
-			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
-					generationPath + g + "/networkScoreMap.xml");
-			for (NetworkScoreLog nsl : networkScores.values()) {
-				if (nsl.averageTravelTime < bestAverageTravelTimeThisGeneration) {
-					bestAverageTravelTimeThisGeneration = nsl.averageTravelTime;
-					System.out.println("bestAverageTravelTimeThisGeneration = " + bestAverageTravelTimeThisGeneration);
-				}
-			}
-			generationsBestTravelTime.put(g, bestAverageTravelTimeThisGeneration);
-		}
-		XYLineChart chart = new XYLineChart("Evolution of Network Performance", "Generation", "Score");
-		chart.addSeries("Best Average Travel Time [min]", generationsBestTravelTime);
-		chart.saveAsPng(fileName, 800, 600);
-	}
+//	@SuppressWarnings("unchecked")
+//	public static void writeChartAverageGenerationNetworkAverageTravelTimes(int lastGeneration, String fileName) 	// only average scores
+//			throws FileNotFoundException {
+//		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
+//		Map<Integer, Double> generationsAverageTravelTime = new HashMap<Integer, Double>();
+//		Map<Integer, Double> generationsAverageTravelTimeStdDev = new HashMap<Integer, Double>();
+//		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
+//		for (int g = 1; g <= lastGeneration; g++) {
+//			double averageTravelTimeThisGeneration = 0.0;
+//			double averageTravelTimeStdDevThisGeneration = 0.0;
+//			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
+//					generationPath + g + "/networkScoreMap.xml");
+//			for (NetworkScoreLog nsl : networkScores.values()) {
+//				averageTravelTimeThisGeneration += nsl.averageTravelTime / networkScores.size();
+//				averageTravelTimeStdDevThisGeneration += nsl.stdDeviationTravelTime / networkScores.size();
+//			}
+//			generationsAverageTravelTime.put(g, averageTravelTimeThisGeneration);
+//			generationsAverageTravelTimeStdDev.put(g, averageTravelTimeStdDevThisGeneration);
+//		}
+//		XYLineChart chart = new XYLineChart("Evolution of Network Performance", "Generation", "Score");
+//		chart.addSeries("Average Travel Time [min]", generationsAverageTravelTime);
+//		chart.addSeries("Average Travel Time - Std Deviation [min]", generationsAverageTravelTimeStdDev);
+//		chart.saveAsPng(fileName, 800, 600);
+//	}
+//
+//	@SuppressWarnings("unchecked")
+//	public static void writeChartBestGenerationNetworkAverageTravelTimes(int lastGeneration, String fileName) 	// only best scores
+//			throws FileNotFoundException {
+//		String generationPath = "zurich_1pm/Evolution/Population/HistoryLog/Generation";
+//		Map<Integer, Double> generationsBestTravelTime = new HashMap<Integer, Double>();
+//		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
+//		for (int g = 1; g <= lastGeneration; g++) {
+//			double bestAverageTravelTimeThisGeneration = Double.MAX_VALUE;
+//			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
+//					generationPath + g + "/networkScoreMap.xml");
+//			for (NetworkScoreLog nsl : networkScores.values()) {
+//				if (nsl.averageTravelTime < bestAverageTravelTimeThisGeneration) {
+//					bestAverageTravelTimeThisGeneration = nsl.averageTravelTime;
+//					System.out.println("bestAverageTravelTimeThisGeneration = " + bestAverageTravelTimeThisGeneration);
+//				}
+//			}
+//			generationsBestTravelTime.put(g, bestAverageTravelTimeThisGeneration);
+//		}
+//		XYLineChart chart = new XYLineChart("Evolution of Network Performance", "Generation", "Score");
+//		chart.addSeries("Best Average Travel Time [min]", generationsBestTravelTime);
+//		chart.saveAsPng(fileName, 800, 600);
+//	}
 	
 	
 	public static List<Id<Link>> OppositeLinkListOf(List<Id<Link>> linkList){
@@ -1635,9 +1643,8 @@ public class NetworkEvolutionImpl {
 				maxCrossingAngle, eliteMNetwork.networkID, metroLinkAttributes);
 
 		// APPLY TRANSIT + STORE POPULATION & TRANSITSCHEDULE (calculates & updates: routeLength, roundTripTravelTimes, nDepartures, depSpacing=d(nVehicles))
-		EvoOpsPTEngine.applyPT(newPopulation, globalNetwork, metroLinkAttributes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
-				stopTime, blocksLane,
-				useOdPairsForInitialRoutes);
+		EvoOpsPTEngine.applyPT(newPopulation, globalNetwork, metroLinkAttributes, eliteMNetwork.networkID,
+				vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane, useOdPairsForInitialRoutes);
 		
 		// calculate and Log total Nr of vehicles
 		for (MNetwork mn : newPopulation.networkMap.values()) {
@@ -2095,11 +2102,12 @@ public class NetworkEvolutionImpl {
 	}
 
 
-	public static boolean logResults(Map<String, NetworkScoreLog> networkScoreMap, String historyFileLocation,
+	public static boolean logResults(List<Map<String, NetworkScoreLog>> networkScoreMaps, String historyFileLocation,
 			String networkScoreMapGeneralLocation, MNetworkPop latestPopulation, double averageTravelTimePerformanceGoal,
 			int finalGeneration, int lastIterationOriginal, double populationFactor,
 			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Double lifeTime) throws IOException {
 		
+		Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
 		boolean performanceGoalAccomplished = false;
 		new File(historyFileLocation).mkdirs();
 		
@@ -2135,11 +2143,12 @@ public class NetworkEvolutionImpl {
 			
 			// mnetwork.network = null;		// set to null before storing to file bc would use up too much storage and is not needed (network can be created from other data)
 		}
+		networkScoreMaps.add(networkScoreMap);
 		for (MNetwork mn : latestPopulation.getNetworks().values()) {
 			Log.write(mn.networkID + " - Overall Score = " + mn.overallScore);
 		}
 		
-		XMLOps.writeToFile(networkScoreMap, networkScoreMapGeneralLocation);
+		XMLOps.writeToFile(networkScoreMaps, networkScoreMapGeneralLocation);
 		XMLOps.writeToFile(networkScoreMap, historyFileLocation+"/networkScoreMap.xml");
 		
 		

@@ -31,10 +31,9 @@ public class EvoOpsPTEngine {
 	public EvoOpsPTEngine() {
 	}
 
-	public static MNetworkPop applyPT(MNetworkPop newPopulation, Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, String vehicleTypeName,
-			double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom, String defaultPtMode,
-			double stopTime, boolean blocksLane,
-			boolean useOdPairsForInitialRoutes) throws IOException {
+	public static MNetworkPop applyPT(MNetworkPop newPopulation, Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, String eliteNetwork,
+			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom, String defaultPtMode,
+			double stopTime, boolean blocksLane, boolean useOdPairsForInitialRoutes) throws IOException {
 		
 		Config originalConfig = ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml");
 		Scenario originalScenario = ScenarioUtils.loadScenario(originalConfig);
@@ -43,7 +42,7 @@ public class EvoOpsPTEngine {
 		TransitSchedule originalTransitSchedule = originalScenario.getTransitSchedule();
 		
 		for (MNetwork mNetwork : newPopulation.networkMap.values()) {
-			if (newPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
+			if (newPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false || mNetwork.networkID == eliteNetwork) {
 				continue;
 			}
 //			Log.write("  > Adding PT to "+ mNetwork.networkID);
@@ -93,15 +92,7 @@ public class EvoOpsPTEngine {
 				mRoute.setNodeList(NetworkEvolutionImpl.NetworkRoute2NodeIdList(mRoute.networkRoute, globalNetwork));
 				mRoute.setRouteLength(NetworkEvolutionImpl.NetworkRoute2TotalLength(mRoute.networkRoute, globalNetwork));
 				mRoute.setTotalDrivenDist(mRoute.routeLength * mRoute.nDepartures);
-//				mRoute.constrCost = mRoute.routeLength
-//						* (metroConstructionCostPerKmOverground * 0.01 * (100 - mRoute.undergroundPercentage)
-//								+ metroConstructionCostPerKmUnderground * 0.01 * mRoute.undergroundPercentage);
-//				mRoute.opsCost = mRoute.routeLength * (metroOpsCostPerKM * 0.01 * (100 - mRoute.undergroundPercentage)
-//						+ 2 * metroOpsCostPerKM * 0.01 * mRoute.undergroundPercentage);
-//				mRoute.transitScheduleFile = "zurich_1pm/Evolution/Population/" + mNetwork.networkID
-//						+ "/MetroSchedule.xml";
-//				mRoute.setEventsFile("zurich_1pm/Zurich_1pm_SimulationOutput/ITERS/it." + iterationToReadOriginalNetwork
-//						+ "/" + iterationToReadOriginalNetwork + ".events.xml.gz");
+
 			} // end of TransitLine creator loop
 		
 			// Write TransitSchedule to corresponding file
@@ -125,11 +116,6 @@ public class EvoOpsPTEngine {
 					Metro_TransitScheduleImpl.mergeAndWriteTransitSchedules(metroSchedule, originalTransitSchedule, ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml"));
 			//Vehicles mergedVehicles = ...
 					Metro_TransitScheduleImpl.mergeAndWriteVehicles(newScenario.getTransitVehicles(), originalScenario.getTransitVehicles(), ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml"));
-			
-			// FOR DIRECT DATA TRANSPORT W/O SAVING TO FILES - fill in MNetwork Objects for this Network
-			//mNetwork.network = mergedNetwork;
-			//mNetwork.transitSchedule = mergedTransitSchedule;
-			//mNetwork.vehicles = mergedVehicles;
 		}
 		
 		return newPopulation;

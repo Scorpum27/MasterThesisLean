@@ -26,24 +26,37 @@ public class Visualizer {
 //		CostBenefitParameters cbp3 = NetworkEvolutionImpl.calculateCBAStats(finalPlansFile3,
 //				"zurich_1pm/CBA_Study/cbaParameters"+lastIterationOriginal+"Metro.xml", 1);	
 		
-	// %%% START - Plots From History Log %%%
+	// %%% START - Plots From History Log - Old %%%
 		
 		int populationSize = 16;
 		int initialRoutesPerNetwork = 5;
-		int generationsToPlot = 14; // = nEvolutions    (NOT nEvolutions-1 !!)
+		int generationsToPlot = 37; // = nEvolutions    (NOT nEvolutions-1 !!)
 		int lastIteration = 20;
-		String folderName = "ForExport/17_XOverTournamentSelection/";
+		String folderName = "ForExport/15_XOverPositiveProp/";
+		// 15_XOverPositiveProp (37), 16_XOverRank (36), 17_XOverTournamentSelection (37)
 		String inputFileName = folderName + "zurich_1pm/Evolution/Population/HistoryLog/";
 		String outputFileName1 = folderName + "zurich_1pm/Evolution/Population/networkTravelTimesEvo.png";
 		SimulationProcessing.travelTimesEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName1);
 		SimulationProcessing.travelTimesEvolutionMap(
-				generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimes14GEN.png");
+			generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkTravelTimesGEN"+generationsToPlot+".png");
 		String outputFileName2 = folderName + "zurich_1pm/Evolution/Population/networkScoreEvo.png";
 		SimulationProcessing.scoreEvolutionMap(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, outputFileName2);
 		SimulationProcessing.scoreEvolutionMap(
-				generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvo14GEN.png");
+			generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration, inputFileName, folderName + "networkScoreEvoGEN"+generationsToPlot+".png");
 		
+	// %%% START - Plots From History Log - New %%%
 		
+//		int populationSize = 16;
+//		int initialRoutesPerNetwork = 5;
+//		int generationsToPlot = 18; // = nEvolutions    (NOT nEvolutions-1 !!)
+//		int lastIteration = 20;
+//		String folderName = "ForExport/15_XOverPositiveProp/";
+//		
+//		String inputFileName = folderName + "zurich_1pm/Evolution/Population/networkScoreMaps.xml";
+//		NetworkEvolutionImpl.writeChartAverageTravelTimes(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration,
+//				inputFileName, folderName+"zurich_1pm/Evolution/Population/networkTravelTimesGEN"+generationsToPlot+".png");
+//		NetworkEvolutionImpl.writeChartNetworkScore(generationsToPlot, populationSize, initialRoutesPerNetwork, lastIteration,
+//				inputFileName, folderName+"zurich_1pm/Evolution/Population/networkScoreEvoGEN"+generationsToPlot+".png");
 		
 	// %%% Calculate OVERALL NETWORK SCORE %%%
 	

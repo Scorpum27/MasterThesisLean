@@ -345,6 +345,7 @@ public class EvoOpsMutator {
 	public static void applyBigChange2(Map<String, CustomStop> allMetroStops, List<Id<Link>> linkListMutate, Network globalNetwork, double maxCrossingAngle, 
 			Coord zurich_NetworkCenterCoord, MRoute mRoute, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 		
+//		Log.write("extraLog.txt", "Performing big change2");
 		List<TransitStopFacility> servicedFacilities = new ArrayList<TransitStopFacility>();
 		// these facilities are serviced by original route and should not be reinserted as "new"
 		List<Id<Link>> linkListMutateFacilityLinks = new ArrayList<Id<Link>>();
@@ -358,104 +359,184 @@ public class EvoOpsMutator {
 			}
 		}
 		
-		double pDelete = 0.2;
-		if ((new Random()).nextDouble() < pDelete) {
+		
+		double pDelete = 0.05;
+		if ((new Random()).nextDouble() < pDelete) {	// DELETE ONE STOP: so that this stop is not serviced
 			// do not service one stop facility: this facility will be blocked when running stopAddingRoutine along route and it will not be added as a route stop
-			
+
 			Id<Link> blockedLink = linkListMutateFacilityLinks.get((new Random()).nextInt(linkListMutateFacilityLinks.size()-2)+1);
 			mRoute.facilityBlockedLinks.add(blockedLink);
 			mRoute.facilityBlockedLinks.add(NetworkEvolutionImpl.ReverseLink(blockedLink));
 //			Log.write("Blocking facility links for servicing an active stop:  "+blockedLink.toString() + "  &  " + NetworkEvolutionImpl.ReverseLink(blockedLink));
 		}
-		else {
-			// insert an additional stop facility (facility insertion)
-			// if it can't just be inserted, remove existing legs between stops to be able to reasonably connect new stop facility links
-			// removing one existing leg between two stops and connecting loose ends to new stop instead is identical to "replacing a stop"
-			InsertionLoop:
-			do {
-				// Choose randomly where (at) which link route shall be cut open initially. Cut will be moved up and down route if insertion is not possible. 
-				// -2 because we don't choose start or end node for insertion
-				// +1 because we start from second node, and not from start node
-				
+		else { /// PERFORM OTHER BIG MODIFICATION
+			if ((new Random()).nextDouble() < 0.5) {	// CUT OPEN AND SWITCH ONE TERMINAL to another stopfacility within constraints				
+//				Log.write("extraLog.txt", "X, it's happening...");
+
+				List<Integer> cutIndices = new ArrayList<Integer>();
 				Id<Link> cutOpenLinkId;
 				Link cutOpenLink;
 				int cutIndex;
 				int n = 0;
-				boolean foundFeasibleCutCandidate = true;
-				do {
-					cutIndex = (new Random()).nextInt(linkListMutateFacilityLinks.size()-2)+1;
-					cutOpenLinkId = linkListMutateFacilityLinks.get(cutIndex);
-					cutOpenLink = globalNetwork.getLinks().get(cutOpenLinkId);
+				FindCutLoop:
+				while(cutIndices.size() < linkListMutate.size()-2) {	// while not all possible cut indices have been exploited
+//					Log.write("extraLog.txt", "CutIndices attempted="+cutIndices.toString());
 					n++;
-					if (n>50) {
-//						Log.write("Failing to find a route stop insertion point within (metro) city. Trying to add in reverse direction.");
-						foundFeasibleCutCandidate = false;
-						break; 
+//					Log.write("extraLog.txt", "n="+n);
+					if (n>1000) {
+						Log.write("Failing to find a reasonable route switcher. Making no big change. This is no problem.");
+						break FindCutLoop; 
 					}
-				} while(GeomDistance.calculate(cutOpenLink.getFromNode().getCoord(), zurich_NetworkCenterCoord) > 5000.0);
-				int facilitiesUntilEndTerminal = linkListMutateFacilityLinks.size()-1-cutIndex;
-				
-				if (foundFeasibleCutCandidate == true) {
-					for (int i=1; i<=Math.min(facilitiesUntilEndTerminal, 4.0); i++) {
-						Id<Link> cutCloseLinkId = linkListMutateFacilityLinks.get(cutIndex + i);
-						Link cutCloseLink = globalNetwork.getLinks().get(cutCloseLinkId);
-						if (GeomDistance.calculate(cutCloseLink.getFromNode().getCoord(), cutOpenLink.getFromNode().getCoord()) > 3500) {
+					cutIndex = (new Random()).nextInt(linkListMutate.size()-2)+1;
+					if (cutIndices.contains(cutIndex)) {
+						continue;
+					}
+					else {
+						cutIndices.add(cutIndex);
+//						Log.write("extraLog.txt", "Attempting cutIndex="+cutIndex);
+					}
+//					Log.write("extraLog.txt", "cutIndex worked: "+cutIndex);
+					cutOpenLinkId = linkListMutate.get(cutIndex);
+					cutOpenLink = globalNetwork.getLinks().get(cutOpenLinkId);
+					if ( !(returnAllStopFacilitiesOnLink(metroLinkAttributes, cutOpenLink).size()>0) ) {
+						continue;
+					}
+					Double dist2oldTerminal = 
+							GeomDistance.betweenNodes(cutOpenLink.getToNode(), globalNetwork.getLinks().get(linkListMutate.get(linkListMutate.size()-1)).getToNode());
+//					Log.write("extraLog.txt", "Distance between old nodes="+dist2oldTerminal);
+					// do NOT decide if start or end of route is to be switched (doesn't matter which one is closer - big change can be very big)
+					for (CustomStop stopAttr : allMetroStops.values()) {
+//						Log.write("extraLog.txt", "Trying facility="+stopAttr.transitStopFacility.toString());
+						// use this stopFacility if(terminal is within opening angle)|(in range of prior dist(cut2terminal)*2.5|*0.4)|(shortestPath available)
+						Id<Node> stopNodeId = stopAttr.newNetworkNode;
+						Node stopNode = globalNetwork.getNodes().get(stopNodeId);
+						Double dist2newTerminal = GeomDistance.betweenNodes(cutOpenLink.getToNode(), stopNode);
+//						Log.write("extraLog.txt", "Distance between new nodes="+dist2newTerminal);
+//						Log.write("extraLog.txt", "Opening angle = "+Double.toString(180.0-GeomDistance.angleBetweenPoints(globalNetwork.getLinks().get(linkListMutate.get(0)).getFromNode().getCoord(), cutOpenLink.getToNode().getCoord(), stopNode.getCoord())));
+						if (0.4*dist2oldTerminal < dist2newTerminal && dist2newTerminal < 2.5*dist2oldTerminal &&
+								GeomDistance.angleBetweenPoints(globalNetwork.getLinks().get(
+										linkListMutate.get(0)).getFromNode().getCoord(), cutOpenLink.getToNode().getCoord(), stopNode.getCoord()) 
+								> 180-thisMaxCrossingAngle(maxCrossingAngle, dist2newTerminal)) {
+								// increase in thisMaxCrossingAngle(...) permitted angle if terminal is far away so it is more likely that
+								// a smooth turning of the route can be designed
+							List<Node> newNodePath = DemoDijkstra.calculateShortestPath(globalNetwork, cutOpenLink.getToNode().getId(), stopNode.getId());
+							if (newNodePath == null || newNodePath.size() < 3) {
+								continue;
+							}
+//							Log.write("extraLog.txt", "New node path Dijkstra="+newNodePath.toString());
+							List<Link> newLinkPath = NetworkEvolutionImpl.nodeListToNetworkLinkList2(globalNetwork, newNodePath);
+							newLinkPath.add(0, cutOpenLink);
+//							Log.write("extendedLinkPathOpen undergoing maxTurningAngleCheck = "+extendedLinkPathOpen.toString());
+							if (checkIfTurningAnglesOk(maxCrossingAngle, newLinkPath) == false) {
+//								Log.write("extraLog.txt", "Turning angles NOT OK! Start from beginning.");
+								continue;
+							}
+							else {
+								linkListMutate.removeAll(linkListMutate.subList(cutIndex+1, linkListMutate.size()));
+//								Log.write("extraLog.txt", "linkListMutateCut="+linkListMutate.toString());
+								List<Id<Link>> newLinkPathIds = NetworkEvolutionImpl.nodeListToNetworkLinkList(globalNetwork, newNodePath);
+//								Log.write("extraLog.txt", "newLinkPathIds="+linkListMutate.toString());
+								linkListMutate.addAll(newLinkPathIds);
+//								Log.write("extraLog.txt", "Success: final linkList="+linkListMutate.toString());
+								break FindCutLoop;
+							}
+						}
+						else {
 							continue;
 						}
-//						Log.write("Testing close node nPositions DOWN the route: n="+i);
-						List<Id<Link>> reroutedLinkRoute = insertNewStopInRoute(servicedFacilities, cutOpenLinkId, cutCloseLinkId, globalNetwork,
-								allMetroStops, linkListMutate, linkListMutateFacilityLinks, maxCrossingAngle);
-						if (reroutedLinkRoute == null) {
+					}
+				}
+			}
+			else {
+				// insert an additional stop facility (facility insertion)
+				// if it can't just be inserted, remove existing legs between stops to be able to reasonably connect new stop facility links
+				// removing one existing leg between two stops and connecting loose ends to new stop instead is identical to "replacing a stop"
+				InsertionLoop:
+				do {
+					// Choose randomly where (at) which link route shall be cut open initially. Cut will be moved up and down route if insertion is not possible. 
+					// -2 because we don't choose start or end node for insertion
+					// +1 because we start from second node, and not from start node
+					
+					Id<Link> cutOpenLinkId;
+					Link cutOpenLink;
+					int cutIndex;
+					int n = 0;
+					boolean foundFeasibleCutCandidate = true;
+					do {
+						cutIndex = (new Random()).nextInt(linkListMutateFacilityLinks.size()-2)+1;
+						cutOpenLinkId = linkListMutateFacilityLinks.get(cutIndex);
+						cutOpenLink = globalNetwork.getLinks().get(cutOpenLinkId);
+						n++;
+						if (n>50) {
+	//						Log.write("Failing to find a route stop insertion point within (metro) city. Trying to add in reverse direction.");
+							foundFeasibleCutCandidate = false;
+							break; 
+						}
+					} while(GeomDistance.calculate(cutOpenLink.getFromNode().getCoord(), zurich_NetworkCenterCoord) > 5000.0);
+					int facilitiesUntilEndTerminal = linkListMutateFacilityLinks.size()-1-cutIndex;
+					
+					if (foundFeasibleCutCandidate == true) {
+						for (int i=1; i<=Math.min(facilitiesUntilEndTerminal, 4.0); i++) {
+							Id<Link> cutCloseLinkId = linkListMutateFacilityLinks.get(cutIndex + i);
+							Link cutCloseLink = globalNetwork.getLinks().get(cutCloseLinkId);
+							if (GeomDistance.calculate(cutCloseLink.getFromNode().getCoord(), cutOpenLink.getFromNode().getCoord()) > 3500) {
+								continue;
+							}
+	//						Log.write("Testing close node nPositions DOWN the route: n="+i);
+							List<Id<Link>> reroutedLinkRoute = insertNewStopInRoute(servicedFacilities, cutOpenLinkId, cutCloseLinkId, globalNetwork,
+									allMetroStops, linkListMutate, linkListMutateFacilityLinks, maxCrossingAngle);
+							if (reroutedLinkRoute == null) {
+								continue;
+							} else {
+								linkListMutate = reroutedLinkRoute;
+	//							Log.write("    >> New facility node was inserted successfully!");
+								break InsertionLoop;
+							}
+						}
+					}
+					
+					// do in reverse direction
+					List<Id<Link>>linkListMutateReverse = NetworkEvolutionImpl.OppositeLinkListOf(linkListMutate);				
+					List<Id<Link>>linkListMutateFacilityLinksReverse = NetworkEvolutionImpl.OppositeLinkListOf(linkListMutateFacilityLinks);
+					
+					Id<Link> cutOpenLinkIdReverse;
+					Link cutOpenLinkReverse;
+					int cutIndexReverse;
+					n = 0;
+					do {
+						cutIndexReverse = (new Random()).nextInt(linkListMutateFacilityLinksReverse.size()-2)+1;
+						cutOpenLinkIdReverse = linkListMutateFacilityLinksReverse.get(cutIndexReverse);
+						cutOpenLinkReverse = globalNetwork.getLinks().get(cutOpenLinkIdReverse);
+						n++;
+						if (n>50) {
+							Log.write("Failing to find a route stop insertion point within (metro) city. Not inserting any node and proceeding to next route.");
+							break InsertionLoop; 
+						}
+					} while(GeomDistance.calculate(cutOpenLinkReverse.getFromNode().getCoord(), zurich_NetworkCenterCoord) > 5000.0);
+					int facilitiesUntilEndTerminalReverse = linkListMutateFacilityLinksReverse.size()-1-cutIndexReverse;
+					
+					for (int i=1; i<=Math.min(facilitiesUntilEndTerminalReverse, 4.0); i++) {
+						Id<Link> cutCloseLinkIdReverse = linkListMutateFacilityLinksReverse.get(cutIndexReverse + i);
+						Link cutCloseLinkReverse = globalNetwork.getLinks().get(cutCloseLinkIdReverse);
+						if (GeomDistance.calculate(cutCloseLinkReverse.getFromNode().getCoord(), cutOpenLinkReverse.getFromNode().getCoord()) > 3500) {
+							continue;
+						}
+						Log.write("Testing close node nPositions UP the route: n="+i);
+						List<Id<Link>> reroutedLinkRouteReverse = insertNewStopInRoute(servicedFacilities, cutOpenLinkIdReverse, cutCloseLinkIdReverse, globalNetwork,
+								allMetroStops, linkListMutateReverse, linkListMutateFacilityLinksReverse, maxCrossingAngle);
+						if (reroutedLinkRouteReverse == null) {
 							continue;
 						} else {
-							linkListMutate = reroutedLinkRoute;
-//							Log.write("    >> New facility node was inserted successfully!");
+							linkListMutate = reroutedLinkRouteReverse;
 							break InsertionLoop;
 						}
 					}
-				}
-				
-				// do in reverse direction
-				List<Id<Link>>linkListMutateReverse = NetworkEvolutionImpl.OppositeLinkListOf(linkListMutate);				
-				List<Id<Link>>linkListMutateFacilityLinksReverse = NetworkEvolutionImpl.OppositeLinkListOf(linkListMutateFacilityLinks);
-				
-				Id<Link> cutOpenLinkIdReverse;
-				Link cutOpenLinkReverse;
-				int cutIndexReverse;
-				n = 0;
-				do {
-					cutIndexReverse = (new Random()).nextInt(linkListMutateFacilityLinksReverse.size()-2)+1;
-					cutOpenLinkIdReverse = linkListMutateFacilityLinksReverse.get(cutIndexReverse);
-					cutOpenLinkReverse = globalNetwork.getLinks().get(cutOpenLinkIdReverse);
-					n++;
-					if (n>50) {
-						Log.write("Failing to find a route stop insertion point within (metro) city. Not inserting any node and proceeding to next route.");
-						break InsertionLoop; 
-					}
-				} while(GeomDistance.calculate(cutOpenLinkReverse.getFromNode().getCoord(), zurich_NetworkCenterCoord) > 5000.0);
-				int facilitiesUntilEndTerminalReverse = linkListMutateFacilityLinksReverse.size()-1-cutIndexReverse;
-				
-				for (int i=1; i<=Math.min(facilitiesUntilEndTerminalReverse, 4.0); i++) {
-					Id<Link> cutCloseLinkIdReverse = linkListMutateFacilityLinksReverse.get(cutIndexReverse + i);
-					Link cutCloseLinkReverse = globalNetwork.getLinks().get(cutCloseLinkIdReverse);
-					if (GeomDistance.calculate(cutCloseLinkReverse.getFromNode().getCoord(), cutOpenLinkReverse.getFromNode().getCoord()) > 3500) {
-						continue;
-					}
-					Log.write("Testing close node nPositions UP the route: n="+i);
-					List<Id<Link>> reroutedLinkRouteReverse = insertNewStopInRoute(servicedFacilities, cutOpenLinkIdReverse, cutCloseLinkIdReverse, globalNetwork,
-							allMetroStops, linkListMutateReverse, linkListMutateFacilityLinksReverse, maxCrossingAngle);
-					if (reroutedLinkRouteReverse == null) {
-						continue;
-					} else {
-						linkListMutate = reroutedLinkRouteReverse;
-						break InsertionLoop;
-					}
-				}
-				
-				// if not succeeded to insert node in for loops by now, no insertion is applied
-				Log.write("Failed to insert node. No big problem, but no big mutation has been applied to "+mRoute.routeID);
-				break;
-			} while(true);
+					
+					// if not succeeded to insert node in for loops by now, no insertion is applied
+					Log.write("Failed to insert node. No big problem, but no big mutation has been applied to "+mRoute.routeID);
+					break;
+				} while(true);
+			}
 		}
 		
 		if (linkListMutate.size() == 0) {
@@ -466,6 +547,13 @@ public class EvoOpsMutator {
 		mRoute.networkRoute = RouteUtils.createNetworkRoute(linkListMutate, globalNetwork);
 	}
 	
+
+	public static double thisMaxCrossingAngle(double maxCrossingAngle, Double dist2newTerminal) {
+		double permittedAngle = maxCrossingAngle;
+		permittedAngle += Math.min(30.0, Math.max(0.0, 30.0*(dist2newTerminal-3000)/3000.0)); // after dist=3000m the permitted angle shall increase by 10°/1000m up to 6000m
+		return permittedAngle;
+	}
+
 
 	public static List<TransitStopFacility> returnAllStopFacilitiesOnLink( Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Link currentLink) {
 		CustomMetroLinkAttributes customMetroLinkAttributes = metroLinkAttributes.get(currentLink.getId());

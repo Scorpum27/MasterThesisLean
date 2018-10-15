@@ -10,6 +10,10 @@ public class EvoOpsFreqModifier {
 
 	public EvoOpsFreqModifier() {
 	}
+	
+	// Future Module
+	// -Add/remove vehicles depending on (dis-)utility.
+	// -Check if route - if not altered too much - has improved. If yes, keep | If no, undo/reverse
 
 	public static MNetworkPop applyFrequencyModification(MNetworkPop newPopulation, String eliteNetworkName) throws IOException {
 		for(MNetwork mn : newPopulation.networkMap.values()) {

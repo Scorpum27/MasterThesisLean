@@ -201,7 +201,7 @@ public class SimulationProcessing {
 		Map<String, NetworkScoreLog> networkScores = new HashMap<String, NetworkScoreLog>();
 		for (int g = 1; g <= lastGeneration; g++) {
 			double averageNetworkScoreThisGeneration = 0.0;
-			double bestNetworkScoreThisGeneration = 0.0;
+			double bestNetworkScoreThisGeneration = -Double.MAX_VALUE;
 			networkScores = (Map<String, NetworkScoreLog>) XMLOps.readFromFile(networkScores.getClass(),
 					generationPath + g + "/networkScoreMap.xml");
 			for (NetworkScoreLog nsl : networkScores.values()) {

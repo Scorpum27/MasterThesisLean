@@ -24,9 +24,10 @@ public class EvoOpsCrossover {
 		int nOldPop = newPopulation.networkMap.size();
 		Log.writeEvo("START CROSS-OVER");
 		if (nOldPop<2) {
-			Log.write("Not enough network parents for crossover. Terminating...");
-			Log.writeEvo("Not enough network parents for crossover. Terminating...");
-			System.exit(0);
+			Log.write("Not enough network parents for crossover. Proceeding to next evolutionOperator...");
+			Log.writeEvo("Not enough network parents for crossover. Proceeding to next evolutionOperator...");
+			return newPopulation;
+//			System.exit(0);
 		}
 		int nCrossOverCandidates = (int) Math.ceil(0.5*nOldPop);
 		List<MNetwork> newOffspring = new ArrayList<MNetwork>();

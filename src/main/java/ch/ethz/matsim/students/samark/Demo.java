@@ -23,27 +23,32 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
-		MRoute mr1 = new MRoute("MRoute_1");
-		MRoute mr2 = new MRoute("MRoute_2");
-		MRoute mr3 = new MRoute("MRoute_3");
-		MRoute mr4 = new MRoute("MRoute_4");
-		mr1.constrCost = 10.0;
-		mr1.opsCost = 10.0;
-		mr1.personMetroDist = 20;
-		mr2.constrCost = 20.0;
-		mr2.opsCost = 13.0;
-		mr2.personMetroDist = 10;
-		mr3.constrCost = 20.0;
-		mr3.opsCost = 1.0;
-		mr3.personMetroDist = 20;
-		mr4.constrCost = 10.0;
-		mr4.opsCost = 10.0;
-		mr4.personMetroDist = 20;
-		MNetwork mn1 = new MNetwork("MNetwork1");
-		mn1.addNetworkRoute(mr1);
-		mn1.addNetworkRoute(mr2);
-		mn1.addNetworkRoute(mr3);
-		mn1.addNetworkRoute(mr4);
+		List<String> strings = new ArrayList<String>();
+		if (!(strings.size() > 0)) {
+		System.out.println(strings.size());
+		}
+		
+//		MRoute mr1 = new MRoute("MRoute_1");
+//		MRoute mr2 = new MRoute("MRoute_2");
+//		MRoute mr3 = new MRoute("MRoute_3");
+//		MRoute mr4 = new MRoute("MRoute_4");
+//		mr1.constrCost = 10.0;
+//		mr1.opsCost = 10.0;
+//		mr1.personMetroDist = 20;
+//		mr2.constrCost = 20.0;
+//		mr2.opsCost = 13.0;
+//		mr2.personMetroDist = 10;
+//		mr3.constrCost = 20.0;
+//		mr3.opsCost = 1.0;
+//		mr3.personMetroDist = 20;
+//		mr4.constrCost = 10.0;
+//		mr4.opsCost = 10.0;
+//		mr4.personMetroDist = 20;
+//		MNetwork mn1 = new MNetwork("MNetwork1");
+//		mn1.addNetworkRoute(mr1);
+//		mn1.addNetworkRoute(mr2);
+//		mn1.addNetworkRoute(mr3);
+//		mn1.addNetworkRoute(mr4);
 
 		
 		// %%% insert this after a customLinkMap to get totalTraffic
