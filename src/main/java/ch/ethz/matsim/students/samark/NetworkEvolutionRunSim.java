@@ -2,9 +2,9 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.File;
 import java.io.IOException;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.apache.commons.io.FileUtils;
 import org.matsim.api.core.v01.Id;
@@ -28,8 +28,6 @@ import org.matsim.core.router.MainModeIdentifierImpl;
 import org.matsim.core.router.StageActivityTypesImpl;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.PtConstants;
-import org.matsim.pt.transitSchedule.api.TransitSchedule;
-
 import ch.ethz.matsim.baseline_scenario.BaselineModule;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
@@ -138,79 +136,45 @@ public class NetworkEvolutionRunSim {
 			}
 			Log.write("  >> Running Events Processing on:  "+mNetwork.networkID);
 			String networkName = mNetwork.networkID;
-
 			
 			// read and handle events
 			String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
-			
-			Config config = ConfigUtils.createConfig();
-			config.getModules().get("transit").addParam("transitScheduleFile", "zurich_1pm/Evolution/Population/"+networkName+"/MergedSchedule.xml");
-			TransitSchedule mergedTransitSchedule = ScenarioUtils.loadScenario(config).getTransitSchedule();
-			
-			MHandlerPassengers mPassengerHandler = new MHandlerPassengers(globalNetwork, mergedTransitSchedule);
+			MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
 			EventsManager eventsManager = EventsUtils.createEventsManager();
 			eventsManager.addHandler(mPassengerHandler);
 			MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
 			eventsReader.readFile(eventsFile);
 			
-			// read out travel stats and display important indicators to console
-			Map<String, Map<String, Double>> travelStats = mPassengerHandler.travelStats;				// Map< PersonID, Map<RouteName,TravelDistance>>
-			Map<String, Integer> routeBoardingCounter = mPassengerHandler.routeBoardingCounter;			// Map<RouteName, nBoardingsOnThatRoute>
-			// double totalBeelineDistance = mPassengerHandler.totalBeelineKM;
-			Map<String, Double> personKMonRoutes = new HashMap<String, Double>();						// Map<RouteName, TotalPersonKM>
 			double totalMetroPersonKM = 0.0;
-			int nMetroUsers = travelStats.size(); 														// total number of persons who use the metro
-			//System.out.println("Number of Metro Users = " + nMetroUsers);
-			int nTotalBoardings = 0;
-			for (int i : routeBoardingCounter.values()) {
-				nTotalBoardings += i;
-			}
-			System.out.println("Total Metro Boardings = "+nTotalBoardings);
-			
-			for (Map<String, Double> routesStats : travelStats.values()) {
-				for (String route : routesStats.keySet()) {
-					if (personKMonRoutes.containsKey(route)) {
-						personKMonRoutes.put(route, personKMonRoutes.get(route)+routesStats.get(route));
-						//System.out.println("Putting on Route " +route+ " an additional " + routesStats.get(route) + " to a total of " + personKMonRoutes.get(route));  
-					}
-					else {
-						personKMonRoutes.put(route, routesStats.get(route));
-						//System.out.println("Putting on Route " +route+ " an initial " + personKMonRoutes.get(route)); 
-					}
-				}
-			}
-			
-			for (String route : personKMonRoutes.keySet()) {
-				totalMetroPersonKM += personKMonRoutes.get(route);
-			}
-			//System.out.println("Total Metro TransitKM = " + totalMetroPersonKM);
-			
-			// fill in performance indicators and scores in MRoutes
-			for (String routeId : mNetwork.routeMap.keySet()) {
-				if (personKMonRoutes.containsKey(routeId)) {					
-					MRoute mRoute = mNetwork.routeMap.get(routeId);
-					mRoute.personMetroDist = personKMonRoutes.get(routeId);
-					mRoute.nBoardings = routeBoardingCounter.get(routeId);
-					mNetwork.routeMap.put(routeId, mRoute);
+
+			for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
+				System.out.println(routeEntry.toString());
+				totalMetroPersonKM += routeEntry.getValue();
+				if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
+					mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist = routeEntry.getValue();
+					System.out.println("Added distance to route "+routeEntry.getKey().toString());
 				}
 			}
 
-			// fill in performance indicators and scores in MNetworks
-			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
 			mNetwork.personMetroDist = totalMetroPersonKM;
-			mNetwork.nMetroUsers = nMetroUsers;
-			mNetwork.totalPtPersonDist = mPassengerHandler.totalPtTransitPersonKM;
-			Log.write(mNetwork.networkID+" - totalPersonKM = "+totalMetroPersonKM);
-			Log.write(mNetwork.networkID+" - nMetroUsers = "+nMetroUsers);
-			Log.write(mNetwork.networkID+" - totalPtTransitPersonKM = "+mNetwork.totalPtPersonDist);
+			mNetwork.nMetroUsers = mPassengerHandler.metroPassengers.size();
+			Log.write(mNetwork.networkID+" - totalMetroPersonKM = "+totalMetroPersonKM/1000);
+			Log.write(mNetwork.networkID+" - nMetroUsers = "+mNetwork.nMetroUsers);
 		}	// END of NETWORK Loop
 
-		// - Maybe hand over score to a separate score map for sorting scores
 		return networkPopulation;
 	}
 	
-	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInMin,
+	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInSec,
 			int lastIterationOriginal, int populationFactor) throws IOException {
+		
+		// PROCESSING
+		// - TravelTimes (exclude unrealistic (transit_)walk legs)
+		// - mRoute.personMetroDist = (exclude walking distance here)
+		// - mNetwork.personMetroDist = totalMetroPersonKM;
+		// - mNetwork.nMetroUsers = nMetroUsers;
+		// - mNetwork.totalPtPersonDist = mPassengerHandler.totalPtTransitPersonKM;
+		
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			String networkName = mNetwork.networkID;
 			
@@ -221,43 +185,77 @@ public class NetworkEvolutionRunSim {
 			newConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
 			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
 			Population finalPlansPopulation = newScenario.getPopulation();
-			//PopulationReader p = new PopulationReader(emptyScenario);
-			Double[] travelTimeBins = new Double[maxTravelTimeInMin+1];
+			
+			// CBP stats instantiation
+			Integer totalPersons = 0;
+			double ptUsers = 0.0;
+			double carUsers = 0.0;
+			double otherUsers = 0.0;
+			double carTimeTotal = 0.0;
+			double carPersonDist = 0.0;
+			double ptTimeTotal = 0.0;
+			double ptPersonDist = 0.0;
+			// Travel times instantiation
+			Double[] travelTimeBins = new Double[maxTravelTimeInSec*60+1];
 			for (int d=0; d<travelTimeBins.length; d++) {
 				travelTimeBins[d] = 0.0;
 			}
+			// Metro stats --> see MHandler functionality in RunEventsProcessing method above
+
 			for (Person person : finalPlansPopulation.getPersons().values()) {
-				//System.out.println("Person = "+person.getId().toString());
+				boolean isPtTraveler = false;
+				boolean isCarTraveler = false;
+				totalPersons++;
 				double personTravelTime = 0.0;
 				Plan plan = person.getSelectedPlan();
 				for (PlanElement element : plan.getPlanElements()) {
-						if (element instanceof Leg) {
-							Leg leg = (Leg) element;
-							personTravelTime += leg.getTravelTime();
-//							/*System.out.println("Plan Elements is: "+element.toString());
-//							System.out.println("Plan Elements Attributes are: "+element.getAttributes().toString());
-//							System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("mode"));
-//							System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("travTime"));*/
-//							String findString = "[travTime=";
-//							int i1 = element.toString().indexOf(findString);
-//							//System.out.println("i1 is: "+i1);
-//							String travTime = element.toString().substring(i1+findString.length(), i1+findString.length()+8);
-//							//System.out.println("Plan Elements Attribute travTime is: "+travTime);
-//							//System.out.println("Plan Elements Attribute travTime is: "+element.getAttributes().getAttribute("trav_time"));
-//							//System.out.println(element.getAttributes().getAttribute("travTime").getClass().getName());
-//							String[] HourMinSec = travTime.split(":");
-//							//System.out.println("Person Travel Time of this leg in [s] = "+travTime);
-//							personTravelTime += (Double.parseDouble(HourMinSec[0])*3600+Double.parseDouble(HourMinSec[1])*60+Double.parseDouble(HourMinSec[2]))/60;
-//							//System.out.println("Total Person Travel Time of this leg in [m] = "+personTravelTime);
+					if (element instanceof Leg) {
+						Leg leg = (Leg) element;
+						// do following two conditions to avoid unreasonably high (transit_)walk times!
+						if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>7*60.0) {
+							leg.setTravelTime(7*60.0);
 						}
+						if (leg.getMode().equals("walk") && leg.getTravelTime()>12*60.0) {
+							leg.setTravelTime(12*60.0);
+						}
+						if (leg.getMode().contains("car")) {
+							carTimeTotal += leg.getTravelTime();
+							carPersonDist += leg.getRoute().getDistance();
+							isCarTraveler = true;
+						}
+						if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
+								leg.getMode().contains("transit_walk") || leg.getMode().contains("egress_walk")) {
+							ptTimeTotal += leg.getTravelTime();
+							ptPersonDist += leg.getRoute().getDistance();
+							isPtTraveler = true;
+						}
+						personTravelTime += leg.getTravelTime();	// totalPersonTravelTime
+					}
 				}
-				if (personTravelTime>=maxTravelTimeInMin) {
-					travelTimeBins[maxTravelTimeInMin]++;
+				// travel time bins
+				if (personTravelTime>=maxTravelTimeInSec) {
+					travelTimeBins[maxTravelTimeInSec]++;
 				}
 				else {
 					travelTimeBins[(int) Math.ceil(personTravelTime)]++;
 				}
+				// travel user type bins
+				if (isCarTraveler && isPtTraveler) {
+					ptUsers ++;
+					carUsers ++;
+				}
+				else if (isCarTraveler) {
+					carUsers ++;
+				}
+				else if (isPtTraveler) {
+					ptUsers ++;
+				}
+				else {
+					otherUsers ++;
+				}
 			}
+			
+			// time calculations and saving
 			double totalTravelTime = 0.0;
 			int travels = 0;
 			for (int i=0; i<travelTimeBins.length; i++) {
@@ -274,21 +272,24 @@ public class NetworkEvolutionRunSim {
 			}
 			double standardDeviation = Math.sqrt(standardDeviationInnerSum/(travels-1));
 			mNetwork.stdDeviationTravelTime = standardDeviation;
+			for (MNetwork network : networkPopulation.networkMap.values()) {
+				System.out.println(network.networkID+" AverageTavelTime [min] = "+network.averageTravelTime/60+"   (StandardDeviation="+network.stdDeviationTravelTime/60+")");
+				System.out.println(network.networkID+" TotalTravelTime [min] = "+network.totalTravelTime/60);
+			}
+			// calculate travel stats
+			mNetwork.totalPtPersonDist = ptPersonDist;
 
-			CostBenefitParameters cbpNew = NetworkEvolutionImpl.calculateCBAStats(finalPlansFile,
-					"zurich_1pm/Evolution/Population/"+networkName+"/cbaParameters"+lastIterationOriginal+".xml", populationFactor);
+			// calculate & save CBP stats
+			CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers, populationFactor*otherUsers,
+					populationFactor*carTimeTotal,  populationFactor*carPersonDist,  populationFactor*ptTimeTotal,  populationFactor*ptPersonDist);
+			cbp.calculateAverages();
+			XMLOps.writeToFile(cbp, "zurich_1pm/Evolution/Population/"+networkName+"/cbaParameters"+lastIterationOriginal+".xml");
 		}
-		// Display Travel Time Stats
-		for (MNetwork network : networkPopulation.networkMap.values()) {
-			System.out.println(network.networkID+" AverageTavelTime [min] = "+network.averageTravelTime+"   (StandardDeviation="+network.stdDeviationTravelTime+")");
-			System.out.println(network.networkID+" TotalTravelTime [min] = "+network.totalTravelTime);
-		}
-		
-
 		
 		return networkPopulation;
 	}
 	
+	// depreceated
 	public static NetworkScoreLog peoplePlansProcessingStandard(String finalOutputPlansFile, int maxTravelTimeInMin) {
 			Config emptyConfig = ConfigUtils.createConfig();
 			emptyConfig.getModules().get("plans").addParam("inputPlansFile", finalOutputPlansFile);

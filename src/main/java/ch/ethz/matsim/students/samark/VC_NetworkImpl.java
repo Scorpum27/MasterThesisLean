@@ -21,11 +21,8 @@ import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
 import org.matsim.api.core.v01.population.Population;
-import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.events.EventsUtils;
-import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.scenario.ScenarioUtils;
@@ -369,67 +366,67 @@ public class VC_NetworkImpl {
 	}
 	
 	public static void runEventsProcessing(MNetworkPop networkPopulation, int lastIteration) {
-		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
-			String networkName = mNetwork.networkID;
-			
-			// read and handle events
-			String eventsFile = "zurich_1pm/VirtualCity/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
-			MHandlerPassengers mPassengerHandler = new MHandlerPassengers(null, null); // TODO Caution; Insert proper network & transitSchedule
-			EventsManager eventsManager = EventsUtils.createEventsManager();
-			eventsManager.addHandler(mPassengerHandler);
-			MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
-			eventsReader.readFile(eventsFile);
-			
-			// read out travel stats and display important indicators to console
-			Map<String, Map<String, Double>> travelStats = mPassengerHandler.travelStats;				// Map< PersonID, Map<RouteName,TravelDistance>>
-			Map<String, Integer> routeBoardingCounter = mPassengerHandler.routeBoardingCounter;			// Map<RouteName, nBoardingsOnThatRoute>
-			// double totalBeelineDistance = mPassengerHandler.totalBeelineKM;
-			Map<String, Double> personKMonRoutes = new HashMap<String, Double>();						// Map<RouteName, TotalPersonKM>
-			double totalMetroPersonKM = 0.0;
-			int nMetroUsers = travelStats.size(); 														// total number of persons who use the metro
-			//System.out.println("Number of Metro Users = " + nMetroUsers);
-			int nTotalBoardings = 0;
-			for (int i : routeBoardingCounter.values()) {
-				nTotalBoardings += i;
-			}
-			System.out.println("Total Metro Boardings = "+nTotalBoardings);
-			
-			for (Map<String, Double> routesStats : travelStats.values()) {
-				for (String route : routesStats.keySet()) {
-					if (personKMonRoutes.containsKey(route)) {
-						personKMonRoutes.put(route, personKMonRoutes.get(route)+routesStats.get(route));
-						//System.out.println("Putting on Route " +route+ " an additional " + routesStats.get(route) + " to a total of " + personKMonRoutes.get(route));  
-					}
-					else {
-						personKMonRoutes.put(route, routesStats.get(route));
-						//System.out.println("Putting on Route " +route+ " an initial " + personKMonRoutes.get(route)); 
-					}
-				}
-			}
-			
-			for (String route : personKMonRoutes.keySet()) {
-				totalMetroPersonKM += personKMonRoutes.get(route);
-			}
-			//System.out.println("Total Metro TransitKM = " + totalMetroPersonKM);
-
-			
-			// fill in performance indicators and scores in MRoutes
-			for (String routeId : mNetwork.routeMap.keySet()) {
-				if (personKMonRoutes.containsKey(routeId)) {					
-					MRoute mRoute = mNetwork.routeMap.get(routeId);
-					mRoute.personMetroDist = personKMonRoutes.get(routeId);
-					mRoute.nBoardings = routeBoardingCounter.get(routeId);
-					mNetwork.routeMap.put(routeId, mRoute);
-				}
-			}
-	
-			// fill in performance indicators and scores in MNetworks
-			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
-			mNetwork.personMetroDist = totalMetroPersonKM;
-			mNetwork.nMetroUsers = nMetroUsers;
-		}		// END of NETWORK Loop
-
-		// - Maybe hand over score to a separate score map for sorting scores
+//		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
+//			String networkName = mNetwork.networkID;
+//			
+//			// read and handle events
+//			String eventsFile = "zurich_1pm/VirtualCity/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
+//			MHandlerPassengers mPassengerHandler = new MHandlerPassengers(); // TODO Caution; Insert proper network & transitSchedule
+//			EventsManager eventsManager = EventsUtils.createEventsManager();
+//			eventsManager.addHandler(mPassengerHandler);
+//			MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
+//			eventsReader.readFile(eventsFile);
+//			
+//			// read out travel stats and display important indicators to console
+//			Map<String, Map<String, Double>> travelStats = mPassengerHandler.travelStats;				// Map< PersonID, Map<RouteName,TravelDistance>>
+//			Map<String, Integer> routeBoardingCounter = mPassengerHandler.routeBoardingCounter;			// Map<RouteName, nBoardingsOnThatRoute>
+//			// double totalBeelineDistance = mPassengerHandler.totalBeelineKM;
+//			Map<String, Double> personKMonRoutes = new HashMap<String, Double>();						// Map<RouteName, TotalPersonKM>
+//			double totalMetroPersonKM = 0.0;
+//			int nMetroUsers = travelStats.size(); 														// total number of persons who use the metro
+//			//System.out.println("Number of Metro Users = " + nMetroUsers);
+//			int nTotalBoardings = 0;
+//			for (int i : routeBoardingCounter.values()) {
+//				nTotalBoardings += i;
+//			}
+//			System.out.println("Total Metro Boardings = "+nTotalBoardings);
+//			
+//			for (Map<String, Double> routesStats : travelStats.values()) {
+//				for (String route : routesStats.keySet()) {
+//					if (personKMonRoutes.containsKey(route)) {
+//						personKMonRoutes.put(route, personKMonRoutes.get(route)+routesStats.get(route));
+//						//System.out.println("Putting on Route " +route+ " an additional " + routesStats.get(route) + " to a total of " + personKMonRoutes.get(route));  
+//					}
+//					else {
+//						personKMonRoutes.put(route, routesStats.get(route));
+//						//System.out.println("Putting on Route " +route+ " an initial " + personKMonRoutes.get(route)); 
+//					}
+//				}
+//			}
+//			
+//			for (String route : personKMonRoutes.keySet()) {
+//				totalMetroPersonKM += personKMonRoutes.get(route);
+//			}
+//			//System.out.println("Total Metro TransitKM = " + totalMetroPersonKM);
+//
+//			
+//			// fill in performance indicators and scores in MRoutes
+//			for (String routeId : mNetwork.routeMap.keySet()) {
+//				if (personKMonRoutes.containsKey(routeId)) {					
+//					MRoute mRoute = mNetwork.routeMap.get(routeId);
+//					mRoute.personMetroDist = personKMonRoutes.get(routeId);
+//					mRoute.nBoardings = routeBoardingCounter.get(routeId);
+//					mNetwork.routeMap.put(routeId, mRoute);
+//				}
+//			}
+//	
+//			// fill in performance indicators and scores in MNetworks
+//			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
+//			mNetwork.personMetroDist = totalMetroPersonKM;
+//			mNetwork.nMetroUsers = nMetroUsers;
+//		}		// END of NETWORK Loop
+//
+//		// - Maybe hand over score to a separate score map for sorting scores
 	}
 	
 	public static void peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInMin) {

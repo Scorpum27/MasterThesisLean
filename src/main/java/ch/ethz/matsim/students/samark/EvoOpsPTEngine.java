@@ -33,7 +33,7 @@ public class EvoOpsPTEngine {
 
 	public static MNetworkPop applyPT(MNetworkPop newPopulation, Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, String eliteNetwork,
 			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom, String defaultPtMode,
-			double stopTime, boolean blocksLane, boolean useOdPairsForInitialRoutes) throws IOException {
+			double stopTime, boolean blocksLane, boolean useOdPairsForInitialRoutes, Double initialDepSpacing) throws IOException {
 		
 		Config originalConfig = ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml");
 		Scenario originalScenario = ScenarioUtils.loadScenario(originalConfig);
@@ -72,8 +72,17 @@ public class EvoOpsPTEngine {
 					continue;
 				}
 				mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
-				mRoute.departureSpacing = NetworkEvolutionImpl.depSpacingCalculator(mRoute.vehiclesNr, mRoute.roundtripTravelTime);
 				
+				mRoute.departureSpacing = NetworkEvolutionImpl.depSpacingCalculator(mRoute.vehiclesNr, mRoute.roundtripTravelTime);
+//				if (mRoute.isInitialDepartureSpacing) {	// this has to be done if mRoutes are crossed in Crossover and set to default frequencies again!
+//					mRoute.departureSpacing = initialDepSpacing;
+//					mRoute.isInitialDepartureSpacing = false;
+//					mRoute.vehiclesNr = ...
+//				}
+//				else {
+//					mRoute.departureSpacing = NetworkEvolutionImpl.depSpacingCalculator(mRoute.vehiclesNr, mRoute.roundtripTravelTime);
+//				}
+
 				// Build TransitRoute from stops and NetworkRoute --> and add departures
 				TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create(mNetwork.networkID+"_Route"+lineNr, TransitRoute.class ), 
 						mRoute.networkRoute, stopArray, defaultPtMode);
@@ -90,7 +99,7 @@ public class EvoOpsPTEngine {
 				mRoute.setTransitLine(transitLine);
 				mRoute.setLinkList(NetworkEvolutionImpl.NetworkRoute2LinkIdList(mRoute.networkRoute));
 				mRoute.setNodeList(NetworkEvolutionImpl.NetworkRoute2NodeIdList(mRoute.networkRoute, globalNetwork));
-				mRoute.setRouteLength(NetworkEvolutionImpl.NetworkRoute2TotalLength(mRoute.networkRoute, globalNetwork));
+				mRoute.setRouteLength(globalNetwork);
 				mRoute.setTotalDrivenDist(mRoute.routeLength * mRoute.nDepartures);
 
 			} // end of TransitLine creator loop

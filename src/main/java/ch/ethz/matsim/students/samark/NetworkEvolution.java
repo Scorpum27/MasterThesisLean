@@ -1,6 +1,5 @@
 package ch.ethz.matsim.students.samark;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
@@ -9,11 +8,6 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ForkJoinPool;
-import java.util.concurrent.TimeUnit;
-
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -27,23 +21,15 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 /* java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT
  * 
- * TODO SIMULATION: ProportionalRoulette vs. ExponentialRoulette
- * TODO SIMULATION: ModificationProb with Mutation etc...
  * TODO Tuning of EvoAlgo's
  * TODO Combining routes procedures when they come close etc...
- * TODO Different Scoring functions (--> Literature as well) (all roulette wheels, proportional choices, metro cost etc.)
- * TODO Run many times frequencyAlgo for finding errors !
  * TODO ABC Algo. as a reference !
- * TODO OD-Route improvements
  * TODO introduce test on Mendl's network!
- * TODO RAIL-Strategy: How to add rails to innercityNetwork:
- * 			- Make it manual
- * 			- Or take a Djikstra from internet
+ * TODO OD-Route improvements
+ *
  * DIVERSE
- *  - PlansProcessing: Make nicer with travelTime
  *  - What happens if I delete very short links (are they really worth using as feasible links or are they just a product of a crossing bottleneck?)
  *  - Compare metro KM to SBahn KMs
- *  - Total beeline distance in NetworkEvolutionRunSim (mNetwork.mPersonKMdirect = beelinedistances)
  *  - Make proper IDs to get objects
  * 
  * OD-OPTIONS
@@ -87,74 +73,74 @@ public class NetworkEvolution {
 	// INITIALIZATIon
 	// - Initiate N networks to make a population
 		// % Parameters for Network Population & Strategy: %
-		int populationSize = 2;													// how many networks should be developed in parallel
+		Integer populationSize = 1;													// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		int initialRoutesPerNetwork = 5;
-		boolean mergeMetroWithRailway = true;
+		Integer initialRoutesPerNetwork = 5;
+		Boolean mergeMetroWithRailway = true;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
-		boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
+		Boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
-		int iterationToReadOriginalNetwork = 100;									// This is the iteration for the simulation output of the original network
-		double lifeTime = 40.0;
+		Integer iterationToReadOriginalNetwork = 100;									// This is the iteration for the simulation output of the original network
+		Double lifeTime = 40.0;
 		
 		// %% Parameters for NetworkRoutes %%
 		Coord zurich_NetworkCenterCoord = new Coord(2683360.00, 1248100.00);		// default Coord(2683360.00, 1248100.00);  old:(2683000.00, 1247700.00)
-		double xOffset = 1733436; 													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; 																					  																						X_MATSim= 2683476;
-		double yOffset = -4748525;													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; 																						Y_MATSim= 1246811;
-		double metroCityRadius = 4000; 												// DEFAULT = 2500
-		double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
-		double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
-		double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
-		double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
-		double maxExtendedMetroRadiusFromCenter = 2.2*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
-		int nMostFrequentLinks = (int) metroCityRadius/20;							// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
-		double maxNewMetroLinkDistance = Math.max(0.33*metroCityRadius, 1400);		// DEFAULT = 0.40*metroCityRadius
-		double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
+		Double xOffset = 1733436.0; 													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; 																					  																						X_MATSim= 2683476;
+		Double yOffset = -4748525.0;													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; 																						Y_MATSim= 1246811;
+		Double metroCityRadius = 4000.0; 												// DEFAULT = 2500
+		Double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
+		Double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
+		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
+		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
+		Double maxExtendedMetroRadiusFromCenter = 2.2*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
+		Integer nMostFrequentLinks = (int) (metroCityRadius/20.0);					// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
+		Double maxNewMetroLinkDistance = Math.max(0.33*metroCityRadius, 1400);		// DEFAULT = 0.40*metroCityRadius
+		Double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
 																					// DEFAULT = 0.20*metroCityRadius for RandomRoutes
-		double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
-		double minTerminalDistance = 0.80*maxMetroRadiusFromCenter;					// DEFAULT = 0.70*maxMetroRadiusFromCenter
-		double railway2metroCatchmentArea = 150;									// DEFAULT = 150 or metroProximityRadius/3
-		double metro2metroCatchmentArea = 400;										// DEFAULT = 400  (merge metro stops within 400 meters)
-		double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing 																						routes)
+		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
+		Double minTerminalDistance = 0.80*maxMetroRadiusFromCenter;					// DEFAULT = 0.70*maxMetroRadiusFromCenter
+		Double railway2metroCatchmentArea = 150.0;									// DEFAULT = 150 or metroProximityRadius/3
+		Double metro2metroCatchmentArea = 400.0;										// DEFAULT = 400  (merge metro stops within 400 meters)
+		Double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing 																						routes)
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
-		String vehicleTypeName = "metro";  double maxVelocity = 80.0/3.6 /*[m/s]*/;
-		double vehicleLength = 50;  int vehicleSeats = 100; int vehicleStandingRoom = 100;
-		double initialDepSpacing = 10.0*60.0; double tFirstDep = 6.0*60*60;  double tLastDep = 20.5*60*60; 
-		double stopTime = 40.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
+		String vehicleTypeName = "metro";  Double maxVelocity = 80.0/3.6 /*[m/s]*/;
+		Double vehicleLength = 50.0;  int vehicleSeats = 100; Integer vehicleStandingRoom = 100;
+		Double initialDepSpacing = 10.0*60.0; Double tFirstDep = 6.0*60*60;  Double tLastDep = 20.5*60*60; 
+		Double stopTime = 40.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		
 		// %% Parameters Simulation, Events & Plans Processing %%
-		int firstGeneration = 1;
-		int lastGeneration = 2;
-		int lastIterationOriginal = 20;
-		int lastIteration = lastIterationOriginal;
-		int storeScheduleInterval = 1;	// every X generations the mergedSchedule/Vehicles are saved for continuation of simulation after undesired breakdown
+		Integer firstGeneration = 1;
+		Integer lastGeneration = 1;
+		Integer lastIterationOriginal = 25;
+		Integer lastIteration = lastIterationOriginal;
+		Integer storeScheduleInterval = 1;	// every X generations the mergedSchedule/Vehicles are saved for continuation of simulation after undesired breakdown
 
 		// %% Parameters Events & Plans Processing, Scores %%
-		double averageTravelTimePerformanceGoal = 40.0;
-		int maxConsideredTravelTimeInMin = 240;
-		double populationFactor = 1000.0;
+		Double averageTravelTimePerformanceGoal = 40.0;
+		Integer maxConsideredTravelTimeInSec = 240*60;
+		Integer populationFactor = 1000;
 		
 		// %% Parameters Evolution %%
-		double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
+		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		double pCrossOver = 0.45; 									// DEFAULT = 0.35
-		double minCrossingDistanceFactorFromRouteEnd = 0.3; 		// DEFAULT = 0.30; MINIMUM = 0.25
-		boolean logEntireRoutes = false;
-		double maxCrossingAngle = 110; 								// DEFAULT = 110
-		double pMutation = 0.35;									// DEFAULT = 0.35; <=0.5, because used rankMethod has meanProbability of 0.5 by nature
-		double pBigChange = 0.25;									// DEFAULT = 0.25
-		double pSmallChange = 1.0-pBigChange;
+		Double pCrossOver = 0.30; 									// DEFAULT = 0.35
+		Double minCrossingDistanceFactorFromRouteEnd = 0.3; 		// DEFAULT = 0.30; MINIMUM = 0.25
+		Boolean logEntireRoutes = false;
+		Double maxCrossingAngle = 110.0; 								// DEFAULT = 110
+		Double pMutation = 0.35;									// DEFAULT = 0.35; <=0.5, because used rankMethod has meanProbability of 0.5 by nature
+		Double pBigChange = 0.25;									// DEFAULT = 0.25
+		Double pSmallChange = 1.0-pBigChange;
 		String crossoverRouletteStrategy = "allPositiveProportional";	// Options: allPositiveProportional, rank, tournamentSelection3, logarithmic
-
+		Double routeDisutilityLimit = -5.5E7;						// DEFAULT = -1.5E7;
 		
 		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    " + "NETWORK CREATION - START" + "    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		MNetworkPop networkPopulation = NetworkEvolutionImpl.createMNetworkRoutes(							// Make a list of routes that will be added to this network
 					populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork, lastIterationOriginal,
 					minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
 					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, mergeMetroWithRailway, railway2metroCatchmentArea,
-					metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 
+					metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, 1.0*populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 
 					vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing, lifeTime
 					);
 		
@@ -215,7 +201,7 @@ public class NetworkEvolution {
 
 		// - PLANS PROCESSING:
 			Log.write("PLANS PROCESSING of GEN"+generationNr+"");
-			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInMin, lastIterationOriginal, (int) populationFactor);
+			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInSec, lastIterationOriginal, populationFactor);
 			
 		// - TOTAL SCORE CALCULATOR & HISTORY LOGGER & SCORE CHECK: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
 			Log.write("LOGGING SCORES of GEN"+generationNr+":");
@@ -223,7 +209,7 @@ public class NetworkEvolution {
 			String networkScoreMapGeneralLocation = "zurich_1pm/Evolution/Population/networkScoreMaps.xml";
 //			Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
 			boolean performanceGoalAccomplished = NetworkEvolutionImpl.logResults(networkScoreMaps, historyFileLocation, networkScoreMapGeneralLocation, 
-					latestPopulation, averageTravelTimePerformanceGoal, generationNr, lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes, lifeTime);
+					latestPopulation, averageTravelTimePerformanceGoal, generationNr, lastIterationOriginal, 1.0*populationFactor, globalNetwork, metroLinkAttributes, lifeTime);
 			if(performanceGoalAccomplished == true) {		// 
 				break;
 			}
@@ -238,10 +224,10 @@ public class NetworkEvolution {
 			
 			if (generationNr != lastGeneration) {
 				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMaps.get(generationNr-1),
-						latestPopulation, populationName, alphaXover, pCrossOver, crossoverRouletteStrategy,
+						latestPopulation, populationName, alphaXover, pCrossOver, crossoverRouletteStrategy, initialDepSpacing,
 						useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
 						defaultPtMode, stopTime, blocksLane, logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
-						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange);
+						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange, routeDisutilityLimit);
 			}		
 			
 		}
@@ -299,7 +285,7 @@ public class NetworkEvolution {
 				"lastIteration="+lastIteration  + ";\r\n" + 
 				"storeScheduleInterval="+storeScheduleInterval  + ";\r\n" + 
 				"averageTravelTimePerformanceGoal="+averageTravelTimePerformanceGoal  + ";\r\n" + 
-				"maxConsideredTravelTimeInMin="+maxConsideredTravelTimeInMin  + ";\r\n" + 
+				"maxConsideredTravelTimeInSec="+maxConsideredTravelTimeInSec  + ";\r\n" + 
 				"populationFactor="+populationFactor  + ";\r\n" + 
 				"alphaXover="+alphaXover  + ";\r\n" + 
 				"pCrossOver="+pCrossOver  + ";\r\n" + 

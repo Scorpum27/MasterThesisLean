@@ -47,7 +47,8 @@ public class EvoOpsMutator {
 			Map<String, Double> routeScoreMap = new HashMap<String, Double>();
 			Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String, Double>();
 			for (MRoute mRoute : mNetwork.routeMap.values()) {
-				routeScoreMap.put(mRoute.routeID, mRoute.personMetroDist/(mRoute.constrCost/mRoute.lifeTime+mRoute.opsCost));
+//				routeScoreMap.put(mRoute.routeID, mRoute.personMetroDist/(mRoute.constrCost/mRoute.lifeTime+mRoute.opsCost));
+				routeScoreMap.put(mRoute.routeID, mRoute.utilityBalance);
 			}
 //			double averageRouletteScore = 0.0;
 			List<String> rankedNetworks = EvoOpsMutator.sortRoutesByScore(routeScoreMap);	// highest first
@@ -204,7 +205,7 @@ public class EvoOpsMutator {
 			Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, Double maxCrossingAngle, MRoute mRoute,
 			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 
-		if (mRoute.utilityBalance > 0.0) { // extend route // TODO this should be done with better condition e.g. abs. profitability instead of rel. performance!
+		if (mRoute.utilityBalance > 0.0) { // extend route
 			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 		}
 		else { // shorten route
@@ -233,6 +234,17 @@ public class EvoOpsMutator {
 					break;
 				}
 			}
+// 			ALTERNATIVE: DELETE 2 STOPS instead of 1: TODO check if written correctly
+//			int stopCountStart = 0;
+//			for (Id<Link> linkId : linkListMutate.subList(1, linkListMutate.size())) {
+//				if (EvoOpsMutator.searchStopFacilitiesOnLink(metroLinkAttributes, globalNetwork.getLinks().get(linkId)) != null) {
+//					stopCountStart++;
+//					if (stopCountStart == 2) {
+//						nextLinkWithFacility = linkId;
+//						break;
+//					}
+//				}
+//			}
 			List<Id<Link>> linksToKillTillNextFacility = new ArrayList<Id<Link>>();
 			if (nextLinkWithFacility != null) {
 				if (nextLinkWithFacility.equals(linkListMutate.get(linkListMutate.size()-1)) == false) {
@@ -258,6 +270,17 @@ public class EvoOpsMutator {
 					lastLinkWithFacility = linkId;
 					break;
 				}
+//	 			ALTERNATIVE: DELETE 2 STOPS instead of 1: TODO check if written correctly
+//				int stopCountEnd = 0;
+//				for (Id<Link> linkId : linkListMutate.subList(1, linkListMutate.size())) {
+//					if (EvoOpsMutator.searchStopFacilitiesOnLink(metroLinkAttributes, globalNetwork.getLinks().get(linkId)) != null) {
+//						stopCountEnd++;
+//						if (stopCountEnd == 2) {
+//							lastLinkWithFacility = linkId;
+//							break;
+//						}
+//					}
+//				}
 			}
 			List<Id<Link>> linksToKillTillNextFacility = new ArrayList<Id<Link>>();
 			if (lastLinkWithFacility != null) {
@@ -276,6 +299,7 @@ public class EvoOpsMutator {
 			}
 			linkListMutate.removeAll(linksToKillTillNextFacility);
 		}
+		mRoute.hasBeenShortened = true;	// do this to tell frequencyModifier that he can further remove a vehicle!
 	}
 	
 	
@@ -344,6 +368,8 @@ public class EvoOpsMutator {
 
 	public static void applyBigChange2(Map<String, CustomStop> allMetroStops, List<Id<Link>> linkListMutate, Network globalNetwork, double maxCrossingAngle, 
 			Coord zurich_NetworkCenterCoord, MRoute mRoute, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+
+		List<Id<Link>> originalLinkListMutate = Clone.list(linkListMutate);
 		
 //		Log.write("extraLog.txt", "Performing big change2");
 		List<TransitStopFacility> servicedFacilities = new ArrayList<TransitStopFacility>();
@@ -545,6 +571,9 @@ public class EvoOpsMutator {
 		linkListMutate.addAll(NetworkEvolutionImpl.OppositeLinkListOf(linkListMutate));
 		mRoute.linkList = Clone.list(linkListMutate);
 		mRoute.networkRoute = RouteUtils.createNetworkRoute(linkListMutate, globalNetwork);
+		if ( ! linkListMutate.equals(originalLinkListMutate)) {
+			mRoute.significantRouteModOccured = true;
+		}
 	}
 	
 

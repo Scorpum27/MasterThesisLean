@@ -98,6 +98,14 @@ public class Clone {
 		if(o.transitLine != null) {
 			copy.transitLine = Clone.transitLine(o.transitLine, ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule().getFactory());
 		}
+		copy.lastUtilityBalance = o.lastUtilityBalance;
+		copy.attemptedFrequencyModifications = o.attemptedFrequencyModifications;
+		copy.blockedFreqModGenerations = o.blockedFreqModGenerations;
+		copy.freqModOccured = o.freqModOccured;
+		copy.significantRouteModOccured = o.significantRouteModOccured;
+		copy.lastFreqMod = o.lastFreqMod;
+		copy.probNextFreqModPositive = o.probNextFreqModPositive;
+		
 		copy.routeLength = o.routeLength;
 		copy.vehiclesNr = o.vehiclesNr;
 		copy.lifeTime = o.lifeTime;

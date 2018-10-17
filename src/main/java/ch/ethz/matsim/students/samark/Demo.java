@@ -14,6 +14,22 @@ import java.util.Map.Entry;
 
 import javax.xml.stream.XMLStreamException;
 
+import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.population.Leg;
+import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Plan;
+import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.api.core.v01.population.Population;
+import org.matsim.core.api.experimental.events.EventsManager;
+import org.matsim.core.config.Config;
+import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.events.EventsUtils;
+import org.matsim.core.events.MatsimEventsReader;
+import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.pt.transitSchedule.api.TransitSchedule;
+
 
 public class Demo {
 	
@@ -23,10 +39,259 @@ public class Demo {
 	
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
-		List<String> strings = new ArrayList<String>();
-		if (!(strings.size() > 0)) {
-		System.out.println(strings.size());
+		// %%% EVENTS PROCESSING
+		MNetwork mNetwork = new MNetwork("Network1");
+		String networkName = mNetwork.networkID;
+		int lastIteration = 20;
+		
+		// read and handle events
+		String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
+		
+		Config config = ConfigUtils.createConfig();
+		config.getModules().get("transit").addParam("transitScheduleFile", "zurich_1pm/Evolution/Population/"+networkName+"/MergedSchedule.xml");
+		TransitSchedule mergedTransitSchedule = ScenarioUtils.loadScenario(config).getTransitSchedule();
+		
+		MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
+		EventsManager eventsManager = EventsUtils.createEventsManager();
+		eventsManager.addHandler(mPassengerHandler);
+		MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
+		eventsReader.readFile(eventsFile);
+		
+		double totalMetroPersonKM = 0.0;
+
+		for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
+			System.out.println(routeEntry.toString());
+			totalMetroPersonKM += routeEntry.getValue();
+			if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
+				mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist = routeEntry.getValue();
+				System.out.println("Added distance to route "+routeEntry.getKey().toString());
+			}
 		}
+
+		mNetwork.personMetroDist = totalMetroPersonKM;
+		mNetwork.nMetroUsers = mPassengerHandler.metroPassengers.size();
+
+		for (String s : mNetwork.routeMap.keySet()) {
+			System.out.println(s);
+		}
+		
+		// %%% PLANS PROCESSING
+		
+//			Integer lastIterationOriginal = 20;
+//		
+//			MNetwork mNetwork = new MNetwork("Network1");
+//			String networkName = mNetwork.networkID;
+//			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
+//			Config newConfig = ConfigUtils.createConfig();
+//			newConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
+//			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
+//			Population finalPlansPopulation = newScenario.getPopulation();
+//
+//			// Metro stats
+//			Integer metroUsers = 0;
+//
+//			Double addedTime = 0.0;
+//			for (Person person : finalPlansPopulation.getPersons().values()) {
+//				Boolean isMetroUser = false;
+//				Plan plan = person.getSelectedPlan();
+//				for (PlanElement element : plan.getPlanElements()) {
+//					if (element instanceof Leg) {
+//						Leg leg = (Leg) element;
+//						// do following two conditions to avoid unreasonably high (transit_)walk times!
+//						if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>7*60.0) {
+//							System.out.println("Too long TRANSIT_WALK = "+leg.getTravelTime());
+//							addedTime += leg.getTravelTime()-420.0;
+//							leg.setTravelTime(7*60.0);
+//						}
+//						if (leg.getMode().equals("walk") && leg.getTravelTime()>10*60.0) {
+//							System.out.println("Too long NORMAL_WALK = "+leg.getTravelTime());
+//							addedTime += leg.getTravelTime()-600.0;
+//							leg.setTravelTime(12*60.0);
+//						}
+//
+//						if (leg.getRoute().getRouteDescription() != null) {
+//							String routeDescription = leg.getRoute().getRouteDescription();
+//							if (routeDescription.contains(networkName) && routeDescription.contains("Route")) {
+//								isMetroUser = true;
+//							}
+//						}
+//					}
+//				}
+//				if (isMetroUser) {
+//					metroUsers++;
+//				}
+//			}
+//		System.out.println("metroUsers = "+metroUsers);
+		
+		// %%% Congestion
+		
+////		Congestion rise 33% by 2040; p.21
+////		is traffic decrease ratio
+////		Can cut car2pt-switchers-percentage (deltaKM/totKM) of stau
+//		Double currentCongestionTimeLoss = 51.0*3600;	// annual time loss [s/person]; Source: INRIX2017 =55*3600/365s/person/day = 542s/person/day = 9min/person/day
+//		Double futureCongestionTimeLoss = currentCongestionTimeLoss*1.33; // factor 1.33 for congestion in 2040
+//		Double congTimeSavingRatio = 0.02; //Math.sqrt(0.01);	// deltaKMcar/overallKMcar --> Use root to depict real life effects of congestion
+//		Double congTimeSavingsPerPerson = congTimeSavingRatio*futureCongestionTimeLoss;
+//		Double nCarUsersNow = 920000.0;
+//		Double nCarUsersFuture = 1.14*nCarUsersNow;		// 
+//		Double congTimeSaving = nCarUsersFuture*congTimeSavingsPerPerson;
+//		Double utilityOfTime = 23.32/3600; // CHF/s [car]
+//		Double congSavings = utilityOfTime*congTimeSaving;
+//		System.out.println(congSavings);
+		
+		
+		
+		// %%%%%%%%%%%%%%%%  FrequencyModificationModule Testing  %%%%%%%%%%%%%%%%%%%
+		
+//		double routeDisutilityLimit = -2;
+//		
+//		MRoute mr0 = new MRoute("0");
+//		mr0.vehiclesNr = 0;
+//		MRoute mr1 = new MRoute("2");
+//		mr1.vehiclesNr = 2;
+//		MRoute mr2 = new MRoute("4");
+//		mr2.vehiclesNr = 4;
+//		MRoute mr3 = new MRoute("6");
+//		mr3.vehiclesNr = 6;
+//		MRoute mr4 = new MRoute("8");
+//		mr4.vehiclesNr = 8;
+//		MRoute mr5 = new MRoute("10");
+//		mr5.vehiclesNr = 10;
+//		MNetwork mn = new MNetwork("mn1");
+//		mn.addNetworkRoute(mr5);
+////		mn.addNetworkRoute(mr4);
+////		mn.addNetworkRoute(mr3);
+////		mn.addNetworkRoute(mr2);
+////		mn.addNetworkRoute(mr1);
+////		mn.addNetworkRoute(mr0);
+//		
+//		boolean hasHadMutation = false;
+//		for (int n=0; n<40; n++) {
+//			
+//			Iterator<MRoute> mRouteIter = mn.routeMap.values().iterator();
+//			while (mRouteIter.hasNext()) {
+//				MRoute mRoute = mRouteIter.next();
+//				if ((new Random()).nextDouble() < 0.0) {
+//					mRoute.significantRouteModOccured = true;
+//				}
+//				mRoute.utilityBalance = -Math.abs(4.0 - mRoute.vehiclesNr);
+//				System.out.println("Route="+mRoute.routeID + " = " + mRoute.vehiclesNr);
+//				if ((new Random()).nextDouble() < Math.abs(1/mRoute.utilityBalance)) {
+//					mRoute.hasBeenShortened = true;
+//				}
+//				
+//				// Most important parameter is significantChangeOccured. Make sure this is false if you don't want to modify, especially for newly created Routes!
+//				// Use blockedFreqModGenerations to block modification for nGenerations
+//				if (mRoute.significantRouteModOccured.equals(true)) {	// if significant route change has occurred, forget history and make normal new freqModifications
+//					mRoute.significantRouteModOccured = false;
+//					mRoute.attemptedFrequencyModifications = new ArrayList<String>();	// clean attemptedModifications entirely and have a clean start.
+//					if (mRoute.utilityBalance > routeDisutilityLimit) {
+//						mRoute.probNextFreqModPositive = 0.75;
+//						hasHadMutation = mRoute.modifyFrequency(mRoute.probNextFreqModPositive);
+//					}
+//					else {
+//						mRoute.probNextFreqModPositive = 0.25;
+//						hasHadMutation = mRoute.modifyFrequency(mRoute.probNextFreqModPositive);					
+//					}
+//				}
+//				else {												// if no significant change has occurred,
+//					if (mRoute.blockedFreqModGenerations > 0) {		// continue if freqMod is still blocked
+//						mRoute.blockedFreqModGenerations--;
+//						continue;
+//					}
+//					else {											// if mRoute is free to modify again
+//						if (mRoute.freqModOccured.equals(true)) {	// if a specific frequencyMod has been set, apply such
+//							// this means last frequency modification is to be evaluated for improvement (because freqMod has occured and more dominant criteria
+//							// of significantRouteChangeOccured does not overrule prior changes)	
+//							if (mRoute.lastFreqMod.equals("none")) {
+//								Log.write("CAUTION: LastModification = none. Setting freqModOccured=false.");
+//								mRoute.lastFreqMod = "none";
+//							}
+//							else if (mRoute.utilityBalance > mRoute.lastUtilityBalance) {
+//								// keep modification and attempt another one in same direction in next move (maybe lock before doing so)
+//								// TODO delete markings in mRoute.xxx
+//								if (mRoute.lastFreqMod.equals("positive")) {
+//									mRoute.blockedFreqModGenerations = 0;
+//									mRoute.probNextFreqModPositive = 1.0;
+//									mRoute.attemptedFrequencyModifications = new ArrayList<String>();
+//									// keep freqModOccured = true
+//								}
+//								else if (mRoute.lastFreqMod.equals("negative")) {
+//									// Two options here to slow down route vehicle removing so that it doesn't die out too soon:
+//									// 1) block 0, but skip modification if route has not been shortened in the mean time
+//										mRoute.blockedFreqModGenerations = 0;
+//										if(mRoute.hasBeenShortened) {
+//											mRoute.hasBeenShortened = false;
+//											mRoute.attemptedFrequencyModifications = new ArrayList<String>();
+//											mRoute.probNextFreqModPositive = 0.0;											
+//										}
+//										else {
+//											mRoute.probNextFreqModPositive = -1.0;
+//										}
+////									// 2) block n(probably=1) generations, but don't have to wait for route to be shortened
+////										mRoute.blockedFreqModGenerations = 1;
+////										mRoute.probNextFreqModPositive = 0.0;
+////										mRoute.attemptedFrequencyModifications = new ArrayList<String>();									// ---
+//									// keep freqModOccured = true
+//								}
+//							}
+//							else { // undo modification and try opposite modification if not attempted already! If already attempted, set long blockage on freqMod of this route
+//								if (mRoute.lastFreqMod.equals("positive")) {
+//									mRoute.vehiclesNr--;														// undo positive vehicle change again
+//									hasHadMutation = true;
+//									if ( ! mRoute.attemptedFrequencyModifications.contains("negative")) {		// if haven't tried opposite modification yet
+//										mRoute.probNextFreqModPositive = 0.0;									// then try opposite modification
+//										mRoute.blockedFreqModGenerations = 0;									// try immediately
+//									}
+//									else {
+//										mRoute.attemptedFrequencyModifications = new ArrayList<String>();
+//										mRoute.probNextFreqModPositive = -1.0;									// if positive/negative have both been tried, set on hold
+//										mRoute.blockedFreqModGenerations = 5;									// this means new default freqMod will be applied in 5GENs
+//										mRoute.freqModOccured = false;
+//									}
+//								}
+//								else if (mRoute.lastFreqMod.equals("negative")) {
+//									mRoute.vehiclesNr++;
+//									hasHadMutation = true;
+//									if ( ! mRoute.attemptedFrequencyModifications.contains("positive")) {		// if haven't tried opposite modification yet
+//										mRoute.probNextFreqModPositive = 1.0;									// then try opposite modification
+//										mRoute.blockedFreqModGenerations = 0;									// try immediately
+//									}
+//									else {
+//										mRoute.attemptedFrequencyModifications = new ArrayList<String>();
+//										mRoute.probNextFreqModPositive = -1.0;									// if positive/negative have both been tried, set on hold
+//										mRoute.blockedFreqModGenerations = 5;									// this means new default freqMod will be applied in 5GENs
+//										mRoute.freqModOccured = false;
+//									}
+//								}
+//							}
+//							hasHadMutation = mRoute.modifyFrequency(mRoute.probNextFreqModPositive);
+//						}
+//						else{										// if nothing has been set go ahead and do the default freqModificationProcedure
+//							if (mRoute.utilityBalance > routeDisutilityLimit) {
+//								mRoute.probNextFreqModPositive = 0.75;
+//								hasHadMutation = mRoute.modifyFrequency(mRoute.probNextFreqModPositive);
+//							}
+//							else {
+//								mRoute.probNextFreqModPositive = 0.25;
+//								hasHadMutation = mRoute.modifyFrequency(mRoute.probNextFreqModPositive);						
+//							}
+//						}
+//					}
+//					
+//				}
+//				if (mRoute.vehiclesNr < 1) {
+//					Log.write("Oops, " + mRoute.routeID + " has died due to no more vehicles. Removing it from network.");
+//					mRouteIter.remove();
+//				}
+//			}
+//		}
+//		
+//		for (MRoute mr : mn.routeMap.values()) {
+//			System.out.println(mr.routeID + " = " + mr.vehiclesNr);
+//		}
+		
+		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		
 //		MRoute mr1 = new MRoute("MRoute_1");
 //		MRoute mr2 = new MRoute("MRoute_2");

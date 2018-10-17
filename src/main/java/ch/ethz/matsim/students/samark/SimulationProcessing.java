@@ -5,6 +5,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Network;
@@ -376,70 +377,37 @@ public class SimulationProcessing {
 	public static MNetworkPop runEventsProcessingNIterTest(MNetworkPop networkPopulation, int lastIteration, 
 			Network globalNetwork) throws IOException {
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
+			if(networkPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
+				continue;
+			}
+			Log.write("  >> Running Events Processing on:  "+mNetwork.networkID);
+			String networkName = mNetwork.networkID;
 			
 			// read and handle events
-			String eventsFile = "zurich_1pm/nIterTest/nIter"+ Integer.toString(lastIteration) +"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
-			
-			Config config = ConfigUtils.createConfig();
-			config.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/nIterTest/MergedSchedule.xml");
-			TransitSchedule mergedTransitSchedule = ScenarioUtils.loadScenario(config).getTransitSchedule();
-			
-			MHandlerPassengers mPassengerHandler = new MHandlerPassengers(globalNetwork, mergedTransitSchedule);
+			String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
+			MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
 			EventsManager eventsManager = EventsUtils.createEventsManager();
 			eventsManager.addHandler(mPassengerHandler);
 			MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
 			eventsReader.readFile(eventsFile);
 			
-			// read out travel stats and display important indicators to console
-			Map<String, Map<String, Double>> travelStats = mPassengerHandler.travelStats;				// Map< PersonID, Map<RouteName,TravelDistance>>
-			Map<String, Integer> routeBoardingCounter = mPassengerHandler.routeBoardingCounter;			// Map<RouteName, nBoardingsOnThatRoute>
-			// double totalBeelineDistance = mPassengerHandler.totalBeelineKM;
-			Map<String, Double> personKMonRoutes = new HashMap<String, Double>();						// Map<RouteName, TotalPersonKM>
 			double totalMetroPersonKM = 0.0;
-			int nMetroUsers = travelStats.size(); 														// total number of persons who use the metro
-			//System.out.println("Number of Metro Users = " + nMetroUsers);
-			int nTotalBoardings = 0;
-			for (int i : routeBoardingCounter.values()) {
-				nTotalBoardings += i;
-			}
-			System.out.println("Total Metro Boardings = "+nTotalBoardings);
-			
-			for (Map<String, Double> routesStats : travelStats.values()) {
-				for (String route : routesStats.keySet()) {
-					if (personKMonRoutes.containsKey(route)) {
-						personKMonRoutes.put(route, personKMonRoutes.get(route)+routesStats.get(route));
-						//System.out.println("Putting on Route " +route+ " an additional " + routesStats.get(route) + " to a total of " + personKMonRoutes.get(route));  
-					}
-					else {
-						personKMonRoutes.put(route, routesStats.get(route));
-						//System.out.println("Putting on Route " +route+ " an initial " + personKMonRoutes.get(route)); 
-					}
-				}
-			}
-			
-			for (String route : personKMonRoutes.keySet()) {
-				totalMetroPersonKM += personKMonRoutes.get(route);
-			}
-			//System.out.println("Total Metro TransitKM = " + totalMetroPersonKM);
-			
-			// fill in performance indicators and scores in MRoutes
-			for (String routeId : mNetwork.routeMap.keySet()) {
-				if (personKMonRoutes.containsKey(routeId)) {					
-					MRoute mRoute = mNetwork.routeMap.get(routeId);
-					mRoute.personMetroDist = personKMonRoutes.get(routeId);
-					mRoute.nBoardings = routeBoardingCounter.get(routeId);
-					mNetwork.routeMap.put(routeId, mRoute);
+
+			for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
+				System.out.println(routeEntry.toString());
+				totalMetroPersonKM += routeEntry.getValue();
+				if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
+					mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist = routeEntry.getValue();
+					System.out.println("Added distance to route "+routeEntry.getKey().toString());
 				}
 			}
 
-			// fill in performance indicators and scores in MNetworks
-			// TODO [NOT PRIO] mNetwork.mPersonKMdirect = beelinedistances;
 			mNetwork.personMetroDist = totalMetroPersonKM;
-			mNetwork.nMetroUsers = nMetroUsers;
-			mNetwork.totalPtPersonDist = mPassengerHandler.totalPtTransitPersonKM;
+			mNetwork.nMetroUsers = mPassengerHandler.metroPassengers.size();
+			Log.write(mNetwork.networkID+" - totalMetroPersonKM = "+totalMetroPersonKM/1000);
+			Log.write(mNetwork.networkID+" - nMetroUsers = "+mNetwork.nMetroUsers);
 		}	// END of NETWORK Loop
 
-		// - Maybe hand over score to a separate score map for sorting scores
 		return networkPopulation;
 	}
 	
