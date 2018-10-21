@@ -16,9 +16,9 @@ public class NetworkScoreLog {
 	int evolutionGeneration;
 
 	// depreceated
-//	double personKMdirect;
-//	double opsCost;
-//	double constrCost;
+	double personKMdirect;
+	double opsCost;
+	double constrCost;
 
 
 	public NetworkScoreLog() {

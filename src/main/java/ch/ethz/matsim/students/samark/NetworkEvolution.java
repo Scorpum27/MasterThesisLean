@@ -1,9 +1,11 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -18,8 +20,12 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
+import org.apache.commons.io.FileUtils;
 
-/* java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT
+/* java -Xmx74G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT
+ * java -Xmx74G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerIfalik firstGEN finalGEN Network+Nr
+ * 
+ * XXX uncomment in recall section the pedigree section
  * 
  * TODO Tuning of EvoAlgo's
  * TODO Combining routes procedures when they come close etc...
@@ -73,7 +79,7 @@ public class NetworkEvolution {
 	// INITIALIZATIon
 	// - Initiate N networks to make a population
 		// % Parameters for Network Population & Strategy: %
-		Integer populationSize = 1;													// how many networks should be developed in parallel
+		Integer populationSize = 12;													// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		Integer initialRoutesPerNetwork = 5;
 		Boolean mergeMetroWithRailway = true;
@@ -86,35 +92,37 @@ public class NetworkEvolution {
 		
 		// %% Parameters for NetworkRoutes %%
 		Coord zurich_NetworkCenterCoord = new Coord(2683360.00, 1248100.00);		// default Coord(2683360.00, 1248100.00);  old:(2683000.00, 1247700.00)
-		Double xOffset = 1733436.0; 													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; 																					  																						X_MATSim= 2683476;
-		Double yOffset = -4748525.0;													// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; 																						Y_MATSim= 1246811;
-		Double metroCityRadius = 4000.0; 												// DEFAULT = 2500
+		Double xOffset = 1733436.0; 												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; 																					  																						X_MATSim= 2683476;
+		Double yOffset = -4748525.0;												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; 																						Y_MATSim= 1246811;
+		Double metroCityRadius = 3600.0; 											// DEFAULT = 3600
 		Double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
 		Double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
 		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
-		Double maxExtendedMetroRadiusFromCenter = 2.2*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
+		Double maxExtendedMetroRadiusFromCenter = 1.3*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
 		Integer nMostFrequentLinks = (int) (metroCityRadius/20.0);					// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
 		Double maxNewMetroLinkDistance = Math.max(0.33*metroCityRadius, 1400);		// DEFAULT = 0.40*metroCityRadius
-		Double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// DEFAULT = 0.00*metroCityRadius for OD-Pairs  
-																					// DEFAULT = 0.20*metroCityRadius for RandomRoutes
+		Double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
 		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
 		Double minTerminalDistance = 0.80*maxMetroRadiusFromCenter;					// DEFAULT = 0.70*maxMetroRadiusFromCenter
 		Double railway2metroCatchmentArea = 150.0;									// DEFAULT = 150 or metroProximityRadius/3
-		Double metro2metroCatchmentArea = 400.0;										// DEFAULT = 400  (merge metro stops within 400 meters)
+		Double metro2metroCatchmentArea = 400.0;									// DEFAULT = 400  (merge metro stops within 400 meters)
 		Double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing 																						routes)
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
-		String vehicleTypeName = "metro";  Double maxVelocity = 80.0/3.6 /*[m/s]*/;
+		String vehicleTypeName = "metro";  Double maxVelocity = 70.0/3.6 /*[m/s]*/;
 		Double vehicleLength = 50.0;  int vehicleSeats = 100; Integer vehicleStandingRoom = 100;
 		Double initialDepSpacing = 10.0*60.0; Double tFirstDep = 6.0*60*60;  Double tLastDep = 20.5*60*60; 
 		Double stopTime = 40.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		
 		// %% Parameters Simulation, Events & Plans Processing %%
 		Integer firstGeneration = 1;
-		Integer lastGeneration = 1;
-		Integer lastIterationOriginal = 25;
+		Integer lastGeneration = 50;
+		Integer lastIterationOriginal = 24;
 		Integer lastIteration = lastIterationOriginal;
+		Integer iterationsToAverage = 5;
+		if (lastIterationOriginal < iterationsToAverage || lastIteration < iterationsToAverage)
+			{Log.writeAndDisplay(" iterationsToAverage > lastIterationSimulated. Aborting"); System.exit(0);}
 		Integer storeScheduleInterval = 1;	// every X generations the mergedSchedule/Vehicles are saved for continuation of simulation after undesired breakdown
 
 		// %% Parameters Events & Plans Processing, Scores %%
@@ -125,19 +133,49 @@ public class NetworkEvolution {
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.30; 									// DEFAULT = 0.35
-		Double minCrossingDistanceFactorFromRouteEnd = 0.3; 		// DEFAULT = 0.30; MINIMUM = 0.25
+		Double pCrossOver = 0.20; 									// DEFAULT = 0.30
+		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
 		Boolean logEntireRoutes = false;
-		Double maxCrossingAngle = 110.0; 								// DEFAULT = 110
-		Double pMutation = 0.35;									// DEFAULT = 0.35; <=0.5, because used rankMethod has meanProbability of 0.5 by nature
-		Double pBigChange = 0.25;									// DEFAULT = 0.25
+		Double maxCrossingAngle = 110.0; 							// DEFAULT = 110
+		Double pMutation = 0.45;									// DEFAULT = 0.35; <=0.5, because used rankMethod has meanProbability of 0.5 by nature
+		Double pBigChange = 0.30;									// DEFAULT = 0.25
 		Double pSmallChange = 1.0-pBigChange;
-		String crossoverRouletteStrategy = "allPositiveProportional";	// Options: allPositiveProportional, rank, tournamentSelection3, logarithmic
-		Double routeDisutilityLimit = -5.5E7;						// DEFAULT = -1.5E7;
+		String crossoverRouletteStrategy = "tournamentSelection3";	// Options: allPositiveProportional, rank, tournamentSelection3, logarithmic
+		Double routeDisutilityLimit = -0.0E7;						// DEFAULT = -1.5E7;
+		Integer blockFreqModGENs = 6;
+		Integer stopUnprofitableRoutesReplacementGEN = 35;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
+		
+		// %% Infrastructure Parameters %%
+		final double ConstrCostUGnew = 1.5E5;
+		final double ConstrCostUGdevelop = 1.0E5;							// DEFAULT: 1.0E5
+		final double ConstrCostOGnew = 4.0E4;
+		final double ConstrCostOGdevelop = 3.0E4;							// DEFAULT: 3.0E4
+		final double ConstrCostOGequip = 0.5E4;
+		final double ConstrCostPerStationNew = 6.0E4;
+		final double ConstrCostPerStationExtend = 3.0E4;
+		final double costVehicle = 2*6.0E6;									// x2 because assumed to be replaced once for 40y total lifetime (=2x20y)
+		final double OpsCostPerVehDistUG = 17.0/1000;
+		final double OpsCostPerVehDistOG = 11.3/1000;
+		final double occupancyRate = 1.42; 									// personsPerVehicle
+		final double ptPassengerCostPerDist = 0.1407/1000; 					// average price/km to buy a ticket for a trip with a certain distance
+		final double taxPerVehicleDist = 0.06/1000;
+		final double carCostPerVehDist = (0.1403 + 0.11 + 0.13)/1000; 		// CHF/vehicleKM generalCost(repair etc.) + fuel + write-off
+		final double externalCarCosts = 0.077/1000;  						// CHF/personKM  [noise, pollution, climate, accidents, energy]    OLD:(0.0111 + 0.0179 + 0.008 + 0.03)/1000
+		final double externalPtCosts = 0.032/1000;							// CHF/personKM [noise, pollution, climate, accidents] + [energyForInfrastructure]   || OLD: 0.023/1000 + EnergyCost*energyPerPtPersDist;
+		final double ptTrafficIncreasePercentage = 0.28; 					// by 2040 --> because we build infra anyways, this is just higher ticket revenue!!
+		final double VATPercentage = 0.08;
+		final double utilityOfTimePT = 14.43/3600;							// CHF/s
+		final double utilityOfTimeCar = 23.29/3600;							// CHF/s
+		// store infrastructure parameters here
+		XMLOps.writeToFile(new InfrastructureParameters(ConstrCostUGnew, ConstrCostUGdevelop, ConstrCostOGnew, ConstrCostOGdevelop, ConstrCostOGequip,
+				ConstrCostPerStationNew, ConstrCostPerStationExtend, costVehicle, OpsCostPerVehDistUG, OpsCostPerVehDistOG, occupancyRate,
+				ptPassengerCostPerDist, taxPerVehicleDist, carCostPerVehDist, externalCarCosts, externalPtCosts, ptTrafficIncreasePercentage,
+				VATPercentage, utilityOfTimePT, utilityOfTimeCar), "zurich_1pm/Evolution/Population/BaseInfrastructure/infrastructureCost.xml");
 		
 		Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    " + "NETWORK CREATION - START" + "    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 		MNetworkPop networkPopulation = NetworkEvolutionImpl.createMNetworkRoutes(							// Make a list of routes that will be added to this network
 					populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork, lastIterationOriginal,
+					iterationsToAverage, 
 					minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
 					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, mergeMetroWithRailway, railway2metroCatchmentArea,
 					metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, 1.0*populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 
@@ -147,6 +185,8 @@ public class NetworkEvolution {
 		MNetworkPop latestPopulation = networkPopulation;
 		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
 		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
+		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
+		XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
 		List<Map<String, NetworkScoreLog>> networkScoreMaps = new ArrayList<Map<String, NetworkScoreLog>>();
 		// Uncomment until here for RECALL
 		
@@ -154,8 +194,9 @@ public class NetworkEvolution {
 		// RECALL MODULE
 		// - Uncomment "LogCleaner" & "Network Creation"
 		// - firstGeneration=generationToRecall
-//				int generationToRecall = 3;	// it is recommended to use the Generation before the one that failed in order
-//											// to make sure it's data is complete and ready for next clean generation
+//				int generationToRecall = 1;	// it is recommended to use the Generation before the one that failed in order
+//												// to make sure it's data is complete and ready for next clean generation
+//				firstGeneration = generationToRecall;
 //				Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
 //				List<Map<String, NetworkScoreLog>> networkScoreMaps = new ArrayList<Map<String, NetworkScoreLog>>();
 //				MNetworkPop latestPopulation = new MNetworkPop(populationName);
@@ -197,11 +238,12 @@ public class NetworkEvolution {
 			Log.write("EVENTS PROCESSING of GEN"+generationNr+"");
 			int lastEventIteration = lastIteration; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
 			MNetworkPop evoNetworksToProcess = latestPopulation;
-			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration, globalNetwork);
+			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration, iterationsToAverage, globalNetwork);
 
 		// - PLANS PROCESSING:
 			Log.write("PLANS PROCESSING of GEN"+generationNr+"");
-			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInSec, lastIterationOriginal, populationFactor);
+			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInSec,
+					lastIterationOriginal, iterationsToAverage, populationFactor);
 			
 		// - TOTAL SCORE CALCULATOR & HISTORY LOGGER & SCORE CHECK: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
 			Log.write("LOGGING SCORES of GEN"+generationNr+":");
@@ -227,7 +269,10 @@ public class NetworkEvolution {
 						latestPopulation, populationName, alphaXover, pCrossOver, crossoverRouletteStrategy, initialDepSpacing,
 						useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
 						defaultPtMode, stopTime, blocksLane, logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
-						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange, routeDisutilityLimit);
+						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
+						shortestPathStrategy, minTerminalDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter,
+						tFirstDep, tLastDep, odConsiderationThreshold, xOffset, yOffset, stopUnprofitableRoutesReplacementGEN, blockFreqModGENs,
+						generationNr);
 			}		
 			
 		}
@@ -295,8 +340,37 @@ public class NetworkEvolution {
 				"pMutation="+pMutation  + ";\r\n" + 
 				"pBigChange="+pBigChange  + ";\r\n" + 
 				"pSmallChange="+pSmallChange  + ";\r\n" + 
-				"crossoverRouletteStrategy="+crossoverRouletteStrategy);
+				"crossoverRouletteStrategy="+crossoverRouletteStrategy  + ";\r\n" +
+				"routeDisutilityLimit="+routeDisutilityLimit  + ";\r\n" +
+				"blockFreqModGENs="+blockFreqModGENs + ";\r\n" +
+				"stopUnprofitableRoutesReplacementGEN="+stopUnprofitableRoutesReplacementGEN + ";\r\n" +
+				"ConstrCostUGnew="+ConstrCostUGnew + ";\r\n" +
+				"ConstrCostUGdevelop="+ ConstrCostUGdevelop+ ";\r\n" +
+				"ConstrCostOGnew="+ ConstrCostOGnew+ ";\r\n" +
+				"ConstrCostOGdevelop="+ ConstrCostOGdevelop+ ";\r\n" + 
+				"ConstrCostOGequip="+ConstrCostOGequip+ ";\r\n" + 
+				"ConstrCostPerStationNew="+ConstrCostPerStationNew+ ";\r\n" + 
+				"ConstrCostPerStationExtend="+ConstrCostPerStationExtend+ ";\r\n" +
+				"costVehicle="+costVehicle+ ";\r\n" +
+				"OpsCostPerVehDistUG="+OpsCostPerVehDistUG+ ";\r\n" +
+				"OpsCostPerVehDistOG="+ OpsCostPerVehDistOG+ ";\r\n" +
+				"occupancyRate="+occupancyRate+ ";\r\n" + 
+				"ptPassengerCostPerDist="+ptPassengerCostPerDist+";\r\n" +
+				"taxPerVehicleDist="+taxPerVehicleDist+ ";\r\n" +
+				"carCostPerVehDist="+carCostPerVehDist+ ";\r\n" + 
+				"externalCarCosts="+externalCarCosts+ ";\r\n" +
+				"externalPtCosts="+externalPtCosts+ ";\r\n" +
+				"ptTrafficIncreasePercentage="+ptTrafficIncreasePercentage+ ";\r\n" + 
+				"VATPercentage="+VATPercentage+ ";\r\n" +
+				"utilityOfTimePT="+utilityOfTimePT+ ";\r\n" +
+				"utilityOfTimeCar="+utilityOfTimeCar
+				);
 
+		// Free space after successful run:
+		Integer keepGenerationInterval = 10;
+		NetworkEvolutionImpl.freeSpace(lastGeneration, keepGenerationInterval, populationSize);
+
+		
 		Log.write("END TIME = "+(new SimpleDateFormat("HH:mm:ss")).format(Calendar.getInstance().getTime()));
 	} // end Main Method
 

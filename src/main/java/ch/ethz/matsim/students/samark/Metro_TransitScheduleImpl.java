@@ -68,6 +68,7 @@ public class Metro_TransitScheduleImpl {
 			
 			List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
 			routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(mRoute.networkRoute));
+			Log.write("Using routeLinkList = "+routeLinkList.toString());
 			double acceleration = 0.1*9.81;
 			double vMaxAccDistance = maxVehicleSpeed*maxVehicleSpeed/(2*acceleration);
 			double tAccVMax = maxVehicleSpeed/acceleration;
@@ -231,6 +232,8 @@ public class Metro_TransitScheduleImpl {
 			VehicleType vehicleType, String vehicleFileLocation) throws IOException {
 		
 		mRoute.nDepartures = (int) Math.floor((mRoute.lastDeparture-mRoute.firstDeparture)/mRoute.departureSpacing);
+Log.write("mRoute.nDepartures = "+mRoute.nDepartures);
+
 		double depTimeOffset = 0;
 		LinkedHashMap<Double, Id<Vehicle>> freeVehicles = new LinkedHashMap<>();
 		int nVehicles = 0;

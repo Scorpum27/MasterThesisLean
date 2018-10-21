@@ -2,6 +2,8 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
@@ -128,8 +130,9 @@ public class NetworkEvolutionRunSim {
 	}
 
 	
-	public static MNetworkPop runEventsProcessing(MNetworkPop networkPopulation, int lastIteration, 
+	public static MNetworkPop runEventsProcessing(MNetworkPop networkPopulation, Integer lastIteration, Integer iterationsToAverage, 
 			Network globalNetwork) throws IOException {
+		
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			if(networkPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
 				continue;
@@ -137,28 +140,37 @@ public class NetworkEvolutionRunSim {
 			Log.write("  >> Running Events Processing on:  "+mNetwork.networkID);
 			String networkName = mNetwork.networkID;
 			
-			// read and handle events
-			String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
-			MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
-			EventsManager eventsManager = EventsUtils.createEventsManager();
-			eventsManager.addHandler(mPassengerHandler);
-			MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
-			eventsReader.readFile(eventsFile);
+			Integer nMetroUsersTotal = 0;
+			Double personMetroDistTotal = 0.0;
 			
-			double totalMetroPersonKM = 0.0;
-
-			for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
-				System.out.println(routeEntry.toString());
-				totalMetroPersonKM += routeEntry.getValue();
-				if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
-					mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist = routeEntry.getValue();
-					System.out.println("Added distance to route "+routeEntry.getKey().toString());
+			// Average the events output over several iteration (generationsToAverage). For every generation add its performance divided by its single weight
+			for (Integer thisIteration=lastIteration-iterationsToAverage+1; thisIteration<=lastIteration; thisIteration++) {
+			
+				// read and handle events
+				String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+thisIteration+"/"+thisIteration+".events.xml.gz";			
+				MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
+				EventsManager eventsManager = EventsUtils.createEventsManager();
+				eventsManager.addHandler(mPassengerHandler);
+				MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
+				eventsReader.readFile(eventsFile);
+				
+				nMetroUsersTotal += mPassengerHandler.metroPassengers.size();
+				
+				for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
+					System.out.println(routeEntry.toString());
+					personMetroDistTotal += routeEntry.getValue();
+					if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
+						mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist += routeEntry.getValue()/iterationsToAverage;
+//						System.out.println("Added distance to route "+routeEntry.getKey().toString());
+					}
 				}
-			}
-
-			mNetwork.personMetroDist = totalMetroPersonKM;
-			mNetwork.nMetroUsers = mPassengerHandler.metroPassengers.size();
-			Log.write(mNetwork.networkID+" - totalMetroPersonKM = "+totalMetroPersonKM/1000);
+			} // end of averaging loop for performances
+			mNetwork.nMetroUsers = nMetroUsersTotal/iterationsToAverage;
+			mNetwork.personMetroDist = personMetroDistTotal/iterationsToAverage;
+			
+			
+			
+			Log.write(mNetwork.networkID+" - totalMetroPersonKM = "+mNetwork.personMetroDist/1000);
 			Log.write(mNetwork.networkID+" - nMetroUsers = "+mNetwork.nMetroUsers);
 		}	// END of NETWORK Loop
 
@@ -166,7 +178,7 @@ public class NetworkEvolutionRunSim {
 	}
 	
 	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInSec,
-			int lastIterationOriginal, int populationFactor) throws IOException {
+			int lastIterationOriginal, int iterationsToAverage, int populationFactor) throws IOException {
 		
 		// PROCESSING
 		// - TravelTimes (exclude unrealistic (transit_)walk legs)
@@ -178,114 +190,130 @@ public class NetworkEvolutionRunSim {
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			String networkName = mNetwork.networkID;
 			
-//			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/output_plans.xml.gz";
-			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
-			
-			Config newConfig = ConfigUtils.createConfig();
-			newConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
-			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
-			Population finalPlansPopulation = newScenario.getPopulation();
-			
 			// CBP stats instantiation
-			Integer totalPersons = 0;
-			double ptUsers = 0.0;
-			double carUsers = 0.0;
-			double otherUsers = 0.0;
-			double carTimeTotal = 0.0;
-			double carPersonDist = 0.0;
-			double ptTimeTotal = 0.0;
-			double ptPersonDist = 0.0;
-			// Travel times instantiation
-			Double[] travelTimeBins = new Double[maxTravelTimeInSec*60+1];
-			for (int d=0; d<travelTimeBins.length; d++) {
-				travelTimeBins[d] = 0.0;
-			}
-			// Metro stats --> see MHandler functionality in RunEventsProcessing method above
+			Double ptUsers = 0.0;
+			Double carUsers = 0.0;
+			Double otherUsers = 0.0;
+			Double carTimeTotal = 0.0;
+			Double carPersonDist = 0.0;
+			Double ptTimeTotal = 0.0;
+			Double ptPersonDist = 0.0;
+			Double totalTravelTime = 0.0;
+			Double averageTravelTime = 0.0;
+			Double standardDeviation = 0.0;
+			
+			// Average the events output over several iteration (generationsToAverage). For every generation add its performance divided by its single weight
+			for (Integer thisIteration=lastIterationOriginal-iterationsToAverage+1; thisIteration<=lastIterationOriginal; thisIteration++) {
 
-			for (Person person : finalPlansPopulation.getPersons().values()) {
-				boolean isPtTraveler = false;
-				boolean isCarTraveler = false;
-				totalPersons++;
-				double personTravelTime = 0.0;
-				Plan plan = person.getSelectedPlan();
-				for (PlanElement element : plan.getPlanElements()) {
-					if (element instanceof Leg) {
-						Leg leg = (Leg) element;
-						// do following two conditions to avoid unreasonably high (transit_)walk times!
-						if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>7*60.0) {
-							leg.setTravelTime(7*60.0);
+				String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+thisIteration+"/"+thisIteration+".plans.xml.gz";
+				Config newConfig = ConfigUtils.createConfig();
+				newConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
+				Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
+				Population finalPlansPopulation = newScenario.getPopulation();
+				
+				// Travel times instantiation
+				Double[] travelTimeBins = new Double[maxTravelTimeInSec*60+1];
+				for (int d=0; d<travelTimeBins.length; d++) {
+					travelTimeBins[d] = 0.0;
+				}
+				// Metro stats --> see MHandler functionality in RunEventsProcessing method above
+	
+				for (Person person : finalPlansPopulation.getPersons().values()) {
+					boolean isPtTraveler = false;
+					boolean isCarTraveler = false;
+					double personTravelTime = 0.0;
+					Plan plan = person.getSelectedPlan();
+					for (PlanElement element : plan.getPlanElements()) {
+						if (element instanceof Leg) {
+							Leg leg = (Leg) element;
+							// do following two conditions to avoid unreasonably high (transit_)walk times!
+							if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>7*60.0) {
+								leg.setTravelTime(7*60.0);
+							}
+							if (leg.getMode().equals("walk") && leg.getTravelTime()>12*60.0) {
+								leg.setTravelTime(12*60.0);
+							}
+							if (leg.getMode().contains("car")) {
+								carTimeTotal += leg.getTravelTime();
+								carPersonDist += leg.getRoute().getDistance();
+								isCarTraveler = true;
+							}
+							if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
+									leg.getMode().contains("transit_walk") || leg.getMode().contains("egress_walk")) {
+								ptTimeTotal += leg.getTravelTime();
+								ptPersonDist += leg.getRoute().getDistance();
+								isPtTraveler = true;
+							}
+							personTravelTime += leg.getTravelTime();	// totalPersonTravelTime
 						}
-						if (leg.getMode().equals("walk") && leg.getTravelTime()>12*60.0) {
-							leg.setTravelTime(12*60.0);
-						}
-						if (leg.getMode().contains("car")) {
-							carTimeTotal += leg.getTravelTime();
-							carPersonDist += leg.getRoute().getDistance();
-							isCarTraveler = true;
-						}
-						if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
-								leg.getMode().contains("transit_walk") || leg.getMode().contains("egress_walk")) {
-							ptTimeTotal += leg.getTravelTime();
-							ptPersonDist += leg.getRoute().getDistance();
-							isPtTraveler = true;
-						}
-						personTravelTime += leg.getTravelTime();	// totalPersonTravelTime
+					}
+					// travel time bins
+					if (personTravelTime>=maxTravelTimeInSec) {
+						travelTimeBins[maxTravelTimeInSec]++;
+					}
+					else {
+						travelTimeBins[(int) Math.ceil(personTravelTime)]++;
+					}
+					// travel user type bins
+					if (isCarTraveler && isPtTraveler) {
+						ptUsers ++;
+						carUsers ++;
+					}
+					else if (isCarTraveler) {
+						carUsers ++;
+					}
+					else if (isPtTraveler) {
+						ptUsers ++;
+					}
+					else {
+						otherUsers ++;
 					}
 				}
-				// travel time bins
-				if (personTravelTime>=maxTravelTimeInSec) {
-					travelTimeBins[maxTravelTimeInSec]++;
+				
+				// time calculations and saving
+				int travels = 0;
+				Double thisTotalTravelTime = 0.0;
+				for (int i=0; i<travelTimeBins.length; i++) {
+					thisTotalTravelTime += i*travelTimeBins[i];
+					travels += travelTimeBins[i];
 				}
-				else {
-					travelTimeBins[(int) Math.ceil(personTravelTime)]++;
+				totalTravelTime += thisTotalTravelTime;
+				Double thisAverageTravelTime = thisTotalTravelTime/travels;
+				averageTravelTime += thisAverageTravelTime;
+				double standardDeviationInnerSum = 0.0;
+				for (int i=0; i<travelTimeBins.length; i++) {
+					for (int j=0; j<travelTimeBins[i]; j++) {
+						standardDeviationInnerSum += Math.pow(i-thisAverageTravelTime, 2);
+					}
 				}
-				// travel user type bins
-				if (isCarTraveler && isPtTraveler) {
-					ptUsers ++;
-					carUsers ++;
-				}
-				else if (isCarTraveler) {
-					carUsers ++;
-				}
-				else if (isPtTraveler) {
-					ptUsers ++;
-				}
-				else {
-					otherUsers ++;
-				}
-			}
-			
-			// time calculations and saving
-			double totalTravelTime = 0.0;
-			int travels = 0;
-			for (int i=0; i<travelTimeBins.length; i++) {
-				totalTravelTime += i*travelTimeBins[i];
-				travels += travelTimeBins[i];
-			}
-			mNetwork.totalTravelTime = totalTravelTime;
-			mNetwork.averageTravelTime = totalTravelTime/travels;
-			double standardDeviationInnerSum = 0.0;
-			for (int i=0; i<travelTimeBins.length; i++) {
-				for (int j=0; j<travelTimeBins[i]; j++) {
-					standardDeviationInnerSum += Math.pow(i-mNetwork.averageTravelTime, 2);
-				}
-			}
-			double standardDeviation = Math.sqrt(standardDeviationInnerSum/(travels-1));
-			mNetwork.stdDeviationTravelTime = standardDeviation;
-			for (MNetwork network : networkPopulation.networkMap.values()) {
-				System.out.println(network.networkID+" AverageTavelTime [min] = "+network.averageTravelTime/60+"   (StandardDeviation="+network.stdDeviationTravelTime/60+")");
-				System.out.println(network.networkID+" TotalTravelTime [min] = "+network.totalTravelTime/60);
-			}
-			// calculate travel stats
-			mNetwork.totalPtPersonDist = ptPersonDist;
+				standardDeviation += Math.sqrt(standardDeviationInnerSum/(travels-1));
 
+			} // end of averaging processing loop
+			
+			// parameters have been summed up over entire loop --> have to be averaged now! 
+			mNetwork.totalTravelTime = totalTravelTime/iterationsToAverage;
+			mNetwork.averageTravelTime = averageTravelTime/iterationsToAverage;
+			mNetwork.stdDeviationTravelTime = standardDeviation/iterationsToAverage;
+			mNetwork.totalPtPersonDist = ptPersonDist/iterationsToAverage;
+			ptUsers /= iterationsToAverage;
+			carUsers /= iterationsToAverage;
+			otherUsers /= iterationsToAverage;
+			carTimeTotal /= iterationsToAverage;
+			carPersonDist /= iterationsToAverage;
+			ptTimeTotal /= iterationsToAverage;
+			ptPersonDist /= iterationsToAverage;
+			
 			// calculate & save CBP stats
 			CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers, populationFactor*otherUsers,
 					populationFactor*carTimeTotal,  populationFactor*carPersonDist,  populationFactor*ptTimeTotal,  populationFactor*ptPersonDist);
 			cbp.calculateAverages();
 			XMLOps.writeToFile(cbp, "zurich_1pm/Evolution/Population/"+networkName+"/cbaParameters"+lastIterationOriginal+".xml");
-		}
+		} // end of networkLoop
 		
+		for (MNetwork network : networkPopulation.networkMap.values()) {
+			System.out.println(network.networkID+" AverageTavelTime [min] = "+network.averageTravelTime/60+"   (StandardDeviation="+network.stdDeviationTravelTime/60+")");
+			System.out.println(network.networkID+" TotalTravelTime [min] = "+network.totalTravelTime/60);
+		}
 		return networkPopulation;
 	}
 	
@@ -353,11 +381,35 @@ public class NetworkEvolutionRunSim {
 		Log.write(" "); Log.write(" "); Log.write(" ");
 		Log.write("%%%%%%%%%%%%%%%%%%%            %%%%%%%%%%%%%% ------------------------------------------------- %%%%%%%%%%%%%%%            %%%%%%%%%%%%%%%%%%");
 		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
-		networkScoreMaps.addAll(XMLOps.readFromFile(networkScoreMaps.getClass(),"zurich_1pm/Evolution/Population/networkScoreMaps.xml"));
+		File networkScoreMapsFile = new File("zurich_1pm/Evolution/Population/networkScoreMaps.xml");
+		if (networkScoreMapsFile.exists()) {
+			networkScoreMaps.addAll(XMLOps.readFromFile(networkScoreMaps.getClass(),"zurich_1pm/Evolution/Population/networkScoreMaps.xml"));
+		}
+		else {
+			XMLOps.writeToFile(networkScoreMaps,"zurich_1pm/Evolution/Population/networkScoreMaps.xml");
+		}
 		if (networkScoreMaps.size() >= generationToRecall) {
 			networkScoreMaps.removeAll(networkScoreMaps.subList(generationToRecall-1, networkScoreMaps.size()));
 			// delete logs, which may have been added in a last simulation after storing the networks and could therefore be faulty
 		}
+		// load old pedigree tree and trim to recallGeneration (older sims do not have pedigree tree and will give an FileNotFoundException here)
+		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
+		File pedigreeTreeFile = new File("zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+		if (pedigreeTreeFile.exists()) {
+			pedigreeTree.addAll(XMLOps.readFromFile(pedigreeTree.getClass(),"zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+			XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTreeOldBeforeRecall.xml");
+		}
+		else {
+			XMLOps.writeToFile(pedigreeTree,"zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+		}
+		if (pedigreeTree.size() > generationToRecall-1) {
+			XMLOps.writeToFile(pedigreeTree.subList(0, generationToRecall-1), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
+		}
+		else {
+			XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
+		}
+		
+		
 		for (int n=1; n<=populationSize; n++) {
 			MNetwork loadedNetwork = new MNetwork("Network"+n);
 			latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);

@@ -26,6 +26,7 @@ import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.api.core.v01.population.Population;
 import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
@@ -52,7 +53,7 @@ import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRo
 public class NetworkEvolutionImpl {
 
 	public static MNetworkPop createMNetworkRoutes(String populationName, int populationSize, int initialRoutesPerNetwork, String initialRouteType, 
-			String shortestPathStrategy, int iterationToReadOriginalNetwork, int lastIterationOriginal, double minMetroRadiusFromCenter,
+			String shortestPathStrategy, int iterationToReadOriginalNetwork, int lastIterationOriginal, Integer iterationsToAverage, double minMetroRadiusFromCenter,
 			double maxMetroRadiusFromCenter, double maxExtendedMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
 			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter,
 			double minTerminalDistance, boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea,
@@ -79,9 +80,9 @@ public class NetworkEvolutionImpl {
 			// -totalLegKM PT;		-totalLegKM MPT;
 			// -aveTravTime PT;		-aveTravTime MPT;
 		
-		String plansFile = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
+		String plansFolder = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS";
 		String outputFile = "zurich_1pm/cbaParametersOriginal"+lastIterationOriginal+".xml";
-		NetworkEvolutionImpl.calculateCBAStats(plansFile, outputFile, (int) populationFactor);
+		NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, lastIterationOriginal, iterationsToAverage);
 		
 		
 		// Initialize a customLinkMap with all links from original network
@@ -174,7 +175,7 @@ public class NetworkEvolutionImpl {
 			allMetroStops.putAll(outerCityMetroStops);			
 			
 			// Manual inputs here
-			addManualInputs(metroNetwork, metroLinkAttributes, allMetroStops, networkPath+"/MetroStopFacilities.xml");
+//			addManualInputs(metroNetwork, metroLinkAttributes, allMetroStops, networkPath+"/MetroStopFacilities.xml");
 		}
 		else {
 			metroNetwork = innerCityMetroNetwork;
@@ -318,66 +319,86 @@ public class NetworkEvolutionImpl {
 	}
 
 
-	public static CostBenefitParameters calculateCBAStats(String plansFile, String outputFile, int populationFactor) throws IOException {
-		Config blankConfig = ConfigUtils.createConfig();
-		blankConfig.getModules().get("plans").addParam("inputPlansFile", plansFile);
-		Scenario plansScenario = ScenarioUtils.loadScenario(blankConfig);		
+	public static CostBenefitParameters calculateCBAStats(String plansFolder, String outputFile, int populationFactor,
+			Integer lastIteration, Integer iterationsToAverage) throws IOException {
 		
-		double totalPersons = 0.0;
-		double ptUsers = 0.0;
-		double carUsers = 0.0;
-		double otherUsers = 0.0;
-		double carTimeTotal = 0.0;
-		double carPersonDist = 0.0;
-		double ptTimeTotal = 0.0;
-		double ptPersonDist = 0.0;
+		// CBP stats instantiation
+		Double ptUsers = 0.0;
+		Double carUsers = 0.0;
+		Double otherUsers = 0.0;
+		Double carTimeTotal = 0.0;
+		Double carPersonDist = 0.0;
+		Double ptTimeTotal = 0.0;
+		Double ptPersonDist = 0.0;
+		
+		// Average the events output over several iteration (generationsToAverage). For every generation add its performance divided by its single weight
+		for (Integer thisIteration=lastIteration-iterationsToAverage+1; thisIteration<=lastIteration; thisIteration++) {
 
-		
-		for (Person p : plansScenario.getPopulation().getPersons().values()) {
-			boolean isPtTraveler = false;
-			boolean isCarTraveler = false;
-			totalPersons++;
-			Plan selectedPlan = p.getSelectedPlan();
-			for (PlanElement e : selectedPlan.getPlanElements()) {
-				if (e instanceof Leg) {
-					Leg leg = (Leg) e;
-					// make following two conditions to avoid unreasonably high (transit_)walk times!
-					if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>7*60.0) {
-						leg.setTravelTime(7*60.0);
-					}
-					if (leg.getMode().equals("walk") && leg.getTravelTime()>12*60.0) {
-						leg.setTravelTime(12*60.0);
-					}
-//					Log.write("Current Selected Plan Leg = "+leg.toString()+" with mode = "+leg.getMode());
-					if (leg.getMode().contains("car")) {
-						carTimeTotal += leg.getTravelTime();
-//						Log.write("Distance = " + leg.getRoute().getDistance());
-						carPersonDist += leg.getRoute().getDistance();
-						isCarTraveler = true;
-					}
-					if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
-							leg.getMode().contains("transit_walk") || leg.getMode().contains("egress_walk")) {
-						ptTimeTotal += leg.getTravelTime();
-						ptPersonDist += leg.getRoute().getDistance();
-//						Log.write("Distance = " + leg.getRoute().getDistance());
-						isPtTraveler = true;
+			String finalPlansFile = plansFolder+"/it."+thisIteration+"/"+thisIteration+".plans.xml.gz";
+			Config newConfig = ConfigUtils.createConfig();
+			newConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
+			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
+			Population finalPlansPopulation = newScenario.getPopulation();
+
+			for (Person person : finalPlansPopulation.getPersons().values()) {
+				boolean isPtTraveler = false;
+				boolean isCarTraveler = false;
+				double personTravelTime = 0.0;
+				Plan selectedPlan = person.getSelectedPlan();
+				for (PlanElement e : selectedPlan.getPlanElements()) {
+					if (e instanceof Leg) {
+						Leg leg = (Leg) e;
+						// make following two conditions to avoid unreasonably high (transit_)walk times!
+						if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>7*60.0) {
+							leg.setTravelTime(7*60.0);
+						}
+						if (leg.getMode().equals("walk") && leg.getTravelTime()>12*60.0) {
+							leg.setTravelTime(12*60.0);
+						}
+//						Log.write("Current Selected Plan Leg = "+leg.toString()+" with mode = "+leg.getMode());
+						if (leg.getMode().contains("car")) {
+							carTimeTotal += leg.getTravelTime();
+//							Log.write("Distance = " + leg.getRoute().getDistance());
+							carPersonDist += leg.getRoute().getDistance();
+							isCarTraveler = true;
+						}
+						if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
+								leg.getMode().contains("transit_walk") || leg.getMode().contains("egress_walk")) {
+							ptTimeTotal += leg.getTravelTime();
+							ptPersonDist += leg.getRoute().getDistance();
+//							Log.write("Distance = " + leg.getRoute().getDistance());
+							isPtTraveler = true;
+						}
 					}
 				}
+				// travel user type bins
+				if (isCarTraveler && isPtTraveler) {
+					ptUsers ++;
+					carUsers ++;
+				}
+				else if (isCarTraveler) {
+					carUsers ++;
+				}
+				else if (isPtTraveler) {
+					ptUsers ++;
+				}
+				else {
+					otherUsers ++;
+				}
 			}
-			if (isCarTraveler && isPtTraveler) {
-				ptUsers ++;
-				carUsers ++;
-			}
-			else if (isCarTraveler) {
-				carUsers ++;
-			}
-			else if (isPtTraveler) {
-				ptUsers ++;
-			}
-			else {
-				otherUsers ++;
-			}
-		}
+
+		} // end of averaging processing loop
+		
+		// parameters have been summed up over entire loop --> have to be averaged now! 
+		ptUsers /= iterationsToAverage;
+		carUsers /= iterationsToAverage;
+		otherUsers /= iterationsToAverage;
+		carTimeTotal /= iterationsToAverage;
+		carPersonDist /= iterationsToAverage;
+		ptTimeTotal /= iterationsToAverage;
+		ptPersonDist /= iterationsToAverage;
+		
+		// calculate & save CBP stats
 		CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers, populationFactor*otherUsers,
 				populationFactor*carTimeTotal,  populationFactor*carPersonDist,  populationFactor*ptTimeTotal,  populationFactor*ptPersonDist);
 		cbp.calculateAverages();
@@ -1619,7 +1640,11 @@ public class NetworkEvolutionImpl {
 			boolean useOdPairsForInitialRoutes, String vehicleTypeName, double vehicleLength, double maxVelocity, 
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, Coord zurich_NetworkCenterCoord, int lastIterationOriginal,
-			double pMutation, double pBigChange, double pSmallChange, double routeDisutilityLimit) throws IOException {
+			double pMutation, double pBigChange, double pSmallChange, double routeDisutilityLimit,
+			String shortestPathStrategy, Double minTerminalDistance, Double minTerminalRadiusFromCenter, Double maxTerminalRadiusFromCenter,
+			Double tFirstDep, Double tLastDep, Double odConsiderationThreshold, Double xOffset, Double yOffset,
+			Integer stopUnprofitableRoutesReplacementGEN, Integer blockFreqModGENs, Integer currentGEN ) throws IOException {
+		
 		
 		MNetworkPop newPopulation = Clone.mNetworkPop(evoNetworksToProcessPlans);
 		
@@ -1627,7 +1652,9 @@ public class NetworkEvolutionImpl {
 		MNetwork eliteMNetwork = NetworkEvolutionImpl.getEliteNetwork(networkScoreMap, evoNetworksToProcessPlans);
 
 		// FREQUENCY MODIFICATIONS (set nDepartures=0, keep first/lastDep, change nVehicles --> DepSpacing will be changed accordingly in applyPT)
-		newPopulation = EvoOpsFreqModifier.applyFrequencyModification2(newPopulation, eliteMNetwork.networkID, routeDisutilityLimit);
+		if (currentGEN > blockFreqModGENs) { // block before xGEN
+			newPopulation = EvoOpsFreqModifier.applyFrequencyModification2(newPopulation, eliteMNetwork.networkID, routeDisutilityLimit);			
+		}
 		// TODO might have vehicle pool: removed vehicle comes into pool first and is then redistributed. If route hits freq. < 4min, add vehicle to next strongest route
 		
 		// CROSS-OVERS (set nDepartures=0, average first/lastDep & nVehicles during mRouteCrossovers --> DepSpacing, nDep etc. will be changed accordingly in applyPT)
@@ -1637,15 +1664,24 @@ public class NetworkEvolutionImpl {
 				 logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
 		
 		// MUTATIONS (set nDepartures=0, keep nVehicles, keep first/lastDep, --> RouteLength, RoundTripTravelTime, DepSpacing will be changed accordingly in applyPT)
-		newPopulation = EvoOpsMutator.applyMutations(newPopulation, globalNetwork, zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange,
+		newPopulation = EvoOpsMutator.applyMutations(newPopulation, globalNetwork, zurich_NetworkCenterCoord, lastIterationOriginal,
+				pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
 				maxCrossingAngle, eliteMNetwork.networkID, metroLinkAttributes);
-
+		
+//		newPopulation.getNetworks().get("Network1").getRouteMap().remove("Network1_Route3");
+//		newPopulation.getNetworks().get("Network1").getRouteMap().remove("Network1_Route4");
+		
+		// TOP UP NETWORK with routes if individuals have died out 
+		EvoOpsRoutesAdder.topUpNetworkRouteMaps(currentGEN, stopUnprofitableRoutesReplacementGEN, newPopulation, useOdPairsForInitialRoutes, shortestPathStrategy,
+				minTerminalDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, tFirstDep, tLastDep, eliteMNetwork,
+				odConsiderationThreshold, zurich_NetworkCenterCoord, xOffset, yOffset);
+		
 		// APPLY TRANSIT + STORE POPULATION & TRANSITSCHEDULE (calculates & updates: routeLength, roundTripTravelTimes, nDepartures, depSpacing=d(nVehicles))
 		EvoOpsPTEngine.applyPT(newPopulation, globalNetwork, metroLinkAttributes, eliteMNetwork.networkID,
 				vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane,
 				useOdPairsForInitialRoutes, initialDepSpacing);
 		
-		// calculate and Log total Nr of vehicles
+		// calculate and Log total Nr. of vehicles
 		for (MNetwork mn : newPopulation.networkMap.values()) {
 			int nVehicles = 0;
 			for (MRoute mr : mn.routeMap.values()) {
@@ -1688,7 +1724,7 @@ public class NetworkEvolutionImpl {
 
 	public static MNetwork[] crossMNetworks(Network globalNetwork, MNetwork parentMNetwork1, MNetwork parentMNetwork2, String vehicleTypeName, double vehicleLength, double maxVelocity, 
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean useOdPairsForInitialRoutes,
-			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
+			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, ParentNetworksWeight parentNetworksWeight) throws IOException {
 			
 		Map<String, MRoute> routesParent1 = Clone.mRouteMap(parentMNetwork1.getRouteMap());
 		Map<String, MRoute> routesParent2 = Clone.mRouteMap(parentMNetwork2.getRouteMap());
@@ -1705,7 +1741,8 @@ public class NetworkEvolutionImpl {
 			while (iter2.hasNext()) {
 				Entry<String, MRoute> entry2 = iter2.next();
 				MRoute routeFromP2 = entry2.getValue();
-				MRoute[] crossedRoutes = crossMRoutes(routeFromP1, routeFromP2, globalNetwork, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
+				MRoute[] crossedRoutes = crossMRoutes(routeFromP1, routeFromP2, globalNetwork, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
+						parentNetworksWeight);
 				if (crossedRoutes != null) {
 					//Log.writeAndDisplay("   >>> MRoute Cross Success:  " + routeP1name + " X " + routeP2name);
 					routesOut1.put(crossedRoutes[0].routeID, crossedRoutes[0]);
@@ -1738,7 +1775,7 @@ public class NetworkEvolutionImpl {
 
 
 	public static MRoute[] crossMRoutes(MRoute routeFromP1, MRoute routeFromP2, Network globalNetwork,
-			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
+			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, ParentNetworksWeight parentNetworksWeight) throws IOException {
 		
 		List<Id<Link>> route1LinkListOneway = new ArrayList<Id<Link>>();
 		List<Id<Link>> route2LinkListOneway = new ArrayList<Id<Link>>();
@@ -1820,12 +1857,19 @@ public class NetworkEvolutionImpl {
 		if(crossingFound) {
 			List<Id<Link>> crossLinkList1 = new ArrayList<Id<Link>>();
 			List<Id<Link>> crossLinkList2 = new ArrayList<Id<Link>>();
+			
 			crossLinkList1.addAll(route1LinkListOneway.subList(0, route1LinkListOneway.indexOf(crossLink1)));								// route1 part before crossing ...
+			parentNetworksWeight.child1.put(1, parentNetworksWeight.child1.get(1) + NetworkOperators.linkList2length(route1LinkListOneway.subList(0, route1LinkListOneway.indexOf(crossLink1)), globalNetwork));
 			crossLinkList1.addAll(route2LinkListOneway.subList(route2LinkListOneway.indexOf(crossLink2), route2LinkListOneway.size()));		// ... + route2 after crossing
+			parentNetworksWeight.child1.put(2, parentNetworksWeight.child1.get(2) + NetworkOperators.linkList2length(route2LinkListOneway.subList(route2LinkListOneway.indexOf(crossLink2), route2LinkListOneway.size()), globalNetwork));
 			crossLinkList2.addAll(route2LinkListOneway.subList(0, route2LinkListOneway.indexOf(crossLink2)));								// route2 part before crossing ...
+			parentNetworksWeight.child2.put(2, parentNetworksWeight.child2.get(2) + NetworkOperators.linkList2length(route2LinkListOneway.subList(0, route2LinkListOneway.indexOf(crossLink2)), globalNetwork));
 			crossLinkList2.addAll(route1LinkListOneway.subList(route1LinkListOneway.indexOf(crossLink1), route1LinkListOneway.size()));		// ... + route1 after crossing
+			parentNetworksWeight.child2.put(1, parentNetworksWeight.child2.get(1) + NetworkOperators.linkList2length(route1LinkListOneway.subList(route1LinkListOneway.indexOf(crossLink1), route1LinkListOneway.size()), globalNetwork));
+
 			crossLinkList1.addAll(OppositeLinkListOf(crossLinkList1)); // extend again with its opposite direction for PT transportation!
 			crossLinkList2.addAll(OppositeLinkListOf(crossLinkList2)); // extend again with its opposite direction for PT transportation!
+
 			System.out.println("Crossed linked list 1 = "+crossLinkList1.toString());
 			System.out.println("Crossed linked list 2 = "+crossLinkList2.toString());
 			NetworkRoute networkRoute1 = RouteUtils.createNetworkRoute(crossLinkList1, globalNetwork);
@@ -2119,6 +2163,7 @@ public class NetworkEvolutionImpl {
 		for (String networkName : latestPopulation.getNetworks().keySet()) {
 			MNetwork mnetwork = latestPopulation.getNetworks().get(networkName);
 			if(latestPopulation.modifiedNetworksInLastEvolution.contains(mnetwork.getNetworkID())) {
+				
 				mnetwork.lifeTime = lifeTime;
 				mnetwork.calculateRoutesAndNetworkScore(lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes); // include here also part of routesHandling
 				XMLOps.writeToFile(mnetwork, "zurich_1pm/Evolution/Population/"+mnetwork.networkID+"/M"+mnetwork.networkID+".xml");
@@ -2445,6 +2490,26 @@ public class NetworkEvolutionImpl {
 		}
 		
 
+	}
+
+
+	public static void freeSpace(Integer lastGeneration, Integer keepGenerationInterval, Integer populationSize) throws IOException {
+		for (Integer gen=1; gen<=lastGeneration-1; gen++) {
+			if (gen % keepGenerationInterval == 0) {	// keep every 10th generation for potential recall issue
+				continue;
+			}
+			for (Integer nw=1; nw<=populationSize; nw++) {
+				File f = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+gen+"/Network"+nw);
+		        if (f.exists()) {
+		       	  FileUtils.cleanDirectory(f); //clean out directory (this is optional -- but good know)
+		    	  FileUtils.forceDelete(f); //delete directory
+		        }
+		        else {
+		        	Log.write("Free Space Processing: "+f.toString()+" does not exist and can therefore not be deleted.");
+		        }
+			}
+		}
+		
 	}
  	
 	

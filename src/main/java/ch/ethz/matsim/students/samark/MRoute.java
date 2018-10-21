@@ -94,10 +94,10 @@ public class MRoute implements Serializable{
 		this.lastDeparture = 0.0;
 		this.transitScheduleFile = "";
 		this.totalDrivenDist = 0.0;
-		this.opsCost = Double.MAX_VALUE;
-		this.constrCost = Double.MAX_VALUE;
-		this.utilityBalance = -Double.MAX_VALUE;
-		this.lastUtilityBalance = -Double.MAX_VALUE;
+		this.opsCost = 1.0E20;
+		this.constrCost = 1.0E20;
+		this.utilityBalance = -1.0E20;
+		this.lastUtilityBalance = -1.0E20;
 		this.attemptedFrequencyModifications = new ArrayList<String>();
 		this.blockedFreqModGenerations = 0;
 		this.freqModOccured = false;
@@ -199,10 +199,19 @@ public class MRoute implements Serializable{
 			this.NewUGpercentage = ugNewLength/ugLength;
 			this.DevelopUGPercentage = ugDevelopLength/ugLength;			
 		}
+		else {
+			this.NewUGpercentage = 0.0;
+			this.DevelopUGPercentage = 0.0;
+		}
 		if (this.undergroundPercentage < 1.0) {
 			this.NewOGpercentage = ogNewLength/ogLength;
 			this.EquipOGPercentage = ogEquipLength/ogLength;
 			this.DevelopOGPercentage = ogDevelopLength/ogLength;			
+		}
+		else {
+			this.NewOGpercentage = 0.0;
+			this.EquipOGPercentage = 0.0;
+			this.DevelopOGPercentage = 0.0;
 		}
 //		Log.write(Double.toString(this.undergroundPercentage));
 //		Log.write(Double.toString(this.NewUGpercentage));
@@ -276,29 +285,31 @@ public class MRoute implements Serializable{
 		this.sumStations();
 		this.calculatePercentages(globalNetwork, metroLinkAttributes);
 		
-		// suffix "x" means populationFactor was accounted for in this parameter
-		final double ConstrCostUGnew = 1.5E5;
-		final double ConstrCostUGdevelop = 1.0E5;
-		final double ConstrCostOGnew = 4.0E4;
-		final double ConstrCostOGdevelop = 3.0E4;
-		final double ConstrCostOGequip = 0.5E4;
-		final double ConstrCostPerStationNew = 6.0E4;
-		final double ConstrCostPerStationExtend = 3.0E4;
-		final double costVehicle = 2*6.0E6;	// x2 because assumed to be replaced once for 40y total lifetime (=2x20y)
+		InfrastructureParameters infrastructureParameters =
+				XMLOps.readFromFile(InfrastructureParameters.class, "zurich_1pm/Evolution/Population/BaseInfrastructure/infrastructureCost.xml");
 		
-		final double OpsCostPerVehDistUG = 17.0/1000;
-		final double OpsCostPerVehDistOG = 11.3/1000;
-		final double occupancyRate = 1.42; // personsPerVehicle
-		final double ptPassengerCostPerDist = 0.1407/1000; // average price/km to buy a ticket for a trip with a certain distance
-		final double taxPerVehicleDist = 0.06/1000;
-		final double carCostPerVehDist = (0.1403 + 0.11 + 0.13)/1000; 				// CHF/vehicleKM generalCost(repair etc.) + fuel + write-off
-		final double externalCarCosts = 0.077/1000;  	// CHF/personKM  [noise, pollution, climate, accidents, energy]    OLD:(0.0111 + 0.0179 + 0.008 + 0.03)/1000
-		final double externalPtCosts = 0.032/1000;	// CHF/personKM [noise, pollution, climate, accidents] + [energyForInfrastructure]   || OLD: 0.023/1000 + EnergyCost*energyPerPtPersDist;
+		final double ConstrCostUGnew = infrastructureParameters.ConstrCostUGnew;
+		final double ConstrCostUGdevelop = infrastructureParameters.ConstrCostUGdevelop;
+		final double ConstrCostOGnew = infrastructureParameters.ConstrCostOGnew;
+		final double ConstrCostOGdevelop = infrastructureParameters.ConstrCostOGdevelop;
+		final double ConstrCostOGequip = infrastructureParameters.ConstrCostOGequip;
+		final double ConstrCostPerStationNew = infrastructureParameters.ConstrCostPerStationNew;
+		final double ConstrCostPerStationExtend = infrastructureParameters.ConstrCostPerStationExtend;
+		final double costVehicle = infrastructureParameters.costVehicle;
+		
+		final double OpsCostPerVehDistUG = infrastructureParameters.OpsCostPerVehDistUG;
+		final double OpsCostPerVehDistOG = infrastructureParameters.OpsCostPerVehDistOG;
+		final double occupancyRate = infrastructureParameters.occupancyRate;
+		final double ptPassengerCostPerDist = infrastructureParameters.ptPassengerCostPerDist;
+		final double taxPerVehicleDist = infrastructureParameters.taxPerVehicleDist;
+		final double carCostPerVehDist = infrastructureParameters.carCostPerVehDist;
+		final double externalCarCosts = infrastructureParameters.externalCarCosts;
+		final double externalPtCosts = infrastructureParameters.externalPtCosts;
 
-		final double ptTrafficIncreasePercentage = 0.28; // by 2040 --> because we build infra anyways, this is just higher ticket revenue!!
-		final double VATPercentage = 0.08;
-		final double utilityOfTimePT = 14.43/3600; // CHF/s
-		final double utilityOfTimeCar = 23.29/3600; // CHF/s
+		final double ptTrafficIncreasePercentage = infrastructureParameters.ptTrafficIncreasePercentage;
+		final double VATPercentage = infrastructureParameters.VATPercentage;
+		final double utilityOfTimePT = infrastructureParameters.utilityOfTimePT;
+		final double utilityOfTimeCar = infrastructureParameters.utilityOfTimeCar;
 
 		double lengthUG = this.routeLength*this.undergroundPercentage;
 		double lengthOG = this.routeLength*(1-this.undergroundPercentage);
@@ -311,8 +322,12 @@ public class MRoute implements Serializable{
 		double ptVehicleLengthDrivenOG = totalDrivenDist*(1-this.undergroundPercentage);
 		
 		// Proportional Network Usage Projected To Route
-		double deltaCarPersonDist = (newCase.carPersonDist-refCase.carPersonDist)*(this.personMetroDist/totalPersonMetroDist); 
-		double deltaPtPersonDist = (newCase.ptPersonDist-refCase.ptPersonDist)*(this.personMetroDist/totalPersonMetroDist);
+		double deltaCarPersonDist = 0.0; 
+		double deltaPtPersonDist = 0.0;
+		if (totalPersonMetroDist > 0.0) { // do this in case totalPersonMetroDist = 0.0, which would give INFINITY
+			deltaCarPersonDist = (newCase.carPersonDist-refCase.carPersonDist)*(this.personMetroDist/totalPersonMetroDist); 
+			deltaPtPersonDist = (newCase.ptPersonDist-refCase.ptPersonDist)*(this.personMetroDist/totalPersonMetroDist);
+		}
 		
 		// ---- Cost
 		double constructionCost = ConstrCostPerStationNew*this.nStationsNew + ConstrCostPerStationExtend*this.nStationsExtend +
@@ -332,51 +347,46 @@ public class MRoute implements Serializable{
 		double ptVatIncrease = VATPercentage*deltaPtPersonDist*ptPassengerCostPerDist*365*ptTrafficIncreasePercentage;
 			Double currentCongestionTimeLoss = 51.0*3600;	// annual time loss [s/person]; Source: INRIX2017 =55*3600/365s/person/day = 542s/person/day = 9min/person/day
 			Double futureCongestionTimeLoss = currentCongestionTimeLoss*1.33; // factor 1.33 for congestion in 2040 --> See DownloadedPDFs 16.10
-			Double congTimeSavingRatio = 0.02; //Math.sqrt(0.01);	// deltaKMcar/overallKMcar --> Use root to depict real life effects of congestion, e.g. quadratic
+			Double congTimeSavingRatio = Math.max(0.0, (refCase.carTimeTotal-newCase.carTimeTotal)/refCase.carTimeTotal); // 0.02; //Math.sqrt(0.01);	// deltaKMcar/overallKMcar --> Use root to depict real life effects of congestion, e.g. quadratic
 			Double congTimeSavingsPerPerson = congTimeSavingRatio*futureCongestionTimeLoss;
 			Double nCarUsersNow = (this.personMetroDist/totalPersonMetroDist)*newCase.carUsers;
 			Double nCarUsersFuture = 1.14*nCarUsersNow;		// 
 			Double congTimeSaving = nCarUsersFuture*congTimeSavingsPerPerson;
 			Double utilityOfTime = 23.32/3600; // CHF/s [car]
 			Double congestionSavings = utilityOfTime*congTimeSaving;
-			double travelTimeGains = congestionSavings + (this.personMetroDist/totalPersonMetroDist)*
-					365*((refCase.carTimeTotal-newCase.carTimeTotal)*utilityOfTimeCar+(refCase.ptTimeTotal-newCase.ptTimeTotal)*utilityOfTimePT); // Total Utility of Time Approach
-		// ---- annual total cost change
+			Double travelTimeGainsCar = Math.max(0.0, (this.personMetroDist/totalPersonMetroDist)*365*(refCase.carTimeTotal-newCase.carTimeTotal)*utilityOfTimeCar);
+			Double travelTimeGainsPt = Math.max(0.0, (this.personMetroDist/totalPersonMetroDist)*365*(refCase.ptTimeTotal-newCase.ptTimeTotal)*utilityOfTimePT);
+			Double travelTimeGains = congestionSavings + travelTimeGainsCar + travelTimeGainsPt;
+			// ---- annual total cost change
 		double totalCost = (constructionCost+landCost+rollingStockCost)/lifeTime + opsCost + maintenanceCost + repairCost + externalCost + ptPassengerCost;
 		// ---- annual total utility change
 		double totalUtility = vehicleSavings + extCostSavingsCar + ptVatIncrease + travelTimeGains;
+		if (totalPersonMetroDist <= 0.0) {
+			totalCost = (constructionCost+landCost+rollingStockCost)/lifeTime + opsCost + maintenanceCost + repairCost;
+			totalUtility = 0.0;
+		}
 		this.utilityBalance = totalUtility-totalCost;
 		
 		Log.write("---------  "+ this.routeID);
-//		Log.write("lengthUG = "+lengthUG/1000);
-//		Log.write("lengthOG = "+lengthOG/1000);
-//		Log.write("lengthOGnew = "+lengthOGnew/1000);
-//		Log.write("lengthOGequip = "+lengthOGequip/1000);
-//		Log.write("lengthOGdevelopExisting = "+lengthOGdevelopExisting/1000);
-//		Log.write("lengthUGnew = "+lengthUGnew/1000);
-//		Log.write("lengthUGdevelopExisting = "+lengthUGdevelopExisting/1000);
-//
-//		Log.write("this.personMetroDist/totalPersonMetroDist = "+this.personMetroDist/totalPersonMetroDist);
-//		Log.write("deltaCarPersonDistDaily [km] = "+deltaCarPersonDist/1000);
-//		Log.write("deltaPtPersonDistDaily [km] = "+deltaPtPersonDist/1000);
-//		Log.write("constructionCostAnnual = "+constructionCost/lifeTime);
-//		Log.write("opsCostAnnual = "+opsCost);
-//		Log.write("landCostAnnual + maintenanceCostAnnual + repairCostAnnual = "+ landCost/lifeTime+maintenanceCost+repairCost);
-//		Log.write("rollingStockCostAnnual = "+rollingStockCost/lifeTime);
-//		Log.write("externalCostAnnual = ExternalPTCost + TaxLossCars = " + externalCost);
-//		Log.write("ptCostAnnual = "+ptPassengerCost);
-//		Log.write("-------------- Annual Cost (-) = " + totalCost +  "--------------");
+		Log.write("Route Length [km] = "+this.routeLength/1000);
+		Log.write("UG Percentage = " + this.undergroundPercentage);
+		Log.write("nVehicles = " + this.vehiclesNr);
+		Log.write("VehicleMetroDistance = " + this.totalDrivenDist);
+		Log.write("PersonMetroDistance = " + this.personMetroDist);
+		Log.write("this.personMetroDist/totalPersonMetroDist = "+this.personMetroDist/totalPersonMetroDist);
+		if (totalPersonMetroDist <= 0.0) {
+			Log.write("this.personMetroDist/totalPersonMetroDist above =INFINITY because totalPersonMetroDist=0. Proceeding without utility, but all the cost for construction/operation.");
+		}
 		Log.write("  Annual Cost (-) [Construction/Operation] = " + totalCost +  "["+constructionCost/lifeTime+"/"+opsCost+"]");
-//		Log.write("vehicleSavingsAnnual = "+vehicleSavings);
-//		Log.write("extCostSavingsAnnual = "+extCostSavingsCar);
-//		Log.write("ptVatIncreaseAnnual = "+ptVatIncrease);
-//		Log.write("travelTimeGainsAnnual = car2PtGainsAnnual + pt2PtGainsAnnual = "+travelTimeGains);
-//		Log.write("-------------- Annual Utility (+) = " + totalUtility +  "--------------");
-//		Log.write("-------------- UTILITY BALANCE " + this.routeID + " = "+(totalUtility-totalCost) + "--------------");
-		Log.write("  Annual Utility (+) [TravelGainsPT/Car/Congestion + Other] = " + totalUtility +  
+		if (totalPersonMetroDist <= 0.0) {
+			Log.write("  Annual Utility (+) = 0.0 (--> no metro users!)");
+		}
+		else {
+			Log.write("  Annual Utility (+) [TravelGainsPT/Car/Congestion + Other] = " + totalUtility +  
 				" = ["+(this.personMetroDist/totalPersonMetroDist)*365*(refCase.ptTimeTotal-newCase.ptTimeTotal)*utilityOfTimePT+
-				"+"+(this.personMetroDist/totalPersonMetroDist)*365*(refCase.carTimeTotal-newCase.carTimeTotal)*utilityOfTimeCar+
+				"/"+(this.personMetroDist/totalPersonMetroDist)*365*(refCase.carTimeTotal-newCase.carTimeTotal)*utilityOfTimeCar+
 				"/"+congestionSavings + " + " + (vehicleSavings+extCostSavingsCar+ptVatIncrease)+"]");
+		}
 		Log.write("  UTILITY BALANCE " + this.routeID + " = "+(totalUtility-totalCost));
 		
 		return this.utilityBalance;

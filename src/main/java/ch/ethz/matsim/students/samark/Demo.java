@@ -1,79 +1,91 @@
 package ch.ethz.matsim.students.samark;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Line2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
-import java.util.Set;
-import java.util.Map.Entry;
 
+import javax.imageio.ImageIO;
 import javax.xml.stream.XMLStreamException;
 
-import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
-import org.matsim.api.core.v01.population.Leg;
-import org.matsim.api.core.v01.population.Person;
-import org.matsim.api.core.v01.population.Plan;
-import org.matsim.api.core.v01.population.PlanElement;
-import org.matsim.api.core.v01.population.Population;
-import org.matsim.core.api.experimental.events.EventsManager;
+import org.matsim.api.core.v01.network.Network;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.events.EventsUtils;
-import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.pt.transitSchedule.api.TransitSchedule;
-
 
 public class Demo {
+
 	
-	
-	
-	
-	
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
+		// %%%---
+		
+		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
+		pedigreeTree.addAll(0, XMLOps.readFromFile(pedigreeTree.getClass(), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+		XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTreeNew.xml");
+	    // (List<Map<String, String>>) 
+	    
+		// %%% draw images attempts
+		
+	    // g.drawImage(bgImage, 0, 0, this.getWidth(), this.getHeight(), null);
+//		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
+//		Map<String, String> map = new HashMap<String, String>();
+//		map.put("a", "b");
+//		pedigreeTree.add(map);
+//		XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+//		pedigreeTree.addAll(XMLOps.readFromFile(pedigreeTree.getClass(), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+//		System.out.println(pedigreeTree.toString());
+		
+		
+		
 		// %%% EVENTS PROCESSING
-		MNetwork mNetwork = new MNetwork("Network1");
-		String networkName = mNetwork.networkID;
-		int lastIteration = 20;
-		
-		// read and handle events
-		String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
-		
-		Config config = ConfigUtils.createConfig();
-		config.getModules().get("transit").addParam("transitScheduleFile", "zurich_1pm/Evolution/Population/"+networkName+"/MergedSchedule.xml");
-		TransitSchedule mergedTransitSchedule = ScenarioUtils.loadScenario(config).getTransitSchedule();
-		
-		MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
-		EventsManager eventsManager = EventsUtils.createEventsManager();
-		eventsManager.addHandler(mPassengerHandler);
-		MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
-		eventsReader.readFile(eventsFile);
-		
-		double totalMetroPersonKM = 0.0;
-
-		for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
-			System.out.println(routeEntry.toString());
-			totalMetroPersonKM += routeEntry.getValue();
-			if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
-				mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist = routeEntry.getValue();
-				System.out.println("Added distance to route "+routeEntry.getKey().toString());
-			}
-		}
-
-		mNetwork.personMetroDist = totalMetroPersonKM;
-		mNetwork.nMetroUsers = mPassengerHandler.metroPassengers.size();
-
-		for (String s : mNetwork.routeMap.keySet()) {
-			System.out.println(s);
-		}
+//		MNetwork mNetwork = new MNetwork("Network1");
+//		String networkName = mNetwork.networkID;
+//		int lastIteration = 20;
+//		
+//		// read and handle events
+//		String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
+//		
+//		Config config = ConfigUtils.createConfig();
+//		config.getModules().get("transit").addParam("transitScheduleFile", "zurich_1pm/Evolution/Population/"+networkName+"/MergedSchedule.xml");
+//		TransitSchedule mergedTransitSchedule = ScenarioUtils.loadScenario(config).getTransitSchedule();
+//		
+//		MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
+//		EventsManager eventsManager = EventsUtils.createEventsManager();
+//		eventsManager.addHandler(mPassengerHandler);
+//		MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
+//		eventsReader.readFile(eventsFile);
+//		
+//		double totalMetroPersonKM = 0.0;
+//
+//		for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
+//			System.out.println(routeEntry.toString());
+//			totalMetroPersonKM += routeEntry.getValue();
+//			if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
+//				mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist = routeEntry.getValue();
+//				System.out.println("Added distance to route "+routeEntry.getKey().toString());
+//			}
+//		}
+//
+//		mNetwork.personMetroDist = totalMetroPersonKM;
+//		mNetwork.nMetroUsers = mPassengerHandler.metroPassengers.size();
+//
+//		for (String s : mNetwork.routeMap.keySet()) {
+//			System.out.println(s);
+//		}
 		
 		// %%% PLANS PROCESSING
 		

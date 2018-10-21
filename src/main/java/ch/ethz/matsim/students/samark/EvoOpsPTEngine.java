@@ -42,10 +42,12 @@ public class EvoOpsPTEngine {
 		TransitSchedule originalTransitSchedule = originalScenario.getTransitSchedule();
 		
 		for (MNetwork mNetwork : newPopulation.networkMap.values()) {
-			if (newPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false || mNetwork.networkID == eliteNetwork) {
+			// make DAMN SURE that all these conditions are placed in RoutesAdder + TopUp.
+			if (newPopulation.networkMap.size()>1 &&
+					( newPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false || mNetwork.networkID == eliteNetwork) ) {
 				continue;
 			}
-//			Log.write("  > Adding PT to "+ mNetwork.networkID);
+			Log.write("  > Adding PT to "+ mNetwork.networkID);
 			// Transit Schedule Implementations
 			Config newConfig = ConfigUtils.createConfig();
 			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
@@ -56,13 +58,12 @@ public class EvoOpsPTEngine {
 			newScenario.getTransitVehicles().addVehicleType(newVehicleType);
 			
 			// Generate TransitLines and Schedules on NetworkRoutes --> Add to Transit Schedule
-			int lineNr = 0;
 			Iterator<Entry<String, MRoute>> mRouteIter = mNetwork.routeMap.entrySet().iterator();
 			while (mRouteIter.hasNext()) {
 				Entry<String, MRoute> mRouteEntry = mRouteIter.next();
 				String mRouteName = mRouteEntry.getKey();
 				MRoute mRoute = mRouteEntry.getValue();
-				lineNr++;
+				Log.write(mRoute.routeID + ":");
 				// Create an array of stops along new networkRoute on the center of each of its individual links
 				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
 						metroLinkAttributes, metroSchedule, globalNetwork, mRoute, defaultPtMode, stopTime, maxVelocity, blocksLane);
@@ -71,28 +72,25 @@ public class EvoOpsPTEngine {
 					mRouteIter.remove();
 					continue;
 				}
+				Log.write("StopArray = "+stopArray.toString());
 				mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
-				
+				Log.write("mRoute.roundtripTravelTime = "+mRoute.roundtripTravelTime);
 				mRoute.departureSpacing = NetworkEvolutionImpl.depSpacingCalculator(mRoute.vehiclesNr, mRoute.roundtripTravelTime);
-//				if (mRoute.isInitialDepartureSpacing) {	// this has to be done if mRoutes are crossed in Crossover and set to default frequencies again!
-//					mRoute.departureSpacing = initialDepSpacing;
-//					mRoute.isInitialDepartureSpacing = false;
-//					mRoute.vehiclesNr = ...
-//				}
-//				else {
-//					mRoute.departureSpacing = NetworkEvolutionImpl.depSpacingCalculator(mRoute.vehiclesNr, mRoute.roundtripTravelTime);
-//				}
+				Log.write("mRoute.departureSpacing = "+mRoute.departureSpacing);
 
 				// Build TransitRoute from stops and NetworkRoute --> and add departures
-				TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create(mNetwork.networkID+"_Route"+lineNr, TransitRoute.class ), 
+				TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create(mRoute.routeID, TransitRoute.class ), 
 						mRoute.networkRoute, stopArray, defaultPtMode);
-
+				Log.write("transitRouteInitialized = "+transitRoute);
 				String vehicleFileLocation = ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/Vehicles.xml");
 				// make sure mRoute.nDepartures and mRoute.depSpacing have been updated correctly during modifications
 				transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(mRoute, newScenario, metroSchedule, transitRoute,
 						newVehicleType, vehicleFileLocation);
+				Log.write("transitRouteProcessed = "+transitRoute);
+
 				// Build TransitLine from TrasitRoute
-				TransitLine transitLine = metroScheduleFactory.createTransitLine(Id.create("TransitLine_Nr" + lineNr, TransitLine.class));
+				TransitLine transitLine = metroScheduleFactory.createTransitLine(
+						Id.create("TransitLine_Nr" + NetworkEvolutionImpl.removeString(mRoute.routeID, "Route"), TransitLine.class));
 				transitLine.addRoute(transitRoute);
 				// Add new line to schedule
 				metroSchedule.addTransitLine(transitLine);

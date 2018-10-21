@@ -15,6 +15,7 @@ public class EvoOpsCrossover {
 	public EvoOpsCrossover() {
 	}
 
+	@SuppressWarnings("unchecked")
 	public static MNetworkPop applyCrossovers(Network globalNetwork, Map<String, NetworkScoreLog> networkScoreMap,
 			MNetworkPop newPopulation, String populationName, 
 			MNetwork eliteMNetwork, double alpha, double pCrossOver, String crossoverRouletteStrategy, boolean useOdPairsForInitialRoutes, 
@@ -33,6 +34,11 @@ public class EvoOpsCrossover {
 		List<MNetwork> newOffspring = new ArrayList<MNetwork>();
 		System.out.println("We will try nCrossOverCandidates="+nCrossOverCandidates);
 		
+		// prepare for pedigree tree EvoLogging. Set dominantParent network to itself for now (default)
+		// --> if new networks are bred (crossed), find dominant parent
+		for (MNetwork mNetwork : newPopulation.getNetworks().values()) {
+			mNetwork.dominantParent = mNetwork.networkID;	// every network is its own parent (-> case if it is not crossed, only modified)
+		}
 		List<String> processedNetworks = new ArrayList<String>();
 		Map<Integer, List<String>> executedMergers = new HashMap<Integer, List<String>>();
 		CrossOverLoop:
@@ -59,11 +65,17 @@ public class EvoOpsCrossover {
 				Log.writeEvo(" > Crossing Parents:  " + nameParent1 + " X " + nameParent2);
 				MNetwork parentMNetwork1 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent1));
 				MNetwork parentMNetwork2 = Clone.mNetwork(newPopulation.getNetworks().get(nameParent2));
+				ParentNetworksWeight parentNetworksWeight = new ParentNetworksWeight();
 				MNetwork[] childrenMNetworks = NetworkEvolutionImpl.crossMNetworks(globalNetwork, parentMNetwork1, parentMNetwork2,
 						vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode,
-						stopTime, blocksLane,
-						useOdPairsForInitialRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
+						stopTime, blocksLane, useOdPairsForInitialRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
+						parentNetworksWeight);
 				childrenMNetworks[0].setParents(nameParent1, nameParent2);
+				childrenMNetworks[1].setParents(nameParent1, nameParent2);
+				Log.write("Parent gene contribution Child_1: "+nameParent1+"="+parentNetworksWeight.child1.get(1)+" / "+nameParent2+"="+parentNetworksWeight.child1.get(2));
+				Log.write("Parent gene contribution Child_2: "+nameParent1+"="+parentNetworksWeight.child2.get(1)+" / "+nameParent2+"="+parentNetworksWeight.child2.get(2));
+				childrenMNetworks[0].dominantParent = parentNetworksWeight.getDominantParentOfChild1(nameParent1, nameParent2);
+				childrenMNetworks[1].dominantParent = parentNetworksWeight.getDominantParentOfChild2(nameParent1, nameParent2);
 				newOffspring.add(childrenMNetworks[0]);
 				newOffspring.add(childrenMNetworks[1]);
 			}
@@ -83,18 +95,29 @@ public class EvoOpsCrossover {
 			}
 		}
 		if (nNewOffspring == nOldPop) {										// check with this condition if all old networks have been deleted for new offspring
+			eliteMNetwork.dominantParent = eliteMNetwork.networkID;
 			newPopulation.addNetwork(eliteMNetwork);						// if also elite network has been deleted, add manually again (it will replace the new one with the same name)
 			processedNetworks.remove(eliteMNetwork.networkID);							// because this network remains unchanged for this generation as if it were not processed
 			Log.write("   >>> Putting back removed ELITE NETWORK = " + eliteMNetwork.networkID);
 			Log.writeEvo(" >> Putting back removed ELITE NETWORK = " + eliteMNetwork.networkID);
 		}
-		Log.writeEvo(" >> Networks without crossover modifications: ");
-		for (String networkName : newPopulation.networkMap.keySet()) {
-			if (processedNetworks.contains(networkName)==false) {
-				Log.writeEvo("    > "+networkName + 
-					"   parents=["+newPopulation.networkMap.get(networkName).parents.get(0)+" / "+newPopulation.networkMap.get(networkName).parents.get(1)+"]"  );
-			}
+		// log pedigree tree: load pedigree tree, add new generation, save with new generation
+		Map<String, String> dominantParents = new HashMap<String, String>();
+		for (MNetwork mNetwork : newPopulation.getNetworks().values()) {
+			dominantParents.put(mNetwork.networkID, mNetwork.dominantParent);
 		}
+		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
+		pedigreeTree.addAll(0, XMLOps.readFromFile(pedigreeTree.getClass(), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+		pedigreeTree.add(dominantParents);
+		XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+		
+//		Log.writeEvo(" >> Networks without crossover modifications: ");
+//		for (String networkName : newPopulation.networkMap.keySet()) {
+//			if (processedNetworks.contains(networkName)==false) {
+//				Log.writeEvo("    > "+networkName + 
+//					"   parents=["+newPopulation.networkMap.get(networkName).parents.get(0)+" / "+newPopulation.networkMap.get(networkName).parents.get(1)+"]"  );
+//			}
+//		}
 		
 		if (logEntireRoutes) {
 			for (MNetwork mn : newPopulation.networkMap.values()) {

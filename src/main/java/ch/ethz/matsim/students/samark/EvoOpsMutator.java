@@ -26,7 +26,7 @@ public class EvoOpsMutator {
 	
 	@SuppressWarnings("unchecked")
 	public static MNetworkPop applyMutations(MNetworkPop newPopulation, Network globalNetwork, Coord zurich_NetworkCenterCoord, int lastIterationOriginal,
-			double pMutation, double pBigChange, double pSmallChange,
+			double pMutation, double pBigChange, double pSmallChange, Double routeDisutilityLimit,
 			double maxCrossingAngle, String eliteNetworkName, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 		Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
 		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
@@ -47,20 +47,28 @@ public class EvoOpsMutator {
 			Map<String, Double> routeScoreMap = new HashMap<String, Double>();
 			Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String, Double>();
 			for (MRoute mRoute : mNetwork.routeMap.values()) {
-//				routeScoreMap.put(mRoute.routeID, mRoute.personMetroDist/(mRoute.constrCost/mRoute.lifeTime+mRoute.opsCost));
+				// CAUTION: If a route has undergone Crossover, its value will be -Double.MAX_VALUE and will therefore not be ranked automatically in "sortRoutes"!
+				// Take in account by increasing value slightly so it is higher than -Double.MAX_VALUE
+				if (mRoute.utilityBalance < -1.0E20) {
+					mRoute.utilityBalance = -1.0E20;
+				}
 				routeScoreMap.put(mRoute.routeID, mRoute.utilityBalance);
 			}
 //			double averageRouletteScore = 0.0;
-			List<String> rankedNetworks = EvoOpsMutator.sortRoutesByScore(routeScoreMap);	// highest first
-			int N = routeScoreMap.size();
+			Log.write("Sorting routes by score: Initial RouteScoreMap="+routeScoreMap.toString());
+			List<String> rankedRoutes = EvoOpsMutator.sortRoutesByScore(routeScoreMap);	// highest first
+			Log.write("rankedRoutes = " + rankedRoutes.toString());
+			int N = rankedRoutes.size();
 			for (int n=0; n<N; n++) {
-				routeMutationProbabilitiesMap.put(rankedNetworks.get(n), 1-(N-n)/(N*(0.5*N+0.5))-(N-2.0)/N);
+				routeMutationProbabilitiesMap.put(rankedRoutes.get(n), 1-(N-n)/(N*(0.5*N+0.5))-(N-2.0)/N);
 				// 1-p(n), because highest score should least likely be mutated
 			}
+			Log.write("Mutations: RouteMutationProbabilitiesMap = "+routeMutationProbabilitiesMap.toString());
 			Iterator<Entry<String, MRoute>> mrouteIter = mNetwork.routeMap.entrySet().iterator();
 			while (mrouteIter.hasNext()) {
 				Entry<String, MRoute> mrouteEntry = mrouteIter.next();
 				MRoute mRoute = mrouteEntry.getValue();
+				Log.write("Trying route against random probability "+mRoute.routeID);
 				Random rMutation = new Random();
 				if (rMutation.nextDouble() < routeMutationProbabilitiesMap.get(mRoute.routeID) * pMutation/0.5 ) {
 					// meanMutationRate=0.5 by nature of rankMethod. xpMutation for bringing down overall mutation rate to a desired value.
@@ -76,18 +84,19 @@ public class EvoOpsMutator {
 					if (rBig.nextDouble() < pBigChange) { // make big change
 						if(linkListMutate.size()>2) {
 							Log.writeAndDisplay("  >> Applying big change");
-							hasHadMutation = true;
-							EvoOpsMutator.applyBigChange2(allMetroStops, linkListMutate, globalNetwork, maxCrossingAngle, zurich_NetworkCenterCoord,
+							hasHadMutation = EvoOpsMutator.applyBigChange2(allMetroStops, linkListMutate, globalNetwork, maxCrossingAngle, zurich_NetworkCenterCoord,
 									mRoute, metroLinkAttributes);
 						}
 					}
 					else{ // make small change
 						Log.writeAndDisplay("  >> Applying small change");
-						hasHadMutation = true;
 						boolean smallChangeSucceeded = EvoOpsMutator.applySmallChange(cbpOriginal, cbpNew, mrouteIter, linkListMutate, 
-								globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
+								globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes, routeDisutilityLimit);
 						if (smallChangeSucceeded == false) {
 							continue;
+						}
+						else {
+							hasHadMutation = true;
 						}
 					}
 				}
@@ -114,7 +123,7 @@ public class EvoOpsMutator {
 	
 	
 	
-	public static List<String> sortRoutesByScore(Map<String, Double> routeScoreMap) {
+	public static List<String> sortRoutesByScore(Map<String, Double> routeScoreMap) throws IOException {
 		List<String> sortedNetworks = new ArrayList<String>();
 		sortedNetworks.add(""); // do this just as a helper to start off with so that valueArray we compare to is not empty
 		List<Double> sortedValues = new ArrayList<Double>();
@@ -203,9 +212,9 @@ public class EvoOpsMutator {
 	
 	public static boolean applySmallChange(CostBenefitParameters refCase, CostBenefitParameters newCase,
 			Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, Double maxCrossingAngle, MRoute mRoute,
-			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Double routeDisutilityLimit) throws IOException {
 
-		if (mRoute.utilityBalance > 0.0) { // extend route
+		if (mRoute.utilityBalance > routeDisutilityLimit) { // extend route
 			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 		}
 		else { // shorten route
@@ -366,7 +375,7 @@ public class EvoOpsMutator {
 		return null;
 	}
 
-	public static void applyBigChange2(Map<String, CustomStop> allMetroStops, List<Id<Link>> linkListMutate, Network globalNetwork, double maxCrossingAngle, 
+	public static Boolean applyBigChange2(Map<String, CustomStop> allMetroStops, List<Id<Link>> linkListMutate, Network globalNetwork, double maxCrossingAngle, 
 			Coord zurich_NetworkCenterCoord, MRoute mRoute, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 
 		List<Id<Link>> originalLinkListMutate = Clone.list(linkListMutate);
@@ -573,7 +582,9 @@ public class EvoOpsMutator {
 		mRoute.networkRoute = RouteUtils.createNetworkRoute(linkListMutate, globalNetwork);
 		if ( ! linkListMutate.equals(originalLinkListMutate)) {
 			mRoute.significantRouteModOccured = true;
+			return true;
 		}
+		return false;
 	}
 	
 

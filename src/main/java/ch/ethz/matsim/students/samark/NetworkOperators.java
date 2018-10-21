@@ -145,6 +145,15 @@ public class NetworkOperators {
 		initialRoutesNetworkWriter.write(fileName);
 		return routesNetwork;
 	}
+
+
+	public static Double linkList2length(List<Id<Link>> linkList, Network globalNetwork) {
+		Double length = 0.0;
+		for (Id<Link> link : linkList) {
+			length += globalNetwork.getLinks().get(link).getLength();
+		}
+		return length;
+	}
 	
 	
 //	DEPRECEATED:

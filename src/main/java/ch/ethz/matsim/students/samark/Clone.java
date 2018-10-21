@@ -224,6 +224,7 @@ public class Clone {
 		copy.totalTravelTime = o.totalTravelTime; 		// NetworkEvolutionRunSim.peoplePlansProcessingM
 		copy.evoLog = o.evoLog;
 		copy.parents = o.parents;
+		copy.dominantParent = o.dominantParent;
 		
 		copy.overallScore = o.overallScore;			// NetworkEvolution main separate line
 		return copy;
