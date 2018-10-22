@@ -90,21 +90,45 @@ public class NetworkEvolution {
 		Integer iterationToReadOriginalNetwork = 100;									// This is the iteration for the simulation output of the original network
 		Double lifeTime = 40.0;
 		
+//		// %% Parameters for NetworkRoutes %%
+//		Coord zurich_NetworkCenterCoord = new Coord(2683360.00, 1248100.00);		// default Coord(2683360.00, 1248100.00);  old:(2683000.00, 1247700.00)
+//		Double xOffset = 1733436.0; 												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; 																					  																						X_MATSim= 2683476;
+//		Double yOffset = -4748525.0;												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; 																						Y_MATSim= 1246811;
+//		Double metroCityRadius = 3600.0; 											// DEFAULT = 3000 (OLD=3600)
+//		Double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
+//		Double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.70; (OLD=1.40: give some flexibility by increasing from 1.00 to 1.40)
+//		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
+//		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
+//		Double maxExtendedMetroRadiusFromCenter = 1.3*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
+//		Integer nMostFrequentLinks = (int) (metroCityRadius/20.0);					// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
+//		Double maxNewMetroLinkDistance = Math.max(0.33*metroCityRadius, 1400);		// DEFAULT = 0.40*metroCityRadius
+//		Double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
+//		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
+//		Double minInitialTerminalRadiusFromCenter = 0.40*metroCityRadius; 			// put in parameter file and in routes creation file!
+//		Double maxInitialTerminalRadiusFromCenter = 1.40*metroCityRadius;			// put in parameter file and in routes creation file!
+//		Double minInitialTerminalDistance = 0.80*maxMetroRadiusFromCenter;			// DEFAULT = minInitialTerminalRadiusFromCenter+maxInitialTerminalRadiusFromCenter (OLD=0.80*maxMetroRadiusFromCenter)
+//		Double railway2metroCatchmentArea = 150.0;									// DEFAULT = 150 or metroProximityRadius/3
+//		Double metro2metroCatchmentArea = 400.0;									// DEFAULT = 400  (merge metro stops within 400 meters)
+//		Double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing 																						routes)
+//		
 		// %% Parameters for NetworkRoutes %%
 		Coord zurich_NetworkCenterCoord = new Coord(2683360.00, 1248100.00);		// default Coord(2683360.00, 1248100.00);  old:(2683000.00, 1247700.00)
 		Double xOffset = 1733436.0; 												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; 																					  																						X_MATSim= 2683476;
 		Double yOffset = -4748525.0;												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; 																						Y_MATSim= 1246811;
-		Double metroCityRadius = 3600.0; 											// DEFAULT = 3600
+		Double metroCityRadius = 3000.0; 											// DEFAULT = 3000 (OLD=3600)
 		Double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
-		Double maxMetroRadiusFactor = 1.40;											// DEFAULT = 1.40: give some flexibility by increasing from 1.00 to 1.40
+		Double maxMetroRadiusFactor = 1.70;											// DEFAULT = 1.70; (OLD=1.40: give some flexibility by increasing from 1.00 to 1.40)
 		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
-		Double maxExtendedMetroRadiusFromCenter = 1.3*maxMetroRadiusFromCenter;		// DEFAULT = [1,3]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
+		Double maxExtendedMetroRadiusFromCenter = 2.1*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (3 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
 		Integer nMostFrequentLinks = (int) (metroCityRadius/20.0);					// DEFAULT = 70 (will further be reduced during merging procedure for close facilities)
 		Double maxNewMetroLinkDistance = Math.max(0.33*metroCityRadius, 1400);		// DEFAULT = 0.40*metroCityRadius
-		Double minTerminalRadiusFromCenter = 0.20*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
+		Double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
 		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
-		Double minTerminalDistance = 0.80*maxMetroRadiusFromCenter;					// DEFAULT = 0.70*maxMetroRadiusFromCenter
+		Double minInitialTerminalRadiusFromCenter = 0.30*metroCityRadius; 			// put in parameter file and in routes creation file!
+		Double maxInitialTerminalRadiusFromCenter = 1.20*metroCityRadius;			// put in parameter file and in routes creation file!
+		Double minInitialTerminalDistance = 
+			minInitialTerminalRadiusFromCenter+maxInitialTerminalRadiusFromCenter;	// DEFAULT = minInitialTerminalRadiusFromCenter+maxInitialTerminalRadiusFromCenter (OLD=0.80*maxMetroRadiusFromCenter)
 		Double railway2metroCatchmentArea = 150.0;									// DEFAULT = 150 or metroProximityRadius/3
 		Double metro2metroCatchmentArea = 400.0;									// DEFAULT = 400  (merge metro stops within 400 meters)
 		Double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing 																						routes)
@@ -146,13 +170,13 @@ public class NetworkEvolution {
 		Integer stopUnprofitableRoutesReplacementGEN = 35;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
 		
 		// %% Infrastructure Parameters %%
-		final double ConstrCostUGnew = 1.5E5;
-		final double ConstrCostUGdevelop = 1.0E5;							// DEFAULT: 1.0E5
-		final double ConstrCostOGnew = 4.0E4;
-		final double ConstrCostOGdevelop = 3.0E4;							// DEFAULT: 3.0E4
-		final double ConstrCostOGequip = 0.5E4;
-		final double ConstrCostPerStationNew = 6.0E4;
-		final double ConstrCostPerStationExtend = 3.0E4;
+		final double ConstrCostUGnew = 1.5E5;								// within UG radius, new rails
+		final double ConstrCostUGdevelop = 0.25E5;							// DEFAULT: 1.0E5 = within UG radius, but existing train rails
+		final double ConstrCostOGnew = 5.0E4;
+		final double ConstrCostOGdevelop = 1.0E4;							// DEFAULT: 3.0E4
+		final double ConstrCostOGequip = 0.2E4;
+		final double ConstrCostPerStationNew = 7.0E4;
+		final double ConstrCostPerStationExtend = 4.0E4;
 		final double costVehicle = 2*6.0E6;									// x2 because assumed to be replaced once for 40y total lifetime (=2x20y)
 		final double OpsCostPerVehDistUG = 17.0/1000;
 		final double OpsCostPerVehDistOG = 11.3/1000;
@@ -177,7 +201,8 @@ public class NetworkEvolution {
 					populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork, lastIterationOriginal,
 					iterationsToAverage, 
 					minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
-					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minTerminalDistance, mergeMetroWithRailway, railway2metroCatchmentArea,
+					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalDistance, 
+					minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, mergeMetroWithRailway, railway2metroCatchmentArea,
 					metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, 1.0*populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 
 					vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing, lifeTime
 					);
@@ -194,7 +219,7 @@ public class NetworkEvolution {
 		// RECALL MODULE
 		// - Uncomment "LogCleaner" & "Network Creation"
 		// - firstGeneration=generationToRecall
-//				int generationToRecall = 1;	// it is recommended to use the Generation before the one that failed in order
+//				int generationToRecall = 12;	// it is recommended to use the Generation before the one that failed in order
 //												// to make sure it's data is complete and ready for next clean generation
 //				firstGeneration = generationToRecall;
 //				Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
@@ -270,9 +295,9 @@ public class NetworkEvolution {
 						useOdPairsForInitialRoutes, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
 						defaultPtMode, stopTime, blocksLane, logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
 						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
-						shortestPathStrategy, minTerminalDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter,
-						tFirstDep, tLastDep, odConsiderationThreshold, xOffset, yOffset, stopUnprofitableRoutesReplacementGEN, blockFreqModGENs,
-						generationNr);
+						shortestPathStrategy, minInitialTerminalRadiusFromCenter, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter,
+						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, tFirstDep, tLastDep, odConsiderationThreshold,
+						xOffset, yOffset, stopUnprofitableRoutesReplacementGEN, blockFreqModGENs, generationNr);
 			}		
 			
 		}
@@ -309,7 +334,10 @@ public class NetworkEvolution {
 				"maxNewMetroLinkDistance="+maxNewMetroLinkDistance  + ";\r\n" + 
 				"minTerminalRadiusFromCenter="+minTerminalRadiusFromCenter  + ";\r\n" + 
 				"maxTerminalRadiusFromCenter="+maxTerminalRadiusFromCenter  + ";\r\n" + 
-				"minTerminalDistance="+minTerminalDistance  + ";\r\n" + 
+				"minTerminalDistance="+minInitialTerminalRadiusFromCenter  + ";\r\n" + 
+				"minInitialTerminalRadiusFromCenter="+minInitialTerminalRadiusFromCenter  + ";\r\n" + 
+				"maxInitialTerminalRadiusFromCenter="+maxInitialTerminalRadiusFromCenter  + ";\r\n" + 
+				"minInitialTerminalDistance="+minInitialTerminalDistance  + ";\r\n" + 				
 				"railway2metroCatchmentArea="+railway2metroCatchmentArea  + ";\r\n" + 
 				"metro2metroCatchmentArea="+metro2metroCatchmentArea  + ";\r\n" + 
 				"odConsiderationThreshold="+odConsiderationThreshold  + ";\r\n" + 

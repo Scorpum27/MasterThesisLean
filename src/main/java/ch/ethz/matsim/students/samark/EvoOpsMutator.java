@@ -55,20 +55,16 @@ public class EvoOpsMutator {
 				routeScoreMap.put(mRoute.routeID, mRoute.utilityBalance);
 			}
 //			double averageRouletteScore = 0.0;
-			Log.write("Sorting routes by score: Initial RouteScoreMap="+routeScoreMap.toString());
 			List<String> rankedRoutes = EvoOpsMutator.sortRoutesByScore(routeScoreMap);	// highest first
-			Log.write("rankedRoutes = " + rankedRoutes.toString());
 			int N = rankedRoutes.size();
 			for (int n=0; n<N; n++) {
 				routeMutationProbabilitiesMap.put(rankedRoutes.get(n), 1-(N-n)/(N*(0.5*N+0.5))-(N-2.0)/N);
 				// 1-p(n), because highest score should least likely be mutated
 			}
-			Log.write("Mutations: RouteMutationProbabilitiesMap = "+routeMutationProbabilitiesMap.toString());
 			Iterator<Entry<String, MRoute>> mrouteIter = mNetwork.routeMap.entrySet().iterator();
 			while (mrouteIter.hasNext()) {
 				Entry<String, MRoute> mrouteEntry = mrouteIter.next();
 				MRoute mRoute = mrouteEntry.getValue();
-				Log.write("Trying route against random probability "+mRoute.routeID);
 				Random rMutation = new Random();
 				if (rMutation.nextDouble() < routeMutationProbabilitiesMap.get(mRoute.routeID) * pMutation/0.5 ) {
 					// meanMutationRate=0.5 by nature of rankMethod. xpMutation for bringing down overall mutation rate to a desired value.

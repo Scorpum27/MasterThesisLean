@@ -140,7 +140,6 @@ public class MNetwork implements Serializable{
 			this.totalRouteLength += mr.routeLength;
 			this.totalDrivenDist += mr.totalDrivenDist;
 		}
-		Log.write("Start: TotalNetworkRouteLength = "+this.totalRouteLength);
 
 		// calculate here percentages for entire networks from single mRoutes
 		double overallUGlength = 0.0;
@@ -248,10 +247,57 @@ public class MNetwork implements Serializable{
 		final double utilityOfTimePT = infrastructureParameters.utilityOfTimePT;
 		final double utilityOfTimeCar = infrastructureParameters.utilityOfTimeCar;
 
-		// ---- 
-		double deltaCarPersonDist = newCase.carPersonDist-refCase.carPersonDist;
-		double deltaCarVehicleDist = deltaCarPersonDist/occupancyRate;
-		double deltaPtPersonDist = newCase.ptPersonDist-refCase.ptPersonDist;
+//		// ---- old utility module
+//		double deltaCarPersonDist = newCase.carPersonDist-refCase.carPersonDist;
+//		double deltaPtPersonDist = newCase.ptPersonDist-refCase.ptPersonDist;
+//			
+//		// ---- 
+//		double constructionCost = ConstrCostPerStationNew*nStationsNew + ConstrCostPerStationExtend*nStationsExtend +
+//				ConstrCostUGnew*lengthUGnew + ConstrCostUGdevelop*lengthUGdevelopExisting +
+//				ConstrCostOGnew*lengthOGnew + ConstrCostOGdevelop*lengthOGdevelopExisting + ConstrCostOGequip*lengthOGequip;
+//		double opsCost = OpsCostPerVehDistUG*ptVehicleLengthDrivenUG*365 + OpsCostPerVehDistOG*ptVehicleLengthDrivenOG*365; // include here all ops cost of vehicles, infrastructure & overhead
+//		double landCost = 0.01*constructionCost;
+//		double maintenanceCost = 0.01*constructionCost;
+//		double repairCost = 0.01*constructionCost;
+//		double rollingStockCost = this.totalVehiclesNr*costVehicle;
+//		double externalCost = externalPtCosts*deltaPtPersonDist*365 + taxPerVehicleDist*(-deltaCarPersonDist)/occupancyRate*365;	// external PT cost + MPT tax-losses
+//		double ptPassengerCost = deltaPtPersonDist*ptPassengerCostPerDist*365;
+//		// ---- 
+//		double vehicleSavings = carCostPerVehDist*(-deltaCarPersonDist)/occupancyRate*365;
+//		double extCostSavingsCar = externalCarCosts*(-deltaCarPersonDist)*365;		// *0.70 at the end to account for externalCostPT, which are not considered above (see SBB)
+//		double ptVatIncrease = VATPercentage*deltaPtPersonDist*ptPassengerCostPerDist*365*ptTrafficIncreasePercentage;	
+//			Double currentCongestionTimeLoss = 51.0*3600;	// annual time loss [s/person]; Source: INRIX2017 =55*3600/365s/person/day = 542s/person/day = 9min/person/day
+//			Double futureCongestionTimeLoss = currentCongestionTimeLoss*1.33; // factor 1.33 for congestion in 2040 --> See DownloadedPDFs 16.10
+//			Double congTimeSavingRatio = Math.max(0.0, (refCase.carTimeTotal-newCase.carTimeTotal)/refCase.carTimeTotal); // 0.02; //Math.sqrt(0.01);	// deltaKMcar/overallKMcar --> Use root to depict real life effects of congestion, e.g. quadratic
+//			Double congTimeSavingsPerPerson = congTimeSavingRatio*futureCongestionTimeLoss;
+//			Double nCarUsersNow = refCase.carUsers;
+//			Double nCarUsersFuture = 1.14*nCarUsersNow;		// 
+//			Double congTimeSaving = nCarUsersFuture*congTimeSavingsPerPerson;
+//			Double utilityOfTime = 23.32/3600; // CHF/s [car]
+//			Double congestionSavings = utilityOfTime*congTimeSaving;
+//		// Option 1 : Total Utility of Time Approach
+//			Double travelTimeGainsCar = Math.max(0.0, 365*(refCase.carTimeTotal-newCase.carTimeTotal)*utilityOfTimeCar);
+//			Double travelTimeGainsPt = 365*(refCase.ptTimeTotal-newCase.ptTimeTotal)*utilityOfTimePT;		 // Math.max(0.0,365*(refCase.ptTimeTotal-newCase.ptTimeTotal)*utilityOfTimePT) 
+//			Double travelTimeGains = congestionSavings + travelTimeGainsCar + travelTimeGainsPt;
+//		// Option 2 : Combined Approach
+//		//	double travelTimeGains = 365*(
+//		//		(refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers*utilityOfTimeCar-newCase.ptTimeTotal/newCase.ptUsers*utilityOfTimePT)
+//		//		+refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers)*utilityOfTimePT
+//		//	);
+//		// Option 3 : Marginal Utility for Delta Approach
+//		//	double travelTimeGains = 365*(
+//		//		((refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers-newCase.ptTimeTotal/newCase.ptUsers)
+//		//		+refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers))*utilityOfTimePT
+//		//	);
+		
+		// ---- new utility module
+		double deltaPtUsers = newCase.ptUsers-refCase.ptUsers;
+		double deltaCarUsers = newCase.carUsers - refCase.carUsers;
+		double switchers = (1.2*deltaPtUsers+1.0*(-deltaCarUsers))/2.2;	// weight pt slightly stronger as other mode users may also switch to pt --> some extra benefit ok
+		if (switchers < 0.0) { switchers = 0.0; }
+		double deltaCarPersonDist = -switchers*newCase.carPersonDist/newCase.carUsers;
+//		double deltaCarVehicleDist = deltaCarPersonDist/occupancyRate;
+		double deltaPtPersonDist = switchers*newCase.ptPersonDist/newCase.ptUsers;
 		// ---- 
 		double constructionCost = ConstrCostPerStationNew*nStationsNew + ConstrCostPerStationExtend*nStationsExtend +
 				ConstrCostUGnew*lengthUGnew + ConstrCostUGdevelop*lengthUGdevelopExisting +
@@ -276,20 +322,9 @@ public class MNetwork implements Serializable{
 			Double congTimeSaving = nCarUsersFuture*congTimeSavingsPerPerson;
 			Double utilityOfTime = 23.32/3600; // CHF/s [car]
 			Double congestionSavings = utilityOfTime*congTimeSaving;
-		// Option 1 : Total Utility of Time Approach
-			Double travelTimeGainsCar = Math.max(0.0, 365*(refCase.carTimeTotal-newCase.carTimeTotal)*utilityOfTimeCar);
-			Double travelTimeGainsPt = Math.max(0.0, 365*(refCase.ptTimeTotal-newCase.ptTimeTotal)*utilityOfTimePT);
+			Double travelTimeGainsCar = 365*(switchers*refCase.carTimeTotal/refCase.carUsers)*utilityOfTimeCar;
+			Double travelTimeGainsPt = 365*(switchers*refCase.ptTimeTotal/refCase.ptUsers)*utilityOfTimePT;		 // Math.max(0.0,365*(refCase.ptTimeTotal-newCase.ptTimeTotal)*utilityOfTimePT) 
 			Double travelTimeGains = congestionSavings + travelTimeGainsCar + travelTimeGainsPt;
-		// Option 2 : Combined Approach
-		//	double travelTimeGains = 365*(
-		//		(refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers*utilityOfTimeCar-newCase.ptTimeTotal/newCase.ptUsers*utilityOfTimePT)
-		//		+refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers)*utilityOfTimePT
-		//	);
-		// Option 3 : Marginal Utility for Delta Approach
-		//	double travelTimeGains = 365*(
-		//		((refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers-newCase.ptTimeTotal/newCase.ptUsers)
-		//		+refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers))*utilityOfTimePT
-		//	);
 		
 		// ---- annual total cost change
 		Double totalCost = (constructionCost+landCost+rollingStockCost)/lifeTime + opsCost + maintenanceCost + repairCost + externalCost + ptPassengerCost;
@@ -299,53 +334,52 @@ public class MNetwork implements Serializable{
 		this.annualBenefit = totalUtility;
 
 		Log.write("-------------------  "+ this.networkID);
-		Log.write("--Metro Stats:");
-		Log.write("lengthUG [Km] = "+lengthUG/1000);
-		Log.write("lengthOG [Km] = "+lengthOG/1000);
-//		Log.write("lengthOGnew = "+lengthOGnew/1000);
-//		Log.write("lengthOGequip = "+lengthOGequip/1000);
-//		Log.write("lengthOGdevelopExisting = "+lengthOGdevelopExisting/1000);
-//		Log.write("lengthUGnew = "+lengthUGnew/1000);
-//		Log.write("lengthUGdevelopExisting = "+lengthUGdevelopExisting/1000);
-		Log.write("TotalMetroRouteLength/Vehicles = "+this.totalRouteLength+"/"+this.totalVehiclesNr);
-		Log.write("MetroVehicleDistDaily [Km] = "+this.totalDrivenDist/1000);
-		Log.write("MetroUsersDaily = "+ populationFactor*this.nMetroUsers);
+//		Log.write("--Metro Stats:");
+		Log.write("TotalMetroRouteLength / Vehicles = "+this.totalRouteLength+" / "+this.totalVehiclesNr);
+		Log.write("lengthUG (%new / %develop) [Km] = "+lengthUG/1000 + " ("+newUGpercentage+" / "+developUGpercentage+")");
+		Log.write("lengthOG (%new / %develop) [Km] = "+lengthOG/1000 + " ("+newOGpercentage+" / "+developOGpercentage+")");
+//		Log.write("MetroVehicleDistDaily [Km] = "+this.totalDrivenDist/1000);
+//		Log.write("MetroUsersDaily = "+ populationFactor*this.nMetroUsers);
 		Log.write("PersonMetroDistDaily [Km] = "+ populationFactor*this.personMetroDist/1000);
-		Log.write("--General Stats:");
+//		Log.write("--General Stats:");
 		// there will be a discrepancy (negative difference) here to the new version because the new version also considers access/egree_walk and not only pt_transit!
-		Log.write("PtUsers = "+newCase.ptUsers);		
-		Log.write("PtUsersRefCase = "+refCase.ptUsers);
-		Log.write("PtTimeDaily = "+newCase.averagePtTime);
-		Log.write("PtTimeDailyRefCase = "+refCase.averagePtTime);
-		Log.write("PtPersonDistDaily [Km] = "+newCase.ptPersonDist/1000);
-		Log.write("PtPersonDistDailyRefCase [Km] = "+refCase.ptPersonDist/1000);
-		Log.write("DeltaPersonPtDistDaily [Km] = "+deltaPtPersonDist/1000);
-		Log.write("CarUsers = "+newCase.carUsers);
-		Log.write("RefUsers = "+refCase.carUsers);
-		Log.write("CarTimeDaily = "+newCase.averageCartime);
-		Log.write("CarTimeDailyRefCase = "+refCase.averageCartime);
-		Log.write("CarPersonDistDaily [Km] = "+newCase.carPersonDist/1000);		
-		Log.write("CarPersonDistDailyRefCase [Km] = "+refCase.carPersonDist/1000);
-		Log.write("DeltaPersonCarDistDaily [Km] = "+deltaCarPersonDist/1000);
-		Log.write("--Cost:");
-		Log.write("constructionCostAnnual = "+constructionCost/lifeTime);
-		Log.write("opsCostAnnual = "+opsCost);
-		Log.write("land/maintenance/repairCostAnnual = "+(landCost/lifeTime+maintenanceCost+repairCost));
-		Log.write("rollingStockCostAnnual = "+rollingStockCost/lifeTime);
-		Log.write("externalCostAnnual = ExternalPTCost + TaxLossCars = "+ externalPtCosts*deltaPtPersonDist*365 + "+" + taxPerVehicleDist*(-deltaCarPersonDist)/occupancyRate*365 + "=" + externalCost);
-		Log.write("ptCostAnnual = "+ptPassengerCost);
-		Log.write("--Annual Cost (-) [Construction/Operation] = " + totalCost +  "["+constructionCost/lifeTime+"/"+opsCost+"]");
-		Log.write("vehicleSavingsAnnual = "+vehicleSavings);
-		Log.write("extCostSavingsAnnual = "+extCostSavingsCar);
-		Log.write("ptVatIncreaseAnnual = "+ptVatIncrease);
+//		Log.write("PtUsers = "+newCase.ptUsers);		
+//		Log.write("PtUsersRefCase = "+refCase.ptUsers);
+//		Log.write("PtTimeDaily = "+newCase.averagePtTime);
+//		Log.write("PtTimeDailyRefCase = "+refCase.averagePtTime);
+		Log.write("DeltaPersonPtTimeDaily - Average [s] = "+(newCase.averagePtTime-refCase.averagePtTime));
+//		Log.write("PtPersonDistDaily [Km] = "+newCase.ptPersonDist/1000);
+//		Log.write("PtPersonDistDailyRefCase [Km] = "+refCase.ptPersonDist/1000);
+		Log.write("DeltaPersonPtDistDaily - Total [Km] = "+deltaPtPersonDist/1000);
+		Log.write("DeltaAverageSpeedPersonPt [km/h] = "+(newCase.ptPersonDist/newCase.ptTimeTotal-refCase.ptPersonDist/refCase.ptTimeTotal)*3.6);
+//		Log.write("CarUsers = "+newCase.carUsers);
+//		Log.write("RefUsers = "+refCase.carUsers);
+//		Log.write("CarTimeDaily = "+newCase.averageCartime);
+//		Log.write("CarTimeDailyRefCase = "+refCase.averageCartime);
+		Log.write("DeltaPersonCarTimeDaily - Average [s] = "+(newCase.averageCartime-refCase.averageCartime));
+//		Log.write("CarPersonDistDaily [Km] = "+newCase.carPersonDist/1000);		
+//		Log.write("CarPersonDistDailyRefCase [Km] = "+refCase.carPersonDist/1000);
+		Log.write("DeltaPersonCarDistDaily - Total [Km] = "+deltaCarPersonDist/1000);
+		Log.write("DeltaAverageSpeedPersonCar [km/h] = "+(newCase.carPersonDist/newCase.carTimeTotal-refCase.carPersonDist/refCase.carTimeTotal)*3.6);
+//		Log.write("--Cost:");
+//		Log.write("constructionCostAnnual = "+constructionCost/lifeTime);
+//		Log.write("opsCostAnnual = "+opsCost);
+//		Log.write("land/maintenance/repairCostAnnual = "+(landCost/lifeTime+maintenanceCost+repairCost));
+//		Log.write("rollingStockCostAnnual = "+rollingStockCost/lifeTime);
+//		Log.write("externalCostAnnual = ExternalPTCost + TaxLossCars = "+ externalPtCosts*deltaPtPersonDist*365 + "+" + taxPerVehicleDist*(-deltaCarPersonDist)/occupancyRate*365 + "=" + externalCost);
+//		Log.write("ptCostAnnual = "+ptPassengerCost);
+		Log.write("--Annual Cost (-) [Construction/Operation] = " + totalCost +  " ["+constructionCost/lifeTime+" / "+opsCost+"]");
+//		Log.write("vehicleSavingsAnnual = "+vehicleSavings);
+//		Log.write("extCostSavingsAnnual = "+extCostSavingsCar);
+//		Log.write("ptVatIncreaseAnnual = "+ptVatIncrease);
 //		Log.write("travelTimeGainsAnnual = car2PtGainsAnnual + pt2PtGainsAnnual = "+travelTimeGains + " = " +
 //				365*(refCase.carUsers-newCase.carUsers)*(refCase.carTimeTotal/refCase.carUsers-newCase.ptTimeTotal/newCase.ptUsers)*utilityOfTimePT +
 //				" + " + 365*refCase.ptUsers*(refCase.ptTimeTotal/refCase.ptUsers-newCase.ptTimeTotal/newCase.ptUsers)*utilityOfTimePT);
-		Log.write("travelTimeGainsAnnual = "+travelTimeGains);
+//		Log.write("travelTimeGainsAnnual = "+travelTimeGains);
 		Log.write("--Annual Utility (+) [TravelGainsPT/Car/Congestion + Other] = " + totalUtility +  
-				" = ["+365*(refCase.ptTimeTotal-newCase.ptTimeTotal)*utilityOfTimePT+
-				"/"+365*(refCase.carTimeTotal-newCase.carTimeTotal)*utilityOfTimeCar+
-				"/"+congestionSavings + " + " + (vehicleSavings+extCostSavingsCar+ptVatIncrease)+"]");
+				" = [ "+travelTimeGainsPt+
+				" / "+travelTimeGainsCar+
+				" / "+congestionSavings + " + " + (vehicleSavings+extCostSavingsCar+ptVatIncrease)+" ]");
 		Log.write("---UTILITY BALANCE " + this.networkID + " = "+(totalUtility-totalCost));
 
 		return totalUtility-totalCost;

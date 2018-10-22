@@ -145,7 +145,7 @@ public class NetworkEvolutionRunSim {
 			
 			// Average the events output over several iteration (generationsToAverage). For every generation add its performance divided by its single weight
 			for (Integer thisIteration=lastIteration-iterationsToAverage+1; thisIteration<=lastIteration; thisIteration++) {
-			
+
 				// read and handle events
 				String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+thisIteration+"/"+thisIteration+".events.xml.gz";			
 				MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
@@ -157,23 +157,21 @@ public class NetworkEvolutionRunSim {
 				nMetroUsersTotal += mPassengerHandler.metroPassengers.size();
 				
 				for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
-					System.out.println(routeEntry.toString());
+//					Log.write("New route entry: "+routeEntry.toString());
 					personMetroDistTotal += routeEntry.getValue();
+//					Log.write("Adding to totalDistance: "+routeEntry.getValue());
 					if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
 						mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist += routeEntry.getValue()/iterationsToAverage;
-//						System.out.println("Added distance to route "+routeEntry.getKey().toString());
+//						Log.write("Adding to "+routeEntry.getKey()+" - "+routeEntry.getValue());
 					}
 				}
 			} // end of averaging loop for performances
 			mNetwork.nMetroUsers = nMetroUsersTotal/iterationsToAverage;
-			mNetwork.personMetroDist = personMetroDistTotal/iterationsToAverage;
-			
-			
-			
-			Log.write(mNetwork.networkID+" - totalMetroPersonKM = "+mNetwork.personMetroDist/1000);
 			Log.write(mNetwork.networkID+" - nMetroUsers = "+mNetwork.nMetroUsers);
-		}	// END of NETWORK Loop
+			mNetwork.personMetroDist = personMetroDistTotal/iterationsToAverage;
+			Log.write(mNetwork.networkID+" - totalMetroPersonKM = "+mNetwork.personMetroDist/1000);
 
+		}	// END of NETWORK Loop
 		return networkPopulation;
 	}
 	

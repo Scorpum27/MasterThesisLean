@@ -29,7 +29,7 @@ public class VisualizerIfalik {
 // %%% --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- DISPLAY EVOLUTION OF NETWORKS --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %%%
 			
 		BufferedImage bgImage = null;
-		bgImage = ImageIO.read(new File("SIM16_50GEN_2SurvivingNetworksConverged.png"));
+		bgImage = ImageIO.read(new File("zurich_1pm/bgImgMedium.png"));
 		Double xSize = (double) bgImage.getWidth();
 		Double ySize = (double) bgImage.getHeight();
 		

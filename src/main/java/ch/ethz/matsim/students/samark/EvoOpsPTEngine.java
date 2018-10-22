@@ -63,7 +63,6 @@ public class EvoOpsPTEngine {
 				Entry<String, MRoute> mRouteEntry = mRouteIter.next();
 				String mRouteName = mRouteEntry.getKey();
 				MRoute mRoute = mRouteEntry.getValue();
-				Log.write(mRoute.routeID + ":");
 				// Create an array of stops along new networkRoute on the center of each of its individual links
 				List<TransitRouteStop> stopArray = Metro_TransitScheduleImpl.createAndAddNetworkRouteStops(
 						metroLinkAttributes, metroSchedule, globalNetwork, mRoute, defaultPtMode, stopTime, maxVelocity, blocksLane);
@@ -72,21 +71,16 @@ public class EvoOpsPTEngine {
 					mRouteIter.remove();
 					continue;
 				}
-				Log.write("StopArray = "+stopArray.toString());
 				mRoute.roundtripTravelTime = stopArray.get(stopArray.size()-1).getArrivalOffset();
-				Log.write("mRoute.roundtripTravelTime = "+mRoute.roundtripTravelTime);
 				mRoute.departureSpacing = NetworkEvolutionImpl.depSpacingCalculator(mRoute.vehiclesNr, mRoute.roundtripTravelTime);
-				Log.write("mRoute.departureSpacing = "+mRoute.departureSpacing);
 
 				// Build TransitRoute from stops and NetworkRoute --> and add departures
 				TransitRoute transitRoute = metroScheduleFactory.createTransitRoute(Id.create(mRoute.routeID, TransitRoute.class ), 
 						mRoute.networkRoute, stopArray, defaultPtMode);
-				Log.write("transitRouteInitialized = "+transitRoute);
 				String vehicleFileLocation = ("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/Vehicles.xml");
 				// make sure mRoute.nDepartures and mRoute.depSpacing have been updated correctly during modifications
 				transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(mRoute, newScenario, metroSchedule, transitRoute,
 						newVehicleType, vehicleFileLocation);
-				Log.write("transitRouteProcessed = "+transitRoute);
 
 				// Build TransitLine from TrasitRoute
 				TransitLine transitLine = metroScheduleFactory.createTransitLine(

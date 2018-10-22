@@ -6,18 +6,15 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
-import org.matsim.api.core.v01.network.NetworkWriter;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
-import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.transitSchedule.api.Departure;
 import org.matsim.pt.transitSchedule.api.TransitLine;
@@ -68,7 +65,6 @@ public class Metro_TransitScheduleImpl {
 			
 			List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
 			routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(mRoute.networkRoute));
-			Log.write("Using routeLinkList = "+routeLinkList.toString());
 			double acceleration = 0.1*9.81;
 			double vMaxAccDistance = maxVehicleSpeed*maxVehicleSpeed/(2*acceleration);
 			double tAccVMax = maxVehicleSpeed/acceleration;
@@ -232,7 +228,6 @@ public class Metro_TransitScheduleImpl {
 			VehicleType vehicleType, String vehicleFileLocation) throws IOException {
 		
 		mRoute.nDepartures = (int) Math.floor((mRoute.lastDeparture-mRoute.firstDeparture)/mRoute.departureSpacing);
-Log.write("mRoute.nDepartures = "+mRoute.nDepartures);
 
 		double depTimeOffset = 0;
 		LinkedHashMap<Double, Id<Vehicle>> freeVehicles = new LinkedHashMap<>();

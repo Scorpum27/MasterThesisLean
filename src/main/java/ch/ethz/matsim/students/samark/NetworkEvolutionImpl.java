@@ -55,8 +55,8 @@ public class NetworkEvolutionImpl {
 	public static MNetworkPop createMNetworkRoutes(String populationName, int populationSize, int initialRoutesPerNetwork, String initialRouteType, 
 			String shortestPathStrategy, int iterationToReadOriginalNetwork, int lastIterationOriginal, Integer iterationsToAverage, double minMetroRadiusFromCenter,
 			double maxMetroRadiusFromCenter, double maxExtendedMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
-			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter,
-			double minTerminalDistance, boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea,
+			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter, double minInitialTerminalDistance, 
+			double minInitialTerminalRadiusFromCenter, double maxInitialTerminalRadiusFromCenter, boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea,
 			double odConsiderationThreshold, boolean useOdPairsForInitialRoutes, double xOffset, double yOffset, double populationFactor,
 			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom,String defaultPtMode, 
 			boolean blocksLane, double stopTime, double maxVehicleSpeed, double tFirstDep, double tLastDep, double initialDepSpacing, double lifeTime
@@ -218,7 +218,8 @@ public class NetworkEvolutionImpl {
 
 			if (useOdPairsForInitialRoutes==false) {
 				initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork, shortestPathStrategy,
-						terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, minTerminalDistance);
+						terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, zurich_NetworkCenterCoord, minInitialTerminalDistance,
+						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter);
 				// CAUTION: If NullPointerException, probably maxTerminalRadius >  metroNetworkRadius
 				separateRoutesNetwork = NetworkOperators.networkRoutesToNetwork(initialMetroRoutes, metroNetwork,
 						Sets.newHashSet("pt"), (mNetworkPath + "/0_MetroInitialRoutes_Random.xml"));
@@ -1195,7 +1196,8 @@ public class NetworkEvolutionImpl {
 
 		// REMEMBER: New nodes are named "MetroNodeLinkRef_"+linkID.toString()
 		public static ArrayList<NetworkRoute> createInitialRoutesRandom(Network newMetroNetwork, String shortestPathStrategy,
-				List<TransitStopFacility> terminalFacilities, Map<String, CustomStop> metroStops, int nRoutes, double minTerminalDistance) throws IOException {
+				List<TransitStopFacility> terminalFacilities, Map<String, CustomStop> metroStops, int nRoutes, Coord zhCenterCoord,
+				double minTerminalDistance, double minInitialTerminalRadiusFromCenter, double maxInitialTerminalRadiusFromCenter) throws IOException {
 
 			ArrayList<NetworkRoute> networkRouteArray = new ArrayList<NetworkRoute>();
 
@@ -1213,7 +1215,8 @@ public class NetworkEvolutionImpl {
 					Random r1 = new Random();
 					terminalFacility1 = terminalFacilities.get(r1.nextInt(terminalFacilities.size()));
 					terminalNode1 = NetworkEvolutionImpl.facility2nodeId(newMetroNetwork, terminalFacility1);	// maybe do this with nodeLocation instead of name
-				} while (terminalNode1 == null);
+				} while (terminalNode1 == null || GeomDistance.calculate(newMetroNetwork.getNodes().get(terminalNode1).getCoord(), zhCenterCoord) < minInitialTerminalRadiusFromCenter 
+						|| GeomDistance.calculate(newMetroNetwork.getNodes().get(terminalNode1).getCoord(), zhCenterCoord) > maxInitialTerminalRadiusFromCenter);
 				
 				int safetyCounter = 0;
 				int iterLimit = 10000;
@@ -1222,7 +1225,8 @@ public class NetworkEvolutionImpl {
 						Random r2 = new Random();
 						terminalFacility2 = terminalFacilities.get(r2.nextInt(terminalFacilities.size()));
 						terminalNode2 = NetworkEvolutionImpl.facility2nodeId(newMetroNetwork, terminalFacility2);	// maybe do this with nodeLocation instead of name
-					} while (terminalNode2 == null);
+					} while (terminalNode2 == null|| GeomDistance.calculate(newMetroNetwork.getNodes().get(terminalNode2).getCoord(), zhCenterCoord) < minInitialTerminalRadiusFromCenter 
+							|| GeomDistance.calculate(newMetroNetwork.getNodes().get(terminalNode2).getCoord(), zhCenterCoord) > maxInitialTerminalRadiusFromCenter);
 					safetyCounter++;
 					if (safetyCounter == iterLimit) {
 						continue OuterNetworkRouteLoop;
@@ -1642,7 +1646,8 @@ public class NetworkEvolutionImpl {
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, Coord zurich_NetworkCenterCoord, int lastIterationOriginal,
 			double pMutation, double pBigChange, double pSmallChange, double routeDisutilityLimit,
 			String shortestPathStrategy, Double minTerminalDistance, Double minTerminalRadiusFromCenter, Double maxTerminalRadiusFromCenter,
-			Double tFirstDep, Double tLastDep, Double odConsiderationThreshold, Double xOffset, Double yOffset,
+			Double minInitialTerminalRadiusFromCenter, Double maxInitialTerminalRadiusFromCenter, Double tFirstDep, Double tLastDep, Double odConsiderationThreshold,
+			Double xOffset, Double yOffset,
 			Integer stopUnprofitableRoutesReplacementGEN, Integer blockFreqModGENs, Integer currentGEN ) throws IOException {
 		
 		
@@ -1673,7 +1678,8 @@ public class NetworkEvolutionImpl {
 		
 		// TOP UP NETWORK with routes if individuals have died out 
 		EvoOpsRoutesAdder.topUpNetworkRouteMaps(currentGEN, stopUnprofitableRoutesReplacementGEN, newPopulation, useOdPairsForInitialRoutes, shortestPathStrategy,
-				minTerminalDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, tFirstDep, tLastDep, eliteMNetwork,
+				minTerminalDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter,
+				tFirstDep, tLastDep, eliteMNetwork,
 				odConsiderationThreshold, zurich_NetworkCenterCoord, xOffset, yOffset);
 		
 		// APPLY TRANSIT + STORE POPULATION & TRANSITSCHEDULE (calculates & updates: routeLength, roundTripTravelTimes, nDepartures, depSpacing=d(nVehicles))
