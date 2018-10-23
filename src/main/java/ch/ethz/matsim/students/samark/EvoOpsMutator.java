@@ -441,6 +441,12 @@ public class EvoOpsMutator {
 						// use this stopFacility if(terminal is within opening angle)|(in range of prior dist(cut2terminal)*2.5|*0.4)|(shortestPath available)
 						Id<Node> stopNodeId = stopAttr.newNetworkNode;
 						Node stopNode = globalNetwork.getNodes().get(stopNodeId);
+						if (stopNode == null) {
+							Log.write("CAUTION XXXXX: newNetworkNode-StopNode not found in globalNetwork. Trying to set terminal to another facility. ");
+							Log.write("CAUTION XXXXX: StopNode="+stopNodeId.toString()+"   stopName="+stopAttr.transitStopFacility.getName()+
+									"   stopId="+stopAttr.transitStopFacility.getId()+"   stopCoord="+stopAttr.transitStopFacility.getCoord().toString());
+							continue;
+						}
 						Double dist2newTerminal = GeomDistance.betweenNodes(cutOpenLink.getToNode(), stopNode);
 //						Log.write("extraLog.txt", "Distance between new nodes="+dist2newTerminal);
 //						Log.write("extraLog.txt", "Opening angle = "+Double.toString(180.0-GeomDistance.angleBetweenPoints(globalNetwork.getLinks().get(linkListMutate.get(0)).getFromNode().getCoord(), cutOpenLink.getToNode().getCoord(), stopNode.getCoord())));

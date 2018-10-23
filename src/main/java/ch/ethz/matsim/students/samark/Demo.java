@@ -8,6 +8,7 @@ import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -18,9 +19,11 @@ import javax.imageio.ImageIO;
 import javax.xml.stream.XMLStreamException;
 
 import org.matsim.api.core.v01.Coord;
+import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
+import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
@@ -33,9 +36,72 @@ public class Demo {
 
 		// %%%---
 		
-		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
-		pedigreeTree.addAll(0, XMLOps.readFromFile(pedigreeTree.getClass(), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
-		XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTreeNew.xml");
+		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
+		
+		Config config = ConfigUtils.createConfig();
+		config.getModules().get("network").addParam("inputNetworkFile", "ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/globalNetwork.xml");
+		config.getModules().get("transit").addParam("transitScheduleFile","ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/MetroStopFacilities.xml");
+		Scenario scenario = ScenarioUtils.loadScenario(config);
+		Network globalNetwork = scenario.getNetwork();
+		
+		Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
+		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(),
+				"ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
+		
+		Integer n = 0;
+		Integer x = 0;
+		Log.write("#MetroStops = "+allMetroStops.size());
+
+		for (CustomStop stopAttr : allMetroStops.values()) {
+			Log.write(stopAttr.transitStopFacility.getName());
+			n++;
+//			Log.write("extraLog.txt", "Trying facility="+stopAttr.transitStopFacility.toString());
+			// use this stopFacility if(terminal is within opening angle)|(in range of prior dist(cut2terminal)*2.5|*0.4)|(shortestPath available)
+			Id<Node> stopNodeId = stopAttr.newNetworkNode;
+			Log.write("StopNode = "+stopNodeId+"    n="+n);
+			Node stopNode = globalNetwork.getNodes().get(stopNodeId);
+			if (stopNode == null) {
+				x++;
+			}
+			else {
+				Double dist2newTerminal = GeomDistance.betweenNodes(stopNode, stopNode);
+				Log.write("dist2newTerminal = "+dist2newTerminal);
+			}
+			
+		}
+		Log.write("x = "+x);
+
+		
+//		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
+//		pedigreeTree.addAll(XMLOps.readFromFile(pedigreeTree.getClass(), "ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+//		XMLOps.writeToFile(pedigreeTree, "ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTreeNew.xml");
+		
+//		Integer generationToRecall = 6;
+//		
+//		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
+//		File pedigreeTreeFile = new File("ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+//		if (pedigreeTreeFile.exists()) {
+//			pedigreeTree.addAll(XMLOps.readFromFile(pedigreeTree.getClass(),"ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+//			XMLOps.writeToFile(pedigreeTree, "ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+//			System.out.println("Type = "+pedigreeTree.getClass());
+//		}
+//		else {
+//			XMLOps.writeToFile(pedigreeTree,"ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+//		}
+//		if (pedigreeTree.size() > generationToRecall-1) {
+//			System.out.println("Old Size = "+pedigreeTree.size());
+//			pedigreeTree.removeAll(pedigreeTree.subList(generationToRecall-1, pedigreeTree.size()));
+//			System.out.println("New Size = "+pedigreeTree.size());
+//			XMLOps.writeToFile(pedigreeTree, "ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
+//		}
+//		else {
+//			XMLOps.writeToFile(pedigreeTree, "ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
+//		}
+//		
+//		
+//		List<Map<String, String>> newPedigreeTree = new ArrayList<Map<String, String>>();
+//		pedigreeTree.addAll(0, XMLOps.readFromFile(newPedigreeTree.getClass(), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+		
 	    // (List<Map<String, String>>) 
 	    
 		// %%% draw images attempts

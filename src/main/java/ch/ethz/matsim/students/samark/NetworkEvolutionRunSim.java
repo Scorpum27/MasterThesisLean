@@ -390,6 +390,7 @@ public class NetworkEvolutionRunSim {
 			networkScoreMaps.removeAll(networkScoreMaps.subList(generationToRecall-1, networkScoreMaps.size()));
 			// delete logs, which may have been added in a last simulation after storing the networks and could therefore be faulty
 		}
+		
 		// load old pedigree tree and trim to recallGeneration (older sims do not have pedigree tree and will give an FileNotFoundException here)
 		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
 		File pedigreeTreeFile = new File("zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
@@ -401,11 +402,9 @@ public class NetworkEvolutionRunSim {
 			XMLOps.writeToFile(pedigreeTree,"zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
 		}
 		if (pedigreeTree.size() > generationToRecall-1) {
-			XMLOps.writeToFile(pedigreeTree.subList(0, generationToRecall-1), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
+			pedigreeTree.removeAll(pedigreeTree.subList(generationToRecall-1, pedigreeTree.size()));
 		}
-		else {
-			XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
-		}
+		XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
 		
 		
 		for (int n=1; n<=populationSize; n++) {

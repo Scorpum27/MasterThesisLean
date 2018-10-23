@@ -1,5 +1,7 @@
 package ch.ethz.matsim.students.samark;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
@@ -14,6 +16,19 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
+import org.jfree.chart.ChartFactory;
+import org.jfree.chart.ChartUtilities;
+import org.jfree.chart.JFreeChart;
+import org.jfree.chart.axis.NumberAxis;
+import org.jfree.chart.axis.NumberTickUnit;
+import org.jfree.chart.plot.PlotOrientation;
+import org.jfree.chart.plot.XYPlot;
+import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
+import org.jfree.data.category.DefaultCategoryDataset;
+import org.jfree.data.general.SeriesDataset;
+import org.jfree.data.xy.XYDataset;
+import org.jfree.data.xy.XYSeries;
+import org.jfree.data.xy.XYSeriesCollection;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -786,6 +801,9 @@ public class NetworkEvolutionImpl {
 									railStops.get(railStopSuperName).mode = "railway2metro";
 									railStops.get(railStopSuperName).addedToNewSchedule = true;
 									railStops.get(railStopSuperName).newNetworkNode = newNode.getId();
+									if (newNode.getId().toString().contains("351545")) {
+										Log.write("XXX 790");
+									}
 									railStops.get(railStopSuperName).transitStopFacility = metroCloneFacility;
 								}
 							}
@@ -1021,6 +1039,9 @@ public class NetworkEvolutionImpl {
 					outerCityMetroStops.put(newStopSuperName, new CustomStop(metroCloneFacility, newNode.getId(), "newMetro", true));
 					railStop.mode = "railway2metro";
 					railStop.newNetworkNode = newNode.getId();
+					if (newNode.getId().toString().contains("351545")) {
+						Log.write("XXX 1027");
+					}
 					railStop.addedToNewSchedule = true;
 					railStop.transitStopFacility = metroCloneFacility;
 				}
@@ -1074,6 +1095,9 @@ public class NetworkEvolutionImpl {
 									}
 									// when we have connecting link to new node at lastStop, make connection links!
 									Node lastStopNetworkNode = outerCityMetroNetwork.getNodes().get(railStops.get(lastStopSuperName).newNetworkNode);
+									if (railStops.get(lastStopSuperName).newNetworkNode.toString().contains("351545")) {
+										Log.write("XXX 1082");
+									}
 									Id<Link> newLinkIdLastStop = Id.createLinkId(lastStopNetworkNode.getId().toString()+"RC_"+ firstFromNodeMetro.getId().toString());							
 									Id<Link> newLinkIdLastStopReverse = NetworkEvolutionImpl.ReverseLink(newLinkIdLastStop);
 									if (outerCityMetroNetwork.getLinks().containsKey(newLinkIdLastStop)==false) {
@@ -1127,6 +1151,9 @@ public class NetworkEvolutionImpl {
 									}
 									// now we have reached currentStop and can make connecting links there and add to network
 									Node currentStopNetworkNode = outerCityMetroNetwork.getNodes().get(railStops.get(currentStopSuperName).newNetworkNode);
+									if (railStops.get(currentStopSuperName).newNetworkNode.toString().contains("351545")) {
+										Log.write("XXX 1139");
+									}
 									Id<Link> newLinkIdCurrentStop = Id.createLinkId(currentStopNetworkNode.getId().toString()+"RC_"+ lastToNodeMetro.getId().toString());
 									Id<Link> newLinkIdCurrentStopReverse = NetworkEvolutionImpl.ReverseLink(newLinkIdCurrentStop);
 									if (outerCityMetroNetwork.getLinks().containsKey(newLinkIdCurrentStop)==false) {
@@ -1503,7 +1530,7 @@ public class NetworkEvolutionImpl {
 
 	@SuppressWarnings("unchecked")
 	public static void writeChartNetworkScore(int lastGeneration, int populationSize, int routesPerNetwork,
-			int lastIteration, String inFileName, String outFileName) throws FileNotFoundException {
+			int lastIteration, String inFileName, String outFileName) throws IOException {
 
 		List<Map<String, NetworkScoreLog>> networkScoreMaps = new ArrayList<Map<String, NetworkScoreLog>>();
 		networkScoreMaps.addAll(XMLOps.readFromFile(networkScoreMaps.getClass(), inFileName));
@@ -1532,6 +1559,66 @@ public class NetworkEvolutionImpl {
 		chart.addSeries("Average Network Score", generationsAverageNetworkScore);
 		chart.addSeries("Best Network Score in Generation", generationsBestNetworkScore);
 		chart.saveAsPng(outFileName, 800, 600);
+		
+		//
+		JFreeChart lineChart = ChartFactory.createXYLineChart(
+				"Perform. Evol. [nNetw="+populationSize+"], [nSimIter="+lastIteration+"], [nInitRoutes/Netw="+routesPerNetwork+"]", "Generation", "Score",
+				null);	// dataset, PlotOrientation.VERTICAL, true, true, false
+		XYPlot plot = (XYPlot) lineChart.getPlot(); 
+
+		final XYSeries sAverage = new XYSeries("Average Network Score in Generation");
+		for (Entry<Integer, Double> genAverageScoreEntry : generationsAverageNetworkScore.entrySet()) {
+			sAverage.add((double) genAverageScoreEntry.getKey(), genAverageScoreEntry.getValue());
+		}
+		final XYSeries sBest = new XYSeries("Best Network Score in Generation");
+		for (Entry<Integer, Double> genBestScoreEntry : generationsBestNetworkScore.entrySet()) {
+			sBest.add((double) genBestScoreEntry.getKey(), genBestScoreEntry.getValue());
+		}
+
+		XYSeriesCollection dAverage = new XYSeriesCollection();
+		XYSeriesCollection dBest = new XYSeriesCollection();
+		dAverage.addSeries(sAverage);
+		dBest.addSeries(sBest);
+		XYDataset dAverageX = (XYDataset) dAverage;
+		XYDataset dBestX = (XYDataset) dBest;
+
+		XYLineAndShapeRenderer r1 = new XYLineAndShapeRenderer();
+		r1.setSeriesPaint(0, new Color(0xff, 0xff, 0x00)); 
+		r1.setSeriesPaint(1, new Color(0x00, 0xff, 0xff)); 
+		r1.setSeriesShapesVisible(0,  false);
+		r1.setSeriesShapesVisible(1,  false);
+		r1.setSeriesStroke(0, new BasicStroke(5.0f));
+
+		XYLineAndShapeRenderer r2 = new XYLineAndShapeRenderer();
+		r2.setSeriesPaint(0, new Color(0xff, 0x00, 0x00)); 
+		r2.setSeriesPaint(1, new Color(0x00, 0xff, 0x00)); 
+		r2.setSeriesShapesVisible(0,  false);
+		r2.setSeriesShapesVisible(1,  false);
+		r2.setSeriesStroke(0, new BasicStroke(1.0f));
+
+		plot.setDataset(0, dAverageX);
+		plot.setRenderer(0, r1);
+		plot.setDataset(1, dBestX);
+		plot.setRenderer(1, r2);
+
+		NumberAxis numberAxis = new NumberAxis();
+		numberAxis.setRange(-21.0E7, 1.5E7);
+//		numberAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
+		numberAxis.setTickUnit(new NumberTickUnit(4.0E7));
+		plot.setRangeAxis(numberAxis); 
+//		
+//		NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();  
+//		xAxis.setTickUnit(new NumberTickUnit(60));
+		
+//		plot.mapDatasetToRangeAxis(1, 1); //2nd dataset to 2nd y-axi
+
+		plot.setBackgroundPaint(new Color(0xFF, 0xFF, 0xFF));
+		plot.setDomainGridlinePaint(new Color(0x00, 0x00, 0xff));
+		plot.setRangeGridlinePaint(new Color(0xff, 0x00, 0x00));
+	      
+		File file = new File(removeString(outFileName, ".png")+"J.png"); 
+	    ChartUtilities.saveChartAsPNG(file, lineChart, 1280, 960);
+	      
 	}
 			
 	@SuppressWarnings("unchecked")
@@ -2421,7 +2508,10 @@ public class NetworkEvolutionImpl {
 			Log.write("Considering facility = "+railStop.originalMainTransitStopFacility.getName());
 			if (railStop.addedToNewSchedule == true) {
 				Log.write("Already added to network.");
-				Node addedNodeInnerCity = innerCityMetroNetwork.getNodes().get(railStop.newNetworkNode);		
+				Node addedNodeInnerCity = innerCityMetroNetwork.getNodes().get(railStop.newNetworkNode);	
+				if (railStop.newNetworkNode.toString().contains("351545")) {
+					Log.write("XXX 2436");
+				}
 				newNode = networkFactory.createNode(addedNodeInnerCity.getId(), addedNodeInnerCity.getCoord());	// build identical node as in innerCityMetroNetwork (Consistency)
 				connectNodeToRailwayStrings(newNode, outerCityMetroNetwork, railStop, metroLinkAttributes);
 			}

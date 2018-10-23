@@ -107,7 +107,7 @@ public class EvoOpsCrossover {
 			dominantParents.put(mNetwork.networkID, mNetwork.dominantParent);
 		}
 		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
-		pedigreeTree.addAll(0, XMLOps.readFromFile(pedigreeTree.getClass(), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+		pedigreeTree.addAll(XMLOps.readFromFile(pedigreeTree.getClass(), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
 		pedigreeTree.add(dominantParents);
 		XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
 		

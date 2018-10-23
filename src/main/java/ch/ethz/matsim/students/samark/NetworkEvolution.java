@@ -1,11 +1,9 @@
 package ch.ethz.matsim.students.samark;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
@@ -20,7 +18,6 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
-import org.apache.commons.io.FileUtils;
 
 /* java -Xmx74G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT
  * java -Xmx74G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerIfalik firstGEN finalGEN Network+Nr
@@ -68,7 +65,6 @@ public class NetworkEvolution {
  */
 
 	
-	
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws ConfigurationException, IOException, InterruptedException {
 		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
@@ -104,13 +100,13 @@ public class NetworkEvolution {
 //		Double maxNewMetroLinkDistance = Math.max(0.33*metroCityRadius, 1400);		// DEFAULT = 0.40*metroCityRadius
 //		Double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
 //		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
-//		Double minInitialTerminalRadiusFromCenter = 0.40*metroCityRadius; 			// put in parameter file and in routes creation file!
-//		Double maxInitialTerminalRadiusFromCenter = 1.40*metroCityRadius;			// put in parameter file and in routes creation file!
+//		Double minInitialTerminalRadiusFromCenter = minTerminalRadiusFromCenter; 	// put in parameter file and in routes creation file!
+//		Double maxInitialTerminalRadiusFromCenter = maxTerminalRadiusFromCenter;	// put in parameter file and in routes creation file!
 //		Double minInitialTerminalDistance = 0.80*maxMetroRadiusFromCenter;			// DEFAULT = minInitialTerminalRadiusFromCenter+maxInitialTerminalRadiusFromCenter (OLD=0.80*maxMetroRadiusFromCenter)
 //		Double railway2metroCatchmentArea = 150.0;									// DEFAULT = 150 or metroProximityRadius/3
 //		Double metro2metroCatchmentArea = 400.0;									// DEFAULT = 400  (merge metro stops within 400 meters)
 //		Double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing 																						routes)
-//		
+		
 		// %% Parameters for NetworkRoutes %%
 		Coord zurich_NetworkCenterCoord = new Coord(2683360.00, 1248100.00);		// default Coord(2683360.00, 1248100.00);  old:(2683000.00, 1247700.00)
 		Double xOffset = 1733436.0; 												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; 																					  																						X_MATSim= 2683476;
@@ -144,7 +140,7 @@ public class NetworkEvolution {
 		Integer lastGeneration = 50;
 		Integer lastIterationOriginal = 24;
 		Integer lastIteration = lastIterationOriginal;
-		Integer iterationsToAverage = 5;
+		Integer iterationsToAverage = 1;
 		if (lastIterationOriginal < iterationsToAverage || lastIteration < iterationsToAverage)
 			{Log.writeAndDisplay(" iterationsToAverage > lastIterationSimulated. Aborting"); System.exit(0);}
 		Integer storeScheduleInterval = 1;	// every X generations the mergedSchedule/Vehicles are saved for continuation of simulation after undesired breakdown
@@ -157,7 +153,7 @@ public class NetworkEvolution {
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.20; 									// DEFAULT = 0.30
+		Double pCrossOver = 0.25; 									// DEFAULT = 0.30
 		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
 		Boolean logEntireRoutes = false;
 		Double maxCrossingAngle = 110.0; 							// DEFAULT = 110
