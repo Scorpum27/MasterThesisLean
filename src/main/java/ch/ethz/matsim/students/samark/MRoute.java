@@ -117,32 +117,6 @@ public class MRoute implements Serializable{
 		this.routeID = name;
 	}
 	
-	final double ConstrCostUGnew = 1.5E5; 						// [CHF/m]
-	final double ConstrCostUGdevelop = 1.0E5;					// [CHF/m]
-	final double ConstrCostOGnew = 4.0E4;	 					// [CHF/m]
-	final double ConstrCostOGdevelop = 3.0E4;	 				// [CHF/m]
-	final double ConstrCostOGequip = 0.5E4;	 					// [CHF/m]
-	final double ConstrCostPerStationNew = 6.0E4;	 			// [CHF]
-	final double ConstrCostPerStationExtend = 3.0E4;			// [CHF]
-	final double costVehicle = 2*6.0E6;		 					// [CHF] x2 because assumed to be replaced once for 40y total lifetime (=2x20y)
-	
-	final double OpsCostPerVehDistUG = 17.0/1000;
-	final double OpsCostPerVehDistOG = 11.3/1000;
-	final double EnergyCost = 0.03; // 0.03.-/kWh = 30.-/MWh
-	final double energyPerPtPersDist = 0.157/1000; // kWh/personKM
-//	final double PtVehicleDist = totalDrivenDist;
-//	final double energyPerPtVehDist = energyPerPtPersDist*newCase.ptPersonDist/PtVehicleDist;
-	final double taxPerVehicleDist = 0.06/1000;
-	final double occupancyRate = 1.42; // personsPerVehicle
-	final double ptPassengerCostPerDist = 0.1407/1000; // average price/km to buy a ticket for a trip with a certain distance
-	final double carCostPerVehDist = 0.1403/1000; // CHF/KM (operations such as service, repairs etc.)
-	final double externalVehicleCosts = (0.06 + 0.11 + 0.13)/1000;  // noise, pollution, climate, accidents, fuel, write-off
-//	final double externalVehicleCosts = (0.0111 + 0.0179 + 0.008 + 0.2862 + 0.11 + 0.13)/1000;  // noise, pollution, climate, accidents, fuel, write-off
-	final double VATPercentage = 0.08;
-	final double utilityOfTimePT = 14.43/3600; // CHF/s
-	final double utilityOfTimeCar = 23.29/3600; // CHF/s
-	
-	
 	public void calculatePercentages(Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 		final Coord UGcenterCoord = new Coord(2683466.0, 1249967.0);
 		final double UGradius = 5000.0;
@@ -159,7 +133,14 @@ public class MRoute implements Serializable{
 		for (Id<Link> linkId : this.linkList.subList(0, (int) this.linkList.size()/2)) {
 			Link link = globalNetwork.getLinks().get(linkId);
 			totalLength += link.getLength();
-//			Log.write("Link Distance from Center = " + GeomDistance.calculate(link.getFromNode().getCoord(), UGcenterCoord));
+//			if (metroLinkAttributes.get(linkId) == null) {
+//				Log.write("Link NOT FOUND in metroLinkAttributes: "+linkId);
+//				continue;
+//			}
+//			else if (metroLinkAttributes.get(linkId).type == null) {
+//				Log.write("Link has no TYPE metroLinkAttributes: "+linkId);
+//				continue;
+//			}
 			if (GeomDistance.calculate(link.getFromNode().getCoord(), UGcenterCoord) < UGradius) {
 				ugLength += link.getLength();
 //				Log.write("LinkType = "+metroLinkAttributes.get(linkId).type);
@@ -398,7 +379,8 @@ public class MRoute implements Serializable{
 			Double utilityOfTime = 23.32/3600; // CHF/s [car]
 			Double congestionSavings = utilityOfTime*congTimeSaving;
 			Double travelTimeGainsCar = (this.personMetroDist/totalPersonMetroDist)*365*(switchers*refCase.carTimeTotal/refCase.carUsers)*utilityOfTimeCar;
-			Double travelTimeGainsPt = (this.personMetroDist/totalPersonMetroDist)*365*(switchers*refCase.ptTimeTotal/refCase.ptUsers)*utilityOfTimePT;	 // Math.max(0.0, (this.personMetroDist/totalPersonMetroDist)*365*(refCase.ptTimeTotal-newCase.ptTimeTotal)*utilityOfTimePT);
+			Double travelTimeGainsPt = (this.personMetroDist/totalPersonMetroDist)*365*(-switchers*refCase.ptTimeTotal/refCase.ptUsers)*utilityOfTimePT +
+					Math.max(0.0, (this.personMetroDist/totalPersonMetroDist)*365*utilityOfTimePT*refCase.ptUsers*(refCase.averagePtTime-newCase.averagePtTime));
 			Double travelTimeGains = congestionSavings + travelTimeGainsCar + travelTimeGainsPt;
 			// ---- annual total cost change
 		double totalCost = (constructionCost+landCost+rollingStockCost)/lifeTime + opsCost + maintenanceCost + repairCost + externalCost + ptPassengerCost;
@@ -426,8 +408,16 @@ public class MRoute implements Serializable{
 		}
 		else {
 			Log.write("--Annual Utility (+) [TravelGainsPT / Car / Congestion + Other] = " + totalUtility +  
-					" = [ "+travelTimeGainsPt+ " / "+travelTimeGainsCar+ " / "+congestionSavings + " + " + (vehicleSavings+extCostSavingsCar+ptVatIncrease)+" ]");
+					" = [ "+travelTimeGainsPt+
+					" / "+travelTimeGainsCar+"(="+ (this.personMetroDist/totalPersonMetroDist)*365*(-switchers*refCase.ptTimeTotal/refCase.ptUsers)*utilityOfTimePT + "|"+
+					Math.max(0.0, (this.personMetroDist/totalPersonMetroDist)*365*utilityOfTimePT*refCase.ptUsers*(refCase.averagePtTime-newCase.averagePtTime)) +")"+
+					" / "+congestionSavings + " + " + (vehicleSavings+extCostSavingsCar+ptVatIncrease)+" ]");
 		}
+		Log.write("--Annual Utility (+) [TravelGainsPT(switchersLoss/ptUsersWin)/Car/Congestion + Other] = " + totalUtility +  
+				" = [ "+travelTimeGainsPt+
+				"(="+ (this.personMetroDist/totalPersonMetroDist)*365*(-switchers*refCase.ptTimeTotal/refCase.ptUsers)*utilityOfTimePT + "|"+
+				Math.max(0.0, (this.personMetroDist/totalPersonMetroDist)*365*utilityOfTimePT*refCase.ptUsers*(refCase.averagePtTime-newCase.averagePtTime)) +")"+" / "+travelTimeGainsCar+
+				" / "+congestionSavings + " + " + (vehicleSavings+extCostSavingsCar+ptVatIncrease)+" ]");
 		Log.write("  UTILITY BALANCE " + this.routeID + " = "+(totalUtility-totalCost));
 		
 		return this.utilityBalance;

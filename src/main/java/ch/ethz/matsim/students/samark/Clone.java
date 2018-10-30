@@ -20,6 +20,7 @@ import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitScheduleFactory;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
+import org.matsim.vehicles.Vehicles;
 
 public class Clone {
 
@@ -217,7 +218,9 @@ public class Clone {
 		copy.totalVehiclesNr = o.totalVehiclesNr;
 		copy.annualCost = o.annualCost;					// to be implemented in NetworkEvolution
 		copy.annualBenefit = o.annualBenefit;				// to be implemented in NetworkEvolution
-
+		copy.constructionCost = o.constructionCost;
+		copy.operationalCost = o.operationalCost;
+		
 		copy.evolutionGeneration = o.evolutionGeneration;		// NetworkEvolution --> Evolutionary loop
 		copy.averageTravelTime = o.averageTravelTime;		// NetworkEvolutionRunSim.peoplePlansProcessingM
 		copy.stdDeviationTravelTime = o.stdDeviationTravelTime;	// NetworkEvolutionRunSim.peoplePlansProcessingM
@@ -225,6 +228,10 @@ public class Clone {
 		copy.evoLog = o.evoLog;
 		copy.parents = o.parents;
 		copy.dominantParent = o.dominantParent;
+		
+		copy.travelTimeGainsPT = o.travelTimeGainsPT;
+		copy.travelTimeGainsCar = o.travelTimeGainsCar;
+		copy.otherGains = o.otherGains;
 		
 		copy.overallScore = o.overallScore;			// NetworkEvolution main separate line
 		return copy;

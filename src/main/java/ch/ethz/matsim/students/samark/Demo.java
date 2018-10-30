@@ -14,62 +14,126 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
 
 import javax.imageio.ImageIO;
 import javax.xml.stream.XMLStreamException;
 
+import org.jfree.data.Range;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
+import org.matsim.core.api.experimental.events.EventsManager;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.events.EventsUtils;
+import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.scenario.ScenarioUtils;
 
 public class Demo {
 
 	
+	
+	
 	@SuppressWarnings("unchecked")
+	
+	public static Double timeCorrectedUtility(Integer lifeTime, Double discountFactor, List<Double> yearlyRevenueList) {
+		Double correctedUtility = 0.0;
+		for (Integer year=0; year<lifeTime; year++) {
+			correctedUtility += yearlyRevenueList.get(year)/Math.pow(1.013, year);
+		}
+		correctedUtility /= lifeTime;
+		return correctedUtility;
+	}
+	
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
+		List<Double> deltaCarPersonDist20xx = new ArrayList<Double>(Arrays.asList(100.0));
+		for (Integer y=1; y<40; y++) {
+			deltaCarPersonDist20xx.add(deltaCarPersonDist20xx.get(y-1)*1.01);	// growth = 0.7% p.a.
+		}
+//		System.out.println(deltaCarPersonDist20xx.get(9).toString());
+		
+		System.out.println(MNetwork.getAverageDiscountFactor(1.02, 40));
+
+		
+		// %%%---
+//		Integer lifeTime = 40;
+//		Double discountFactor = 1.013;
+//		List<Double> yearlyRevenue = new ArrayList<Double>();
+//		for (Integer year=0; year<lifeTime; year++) {
+//			Random r = new Random();
+//			yearlyRevenue.add(r.nextDouble()*100);
+//		}
+//		System.out.println(timeCorrectedUtility(lifeTime, discountFactor, yearlyRevenue));
+		
+		
 		// %%%---
 		
-		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
+//		String title = "Hello World";
+//		String xAxisName = "xAxis";
+//		String yAxisName = "yAxis";
+//		List<Map<Integer, Double>> inputSeries = new ArrayList<Map<Integer, Double>>();
+//		Map<Integer, Double> testMap1 = new HashMap<Integer, Double>();
+//		testMap1.put(1, 2.0);
+//		testMap1.put(3, -1.7);
+//		testMap1.put(4, 2.3);
+//		testMap1.put(8, 3.1);
+//		inputSeries.add(testMap1);
+//		Map<Integer, Double> testMap2 = new HashMap<Integer, Double>();
+//		testMap2.put(2, 1.0);
+//		testMap2.put(5, 1.2);
+//		testMap2.put(3, 2.5);
+//		testMap2.put(6, 1.7);
+//		inputSeries.add(testMap2);
+//		List<String> inputSeriesNames = Arrays.asList("DataSet1", "DataSet2");
+//		Double tickUnitX = 0.0;
+//		Double tickUnitY = 0.5;
+//		String outFileName = "multipleDataSetPlottingTest.png";
+//		
+//		Visualizer.plot2D(title, xAxisName, yAxisName, inputSeries, inputSeriesNames, tickUnitX, tickUnitY, new Range(-3.0, 5.0), outFileName);
 		
-		Config config = ConfigUtils.createConfig();
-		config.getModules().get("network").addParam("inputNetworkFile", "ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/globalNetwork.xml");
-		config.getModules().get("transit").addParam("transitScheduleFile","ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/MetroStopFacilities.xml");
-		Scenario scenario = ScenarioUtils.loadScenario(config);
-		Network globalNetwork = scenario.getNetwork();
 		
-		Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
-		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(),
-				"ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
+		// %%% multiplePlotter %%%
 		
-		Integer n = 0;
-		Integer x = 0;
-		Log.write("#MetroStops = "+allMetroStops.size());
-
-		for (CustomStop stopAttr : allMetroStops.values()) {
-			Log.write(stopAttr.transitStopFacility.getName());
-			n++;
-//			Log.write("extraLog.txt", "Trying facility="+stopAttr.transitStopFacility.toString());
-			// use this stopFacility if(terminal is within opening angle)|(in range of prior dist(cut2terminal)*2.5|*0.4)|(shortestPath available)
-			Id<Node> stopNodeId = stopAttr.newNetworkNode;
-			Log.write("StopNode = "+stopNodeId+"    n="+n);
-			Node stopNode = globalNetwork.getNodes().get(stopNodeId);
-			if (stopNode == null) {
-				x++;
-			}
-			else {
-				Double dist2newTerminal = GeomDistance.betweenNodes(stopNode, stopNode);
-				Log.write("dist2newTerminal = "+dist2newTerminal);
-			}
-			
-		}
-		Log.write("x = "+x);
+//		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
+//		
+//		Config config = ConfigUtils.createConfig();
+//		config.getModules().get("network").addParam("inputNetworkFile", "ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/globalNetwork.xml");
+//		config.getModules().get("transit").addParam("transitScheduleFile","ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/MetroStopFacilities.xml");
+//		Scenario scenario = ScenarioUtils.loadScenario(config);
+//		Network globalNetwork = scenario.getNetwork();
+//		
+//		Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
+//		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(),
+//				"ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
+//		
+//		Integer n = 0;
+//		Integer x = 0;
+//		Log.write("#MetroStops = "+allMetroStops.size());
+//
+//		for (CustomStop stopAttr : allMetroStops.values()) {
+//			Log.write(stopAttr.transitStopFacility.getName());
+//			n++;
+////			Log.write("extraLog.txt", "Trying facility="+stopAttr.transitStopFacility.toString());
+//			// use this stopFacility if(terminal is within opening angle)|(in range of prior dist(cut2terminal)*2.5|*0.4)|(shortestPath available)
+//			Id<Node> stopNodeId = stopAttr.newNetworkNode;
+//			Log.write("StopNode = "+stopNodeId+"    n="+n);
+//			Node stopNode = globalNetwork.getNodes().get(stopNodeId);
+//			if (stopNode == null) {
+//				x++;
+//			}
+//			else {
+//				Double dist2newTerminal = GeomDistance.betweenNodes(stopNode, stopNode);
+//				Log.write("dist2newTerminal = "+dist2newTerminal);
+//			}
+//			
+//		}
+//		Log.write("x = "+x);
 
 		
 //		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();

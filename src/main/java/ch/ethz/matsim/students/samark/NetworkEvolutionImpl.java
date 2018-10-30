@@ -87,7 +87,7 @@ public class NetworkEvolutionImpl {
 		TransitSchedule originalTransitSchedule = originalScenario.getTransitSchedule();
 		
 		// calculate average speed in Original Zurich TransitSchedule: Do this only once and put in commentaries afterwards
-		// NetworkEvolutionImpl.CalculateAverageNetworkSpeed(originalTransitSchedule, originalNetwork, "zurich_1pm/zurich_transit_schedule_meanSpeed.xml");
+		 NetworkEvolutionImpl.CalculateAverageNetworkSpeed(originalTransitSchedule, originalNetwork, "zurich_1pm/zurich_transit_schedule_meanSpeed.xml");
 		
 		// CostBenefitAnalysis: calculate travel stats for original network at lastIterationOriginal,
 		// 						which should be the same iteration number as the one that will be simulated
@@ -96,7 +96,8 @@ public class NetworkEvolutionImpl {
 			// -aveTravTime PT;		-aveTravTime MPT;
 		
 		String plansFolder = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS";
-		String outputFile = "zurich_1pm/cbaParametersOriginal"+lastIterationOriginal+".xml";
+		(new File("zurich_1pm/cbpParametersOriginal")).mkdirs();
+		String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal"+lastIterationOriginal+".xml";
 		NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, lastIterationOriginal, iterationsToAverage);
 		
 		
@@ -1528,135 +1529,7 @@ public class NetworkEvolutionImpl {
 	
 // %%%%%%%%%%%%% Plot Makers %%%%%%%%%%%%%%%%%%%%%
 
-	@SuppressWarnings("unchecked")
-	public static void writeChartNetworkScore(int lastGeneration, int populationSize, int routesPerNetwork,
-			int lastIteration, String inFileName, String outFileName) throws IOException {
-
-		List<Map<String, NetworkScoreLog>> networkScoreMaps = new ArrayList<Map<String, NetworkScoreLog>>();
-		networkScoreMaps.addAll(XMLOps.readFromFile(networkScoreMaps.getClass(), inFileName));
-
-		Map<Integer, Double> generationsAverageNetworkScore = new HashMap<Integer, Double>();
-		Map<Integer, Double> generationsBestNetworkScore = new HashMap<Integer, Double>();
-		
-		int g = 0;
-		for (Map<String, NetworkScoreLog> networkScoreMap : networkScoreMaps.subList(0, lastGeneration-1)) {
-			g++;
-			double averageNetworkScoreThisGeneration = 0.0;
-			double bestNetworkScoreThisGeneration = -Double.MAX_VALUE;
-			for (NetworkScoreLog nsl : networkScoreMap.values()) {
-				if (nsl.overallScore > bestNetworkScoreThisGeneration) {
-					bestNetworkScoreThisGeneration = nsl.overallScore;
-				}
-				averageNetworkScoreThisGeneration += nsl.overallScore / networkScoreMap.size();
-			}
-			System.out.println("Best    Network Score This Generation = " + bestNetworkScoreThisGeneration);
-			System.out.println("Average Network Score This Generation = " + averageNetworkScoreThisGeneration);
-			generationsAverageNetworkScore.put(g, averageNetworkScoreThisGeneration);
-			generationsBestNetworkScore.put(g, bestNetworkScoreThisGeneration);
-		}
-		
-		XYLineChart chart = new XYLineChart("Perform. Evol. [nNetw="+populationSize+"], [nSimIter="+lastIteration+"], [nInitRoutes/Netw="+routesPerNetwork+"]", "Generation", "Score");
-		chart.addSeries("Average Network Score", generationsAverageNetworkScore);
-		chart.addSeries("Best Network Score in Generation", generationsBestNetworkScore);
-		chart.saveAsPng(outFileName, 800, 600);
-		
-		//
-		JFreeChart lineChart = ChartFactory.createXYLineChart(
-				"Perform. Evol. [nNetw="+populationSize+"], [nSimIter="+lastIteration+"], [nInitRoutes/Netw="+routesPerNetwork+"]", "Generation", "Score",
-				null);	// dataset, PlotOrientation.VERTICAL, true, true, false
-		XYPlot plot = (XYPlot) lineChart.getPlot(); 
-
-		final XYSeries sAverage = new XYSeries("Average Network Score in Generation");
-		for (Entry<Integer, Double> genAverageScoreEntry : generationsAverageNetworkScore.entrySet()) {
-			sAverage.add((double) genAverageScoreEntry.getKey(), genAverageScoreEntry.getValue());
-		}
-		final XYSeries sBest = new XYSeries("Best Network Score in Generation");
-		for (Entry<Integer, Double> genBestScoreEntry : generationsBestNetworkScore.entrySet()) {
-			sBest.add((double) genBestScoreEntry.getKey(), genBestScoreEntry.getValue());
-		}
-
-		XYSeriesCollection dAverage = new XYSeriesCollection();
-		XYSeriesCollection dBest = new XYSeriesCollection();
-		dAverage.addSeries(sAverage);
-		dBest.addSeries(sBest);
-		XYDataset dAverageX = (XYDataset) dAverage;
-		XYDataset dBestX = (XYDataset) dBest;
-
-		XYLineAndShapeRenderer r1 = new XYLineAndShapeRenderer();
-		r1.setSeriesPaint(0, new Color(0xff, 0xff, 0x00)); 
-		r1.setSeriesPaint(1, new Color(0x00, 0xff, 0xff)); 
-		r1.setSeriesShapesVisible(0,  false);
-		r1.setSeriesShapesVisible(1,  false);
-		r1.setSeriesStroke(0, new BasicStroke(5.0f));
-
-		XYLineAndShapeRenderer r2 = new XYLineAndShapeRenderer();
-		r2.setSeriesPaint(0, new Color(0xff, 0x00, 0x00)); 
-		r2.setSeriesPaint(1, new Color(0x00, 0xff, 0x00)); 
-		r2.setSeriesShapesVisible(0,  false);
-		r2.setSeriesShapesVisible(1,  false);
-		r2.setSeriesStroke(0, new BasicStroke(1.0f));
-
-		plot.setDataset(0, dAverageX);
-		plot.setRenderer(0, r1);
-		plot.setDataset(1, dBestX);
-		plot.setRenderer(1, r2);
-
-		NumberAxis numberAxis = new NumberAxis();
-		numberAxis.setRange(-21.0E7, 1.5E7);
-//		numberAxis.setStandardTickUnits(NumberAxis.createIntegerTickUnits());
-		numberAxis.setTickUnit(new NumberTickUnit(4.0E7));
-		plot.setRangeAxis(numberAxis); 
-//		
-//		NumberAxis xAxis = (NumberAxis) plot.getDomainAxis();  
-//		xAxis.setTickUnit(new NumberTickUnit(60));
-		
-//		plot.mapDatasetToRangeAxis(1, 1); //2nd dataset to 2nd y-axi
-
-		plot.setBackgroundPaint(new Color(0xFF, 0xFF, 0xFF));
-		plot.setDomainGridlinePaint(new Color(0x00, 0x00, 0xff));
-		plot.setRangeGridlinePaint(new Color(0xff, 0x00, 0x00));
-	      
-		File file = new File(removeString(outFileName, ".png")+"J.png"); 
-	    ChartUtilities.saveChartAsPNG(file, lineChart, 1280, 960);
-	      
-	}
-			
-	@SuppressWarnings("unchecked")
-	public static void writeChartAverageTravelTimes(int lastGeneration, int populationSize, int routesPerNetwork, 	
-		int lastIteration, String inFileName, String outFileName) throws FileNotFoundException {
-
-		List<Map<String, NetworkScoreLog>> networkScoreMaps = new ArrayList<Map<String, NetworkScoreLog>>();
-		networkScoreMaps.addAll(XMLOps.readFromFile(networkScoreMaps.getClass(), inFileName));
-
-		Map<Integer, Double> generationsAverageTravelTime = new HashMap<Integer, Double>();
-		Map<Integer, Double> generationsAverageTravelTimeStdDev = new HashMap<Integer, Double>();
-		Map<Integer, Double> generationsBestTravelTime = new HashMap<Integer, Double>();
-		
-		int g = 0;
-		for (Map<String, NetworkScoreLog> networkScoreMap : networkScoreMaps.subList(0, lastGeneration-1)) {
-			g++;
-			double averageTravelTimeThisGeneration = 0.0;
-			double averageTravelTimeStdDevThisGeneration = 0.0;
-			double bestAverageTravelTimeThisGeneration = Double.MAX_VALUE;
-			for (NetworkScoreLog nsl : networkScoreMap.values()) {
-				if (nsl.averageTravelTime < bestAverageTravelTimeThisGeneration) {
-					bestAverageTravelTimeThisGeneration = nsl.averageTravelTime;
-				}
-				averageTravelTimeThisGeneration += nsl.averageTravelTime / networkScoreMap.size();
-				averageTravelTimeStdDevThisGeneration += nsl.stdDeviationTravelTime / networkScoreMap.size();
-			}
-			System.out.println("bestAverageTravelTimeThisGeneration = " + bestAverageTravelTimeThisGeneration);
-			System.out.println("Average AverageTravelTime This Generation = " + averageTravelTimeThisGeneration);
-			generationsAverageTravelTime.put(g, averageTravelTimeThisGeneration);
-			generationsAverageTravelTimeStdDev.put(g, averageTravelTimeStdDevThisGeneration);
-			generationsBestTravelTime.put(g, bestAverageTravelTimeThisGeneration);
-		}
-		XYLineChart chart = new XYLineChart("Perform. Evol. [nNetw="+populationSize+"], [nSimIter="+lastIteration+"], [nInitRoutes/Netw="+routesPerNetwork+"]", "Generation", "Score");
-		chart.addSeries("Average Travel Time [min]", generationsAverageTravelTime);
-		chart.addSeries("Average Travel Time - Std Deviation [min]", generationsAverageTravelTimeStdDev);
-		chart.addSeries("Best Average Travel Time [min]", generationsBestTravelTime);
-		chart.saveAsPng(outFileName, 800, 600);
-	}
+	
 
 //	@SuppressWarnings("unchecked")
 //	public static void writeChartAverageGenerationNetworkAverageTravelTimes(int lastGeneration, String fileName) 	// only average scores
@@ -1750,6 +1623,9 @@ public class NetworkEvolutionImpl {
 		// TODO might have vehicle pool: removed vehicle comes into pool first and is then redistributed. If route hits freq. < 4min, add vehicle to next strongest route
 		
 		// CROSS-OVERS (set nDepartures=0, average first/lastDep & nVehicles during mRouteCrossovers --> DepSpacing, nDep etc. will be changed accordingly in applyPT)
+//		if (currentGEN > 25) {
+//			pCrossOver = 0.20;
+//		}
 		newPopulation = EvoOpsCrossover.applyCrossovers(globalNetwork,  networkScoreMap,  newPopulation,  populationName,
 				 eliteMNetwork, alpha, pCrossOver, crossoverRouletteStrategy, useOdPairsForInitialRoutes, 
 				 vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane,
@@ -2258,7 +2134,8 @@ public class NetworkEvolutionImpl {
 			if(latestPopulation.modifiedNetworksInLastEvolution.contains(mnetwork.getNetworkID())) {
 				
 				mnetwork.lifeTime = lifeTime;
-				mnetwork.calculateRoutesAndNetworkScore(lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes); // include here also part of routesHandling
+				mnetwork.calculateRoutesAndNetworkScore(lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes,
+						"zurich_1pm/cbpParametersOriginal/", "zurich_1pm/Evolution/Population/", "1"); // include here also part of routesHandling
 				XMLOps.writeToFile(mnetwork, "zurich_1pm/Evolution/Population/"+mnetwork.networkID+"/M"+mnetwork.networkID+".xml");
 				if (performanceGoalAccomplished == false) {		// checking whether performance goal achieved
 					if (mnetwork.averageTravelTime < averageTravelTimePerformanceGoal) {

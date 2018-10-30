@@ -65,6 +65,7 @@ public class NetworkEvolutionRunSim {
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
 		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml");
+//		modConfig.getModules().get("qsim").addParam("flowCapacityFactor", "10000");
 //		modConfig.getModules().get("global").addParam("numberOfThreads","1");
 //		modConfig.getModules().get("parallelEventHandling").addParam("numberOfThreads","1");
 //		modConfig.getModules().get("qsim").addParam("numberOfThreads","1");
@@ -100,7 +101,7 @@ public class NetworkEvolutionRunSim {
 	    // See MATSIM-766 (https://matsim.atlassian.net/browse/MATSIM-766)
 	    strategy = new StrategySettings();
 	    strategy.setStrategyName("SubtourModeChoice");
-	    strategy.setDisableAfter(0);
+	    strategy.setDisableAfter(75);
 	    strategy.setWeight(0.0);
 	    modConfig.strategy().addStrategySettings(strategy);
 
@@ -130,8 +131,8 @@ public class NetworkEvolutionRunSim {
 	}
 
 	
-	public static MNetworkPop runEventsProcessing(MNetworkPop networkPopulation, Integer lastIteration, Integer iterationsToAverage, 
-			Network globalNetwork) throws IOException {
+	public static MNetworkPop runEventsProcessing(MNetworkPop networkPopulation, Integer steadyStateIteration, Integer iterationsToAverage, 
+			Network globalNetwork, String networkPath) throws IOException {
 		
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			if(networkPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
@@ -140,14 +141,18 @@ public class NetworkEvolutionRunSim {
 			Log.write("  >> Running Events Processing on:  "+mNetwork.networkID);
 			String networkName = mNetwork.networkID;
 			
+			// empty all routes - THIS IS SUPER IMPORTANT
+			for (MRoute mRoute : mNetwork.routeMap.values()) {
+				mRoute.personMetroDist = 0.0;
+			}
 			Integer nMetroUsersTotal = 0;
 			Double personMetroDistTotal = 0.0;
 			
 			// Average the events output over several iteration (generationsToAverage). For every generation add its performance divided by its single weight
-			for (Integer thisIteration=lastIteration-iterationsToAverage+1; thisIteration<=lastIteration; thisIteration++) {
-
+			for (Integer thisIteration=steadyStateIteration-iterationsToAverage+1; thisIteration<=steadyStateIteration; thisIteration++) {
+//				Log.write("Iteration = "+thisIteration);
 				// read and handle events
-				String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+thisIteration+"/"+thisIteration+".events.xml.gz";			
+				String eventsFile = networkPath+networkName+"/Simulation_Output/ITERS/it."+thisIteration+"/"+thisIteration+".events.xml.gz";			
 				MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
 				EventsManager eventsManager = EventsUtils.createEventsManager();
 				eventsManager.addHandler(mPassengerHandler);
@@ -176,7 +181,7 @@ public class NetworkEvolutionRunSim {
 	}
 	
 	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInSec,
-			int lastIterationOriginal, int iterationsToAverage, int populationFactor) throws IOException {
+			int lastIteration, int iterationsToAverage, int populationFactor, String networkPath) throws IOException {
 		
 		// PROCESSING
 		// - TravelTimes (exclude unrealistic (transit_)walk legs)
@@ -201,9 +206,9 @@ public class NetworkEvolutionRunSim {
 			Double standardDeviation = 0.0;
 			
 			// Average the events output over several iteration (generationsToAverage). For every generation add its performance divided by its single weight
-			for (Integer thisIteration=lastIterationOriginal-iterationsToAverage+1; thisIteration<=lastIterationOriginal; thisIteration++) {
+			for (Integer thisIteration=lastIteration-iterationsToAverage+1; thisIteration<=lastIteration; thisIteration++) {
 
-				String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+thisIteration+"/"+thisIteration+".plans.xml.gz";
+				String finalPlansFile = networkPath+networkName+"/Simulation_Output/ITERS/it."+thisIteration+"/"+thisIteration+".plans.xml.gz";
 				Config newConfig = ConfigUtils.createConfig();
 				newConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
 				Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
@@ -305,7 +310,7 @@ public class NetworkEvolutionRunSim {
 			CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers, populationFactor*otherUsers,
 					populationFactor*carTimeTotal,  populationFactor*carPersonDist,  populationFactor*ptTimeTotal,  populationFactor*ptPersonDist);
 			cbp.calculateAverages();
-			XMLOps.writeToFile(cbp, "zurich_1pm/Evolution/Population/"+networkName+"/cbaParameters"+lastIterationOriginal+".xml");
+			XMLOps.writeToFile(cbp, networkPath+networkName+"/cbpParameters"+lastIteration+".xml");
 		} // end of networkLoop
 		
 		for (MNetwork network : networkPopulation.networkMap.values()) {
@@ -407,7 +412,8 @@ public class NetworkEvolutionRunSim {
 		XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
 		
 		
-		for (int n=1; n<=populationSize; n++) {
+		for (int n=1; n<=1; n++) {
+//		for (int n=1; n<=populationSize; n++) {
 			MNetwork loadedNetwork = new MNetwork("Network"+n);
 			latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
 			Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);

@@ -35,7 +35,6 @@ public class Run_ZurichScenarioEnriched {
 	
 static public void main(String[] args) throws ConfigurationException, IOException  {
 		
-		int lastIteration = 100;
 		
 		CommandLine cmd = new CommandLine.Builder(args)
 				.allowOptions("model-type", "fallback-behaviour")
@@ -43,6 +42,7 @@ static public void main(String[] args) throws ConfigurationException, IOExceptio
 		
 		Config config = ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml");
 		
+		int lastIteration = 100;
 		String simulationPath = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched";
 		new File(simulationPath).mkdirs();
 		config.getModules().get("controler").addParam("outputDirectory", simulationPath);
@@ -50,6 +50,8 @@ static public void main(String[] args) throws ConfigurationException, IOExceptio
 		config.getModules().get("controler").addParam("lastIteration", Integer.toString(lastIteration));
 		config.getModules().get("controler").addParam("writeEventsInterval", "1");
 		config.getModules().get("controler").addParam("writePlansInterval", "1");
+//		config.getModules().get("qsim").addParam("flowCapacityFactor", "10000");
+		
 
 		// See old versions BEFORE 06.09.2018 for how to load specific mergedNetworks OD/Random instead of Global Network with all links
 		
@@ -84,7 +86,7 @@ static public void main(String[] args) throws ConfigurationException, IOExceptio
 	    // See MATSIM-766 (https://matsim.atlassian.net/browse/MATSIM-766)
 	    strategy = new StrategySettings();
 	    strategy.setStrategyName("SubtourModeChoice");
-	    strategy.setDisableAfter(0);
+	    strategy.setDisableAfter(75);
 	    strategy.setWeight(0.0);
 	    config.strategy().addStrategySettings(strategy);
 
@@ -112,5 +114,23 @@ static public void main(String[] args) throws ConfigurationException, IOExceptio
 		controler.run();
 	
 	}
-	
+
+//	Basic ZH Scenario (not enriched)
+//
+//	static public void main(String[] args) {
+//		Config config = ConfigUtils.loadConfig(args[0]);
+//		config.getModules().get("controler").addParam("lastIteration", "100");
+//		config.getModules().get("controler").addParam("writeEventsInterval", "1");
+//		// config.transit().setTransitScheduleFile(null); // potentially "null", but should set TransitSchedule
+//		Scenario scenario = ScenarioUtils.createScenario(config);
+//		scenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class,
+//				new DefaultEnrichedTransitRouteFactory());
+//		ScenarioUtils.loadScenario(scenario);
+//		Controler controler = new Controler(scenario);
+//		controler.addOverridingModule(new BaselineModule());
+//		controler.addOverridingModule(new BaselineTransitModule());
+//		controler.addOverridingModule(new ZurichModule());
+//		controler.run();
+//	}
+
 }
