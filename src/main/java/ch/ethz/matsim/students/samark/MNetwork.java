@@ -139,7 +139,8 @@ public class MNetwork implements Serializable{
 			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
 			String cbpOriginalPath, String networkPath, String utilityFunctionSelection) throws IOException {
 		CostBenefitParameters cbpOriginal =
-				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), cbpOriginalPath+"cbpParametersOriginal"+lastIterationOriginal+".xml");
+//				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), cbpOriginalPath+"cbpParametersOriginal"+lastIterationOriginal+".xml");
+				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), cbpOriginalPath+"cbpParametersOriginalGlobal.xml");
 		CostBenefitParameters cbpNew =
 				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), networkPath+this.networkID+"/cbpParameters"+lastIterationOriginal+".xml");		
 
@@ -190,8 +191,13 @@ public class MNetwork implements Serializable{
 			newOGlength += mr.NewOGpercentage*overgroundPercentage*mr.routeLength;
 			equipOGlength += mr.EquipOGPercentage*overgroundPercentage*mr.routeLength;
 			developOGlength += mr.DevelopOGPercentage*overgroundPercentage*mr.routeLength;
-		}	
-		overallUGpercentage = overallUGlength/this.totalRouteLength;
+		}
+		if (this.totalRouteLength > 0.0) {
+			overallUGpercentage = overallUGlength/this.totalRouteLength;			
+		}
+		else {
+			overallUGpercentage = 0.0;
+		}
 //		Log.write("overallUGpercentage Network="+overallUGpercentage);
 //		Log.write("overallOGpercentage Network="+overallOGlength/this.totalRouteLength);
 
@@ -432,7 +438,7 @@ public class MNetwork implements Serializable{
 		return averageDiscountFactor;
 	}
 
-	public List<Double> makePtUsagePrognosis(double deltaPtPersonDist2020) {
+	public static List<Double> makePtUsagePrognosis(double deltaPtPersonDist2020) {
 		List<Double> deltaPtPersonDist20xx = new ArrayList<Double>(Arrays.asList(deltaPtPersonDist2020));
 		for (Integer y=1; y<10; y++) {
 			deltaPtPersonDist20xx.add(deltaPtPersonDist20xx.get(y-1)*1.011);	// growth = 1.1% p.a.
@@ -449,7 +455,7 @@ public class MNetwork implements Serializable{
 		return deltaPtPersonDist20xx;
 	}
 
-	public List<Double> makeMptUsagePrognosis(double deltaCarPersonDist2020) {
+	public static List<Double> makeMptUsagePrognosis(double deltaCarPersonDist2020) {
 		List<Double> deltaCarPersonDist20xx = new ArrayList<Double>(Arrays.asList(deltaCarPersonDist2020));
 		for (Integer y=1; y<10; y++) {
 			deltaCarPersonDist20xx.add(deltaCarPersonDist20xx.get(y-1)*1.007);	// growth = 0.7% p.a.

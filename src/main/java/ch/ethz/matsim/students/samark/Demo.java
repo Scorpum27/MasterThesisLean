@@ -34,6 +34,8 @@ import org.matsim.core.events.EventsUtils;
 import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.scenario.ScenarioUtils;
 
+import com.google.common.collect.Sets;
+
 public class Demo {
 
 	
@@ -50,15 +52,78 @@ public class Demo {
 		return correctedUtility;
 	}
 	
+	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
-		List<Double> deltaCarPersonDist20xx = new ArrayList<Double>(Arrays.asList(100.0));
-		for (Integer y=1; y<40; y++) {
-			deltaCarPersonDist20xx.add(deltaCarPersonDist20xx.get(y-1)*1.01);	// growth = 0.7% p.a.
-		}
-//		System.out.println(deltaCarPersonDist20xx.get(9).toString());
+		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
 		
-		System.out.println(MNetwork.getAverageDiscountFactor(1.02, 40));
+		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
+		Config config = ConfigUtils.createConfig();
+		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
+		Network globalNetwork = ScenarioUtils.loadScenario(config).getNetwork();
+
+		MNetworkPop newPopulation = new MNetworkPop("testPopulation");
+		Integer n = 1;
+		Integer generationNr = 1;
+		Integer initialRoutesPerNetwork = 10;
+		MNetwork loadedNetwork = new MNetwork("Network"+n);
+		newPopulation.addNetwork(loadedNetwork);
+		newPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
+		Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
+//		for (int r : Arrays.asList(1, 2, 5)) {
+		for (int r=1; r<=initialRoutesPerNetwork; r++) {
+			String routeFilePath =
+					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
+			File f = new File(routeFilePath);
+			if (f.exists()) {
+				MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+				loadedNetwork.addNetworkRoute(loadedRoute);
+				Log.write("Adding network route "+loadedRoute.routeID);
+			}
+		}
+		
+		Double maxConnectingDistance = 2000.0;
+		Double maxCrossingAngle = 150.0;
+		EvoOpsMerger.mergeRoutes(newPopulation, globalNetwork, maxConnectingDistance,
+				metroLinkAttributes, "eliteNetwork", maxCrossingAngle);
+	
+		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/MRoutes";
+			NetworkEvolutionImpl.MRoutesToNetwork(loadedNetwork.getRouteMap(), globalNetwork, 
+					Sets.newHashSet("pt"), historyFileLocation+"/MRoutesNetwork1MergedTest"+".xml");
+		
+		// %%% ---
+//		List<String> pair1 = Arrays.asList("1", "8");
+//		List<String> pair2 = Arrays.asList("1", "4");
+//		List<String> pair3 = Arrays.asList("8", "3");
+//		List<String> pair4 = Arrays.asList("2", "5");
+//		List<String> pair5 = Arrays.asList("6", "5");
+//		List<String> pair6 = Arrays.asList("7", "5");
+//		List<List<String>> crossedRoutePairs = Arrays.asList(pair1, pair2, pair3, pair4, pair5, pair6);
+//
+//		List<List<String>> autonomousMetroSubnetworks = new ArrayList<List<String>>();
+//		routesLoop:
+//		for (String route : Arrays.asList("1")) {
+//			for (List<String> subnetwork : autonomousMetroSubnetworks) {
+//				if (subnetwork.contains(route)) {
+//					continue routesLoop;	// is already in an autonomous subnetwork
+//				}
+//			}
+//			// if the route has not been identified in a subnetwork,
+//			// make a new subnetwork with this unassigned route and add all routes it has a connection to (digging search algorithm)!
+//			List<String> initialNetworkRouteList = new ArrayList<String>(Arrays.asList(route));
+//			List<String> newSubnetwork = EvoOpsMerger.getAllConnectedRoutes(initialNetworkRouteList, crossedRoutePairs);
+//			autonomousMetroSubnetworks.add(newSubnetwork);
+//		}
+//		System.out.println(autonomousMetroSubnetworks.toString());
+		
+		
+		// %%% ---
+//		List<String> r1linkList = Arrays.asList("0","1","2","3","4","5");
+//		String link1 = "5";
+//		System.out.println(r1linkList.subList(Math.min(r1linkList.size(),r1linkList.indexOf(link1)+1), r1linkList.size()));
+//		System.out.println(r1linkList.subList(0, Math.max(0,r1linkList.indexOf(link1))));
+//		System.out.println(r1linkList.subList(5, 5));
 
 		
 		// %%%---

@@ -65,7 +65,7 @@ public class VisualizerIterFluctuations {
 		for (Integer lastIteration = 1; lastIteration < maxIterations; lastIteration++) {
 
 			String plansFolder = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS";
-			String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal" + lastIteration + ".xml";
+			String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml";
 			CostBenefitParameters cbpOriginal;
 			if (!(new File(outputFile)).exists() || recalculateOriginalCBP.equals(true)) {
 				if (lastIteration < iterationsToAverage) { // then use all available (=lastIteration) for averaging
@@ -86,6 +86,7 @@ public class VisualizerIterFluctuations {
 				File routesFile = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation" + generationNr
 						+ "/MRoutes/" + networkName + "_Route" + r + "_RoutesFile.xml");
 				if (routesFile.exists()) {
+					System.out.println("Trying to read Route="+r);
 					mNetwork.addNetworkRoute(XMLOps.readFromFile(MRoute.class, routesFile.toString()));
 				}
 			}

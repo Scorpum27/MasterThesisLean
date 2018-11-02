@@ -1,5 +1,6 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
@@ -13,6 +14,7 @@ import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 
 public class NetworkOperators {
 
@@ -153,6 +155,16 @@ public class NetworkOperators {
 			length += globalNetwork.getLinks().get(link).getLength();
 		}
 		return length;
+	}
+	
+	public static Node getNodeOfFacility(TransitStopFacility tsf, Network globalNetwork) throws IOException {
+		for (Node node : globalNetwork.getNodes().values()) {
+			if (node.getCoord().equals(tsf.getCoord())){
+				return node;
+			}
+		}
+		Log.write("CAUTION: No node found below facility="+tsf.getId().toString()+" (="+tsf.getName()+")");
+		return null;
 	}
 	
 	

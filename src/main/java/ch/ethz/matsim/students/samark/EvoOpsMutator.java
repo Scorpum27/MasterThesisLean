@@ -41,9 +41,9 @@ public class EvoOpsMutator {
 			}
 			CostBenefitParameters cbpOriginal =
 					XMLOps.readFromFile((new CostBenefitParameters()).getClass(), 
-							"zurich_1pm/cbaParametersOriginal"+lastIterationOriginal+".xml");
+							"zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
 			CostBenefitParameters cbpNew = XMLOps.readFromFile((new CostBenefitParameters()).getClass(), 
-					"zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/cbaParameters"+lastIterationOriginal+".xml");
+					"zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/cbpParameters"+lastIterationOriginal+".xml");
 			Map<String, Double> routeScoreMap = new HashMap<String, Double>();
 			Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String, Double>();
 			for (MRoute mRoute : mNetwork.routeMap.values()) {
@@ -81,7 +81,7 @@ public class EvoOpsMutator {
 						if(linkListMutate.size()>2) {
 							Log.writeAndDisplay("  >> Applying big change");
 							hasHadMutation = EvoOpsMutator.applyBigChange2(allMetroStops, linkListMutate, globalNetwork, maxCrossingAngle, zurich_NetworkCenterCoord,
-									mRoute, metroLinkAttributes);
+									mRoute, mrouteIter, metroLinkAttributes);
 						}
 					}
 					else{ // make small change
@@ -372,7 +372,7 @@ public class EvoOpsMutator {
 	}
 
 	public static Boolean applyBigChange2(Map<String, CustomStop> allMetroStops, List<Id<Link>> linkListMutate, Network globalNetwork, double maxCrossingAngle, 
-			Coord zurich_NetworkCenterCoord, MRoute mRoute, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+			Coord zurich_NetworkCenterCoord, MRoute mRoute, Iterator<Entry<String, MRoute>> mrouteIter, Map<Id<Link>,CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 
 		List<Id<Link>> originalLinkListMutate = Clone.list(linkListMutate);
 		
@@ -582,11 +582,18 @@ public class EvoOpsMutator {
 		linkListMutate.addAll(NetworkEvolutionImpl.OppositeLinkListOf(linkListMutate));
 		mRoute.linkList = Clone.list(linkListMutate);
 		mRoute.networkRoute = RouteUtils.createNetworkRoute(linkListMutate, globalNetwork);
-		if ( ! linkListMutate.equals(originalLinkListMutate)) {
+		if (linkListMutate.size() < 2) {
+			Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);
+			mrouteIter.remove();
+			return true;
+		}
+		else if ( ! linkListMutate.equals(originalLinkListMutate)) {
 			mRoute.significantRouteModOccured = true;
 			return true;
 		}
-		return false;
+		else {
+			return false;			
+		}
 	}
 	
 
@@ -713,7 +720,11 @@ public class EvoOpsMutator {
 	}
 
 
-	public static boolean checkIfTurningAnglesOk(double maxCrossingAngle, List<Link> linkPath) {
+	public static boolean checkIfTurningAnglesOk(double maxCrossingAngle, List<Link> linkPath) throws IOException {
+		if (linkPath.size() == 0) {
+			Log.write("Link path size = 0. Therefore, turning angles inherently OK. Returning true.");
+			return true;
+		}
 		Link lastLink = linkPath.get(0);
 		for (Link thisLink : linkPath.subList(1, linkPath.size())) {
 			if (GeomDistance.angleBetweenLinks(lastLink, thisLink) > maxCrossingAngle) {
@@ -722,6 +733,14 @@ public class EvoOpsMutator {
 			lastLink = thisLink;
 		}
 		return true;
+	}
+	
+	public static boolean checkIfTurningAnglesOkIdOnly(double maxCrossingAngle, List<Id<Link>> linkPathIds, Network network) throws IOException {
+		List<Link> linkPath = new ArrayList<Link>();
+		for (Id<Link> linkId : linkPathIds) {
+			linkPath.add(network.getLinks().get(linkId));
+		}
+		return checkIfTurningAnglesOk(maxCrossingAngle, linkPath);
 	}
 
 

@@ -412,8 +412,8 @@ public class NetworkEvolutionRunSim {
 		XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
 		
 		
-		for (int n=1; n<=1; n++) {
-//		for (int n=1; n<=populationSize; n++) {
+//		for (int n=1; n<=1; n++) {
+		for (int n=1; n<=populationSize; n++) {
 			MNetwork loadedNetwork = new MNetwork("Network"+n);
 			latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
 			Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);

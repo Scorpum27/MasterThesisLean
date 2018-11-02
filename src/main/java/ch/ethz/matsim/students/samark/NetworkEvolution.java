@@ -85,7 +85,7 @@ public class NetworkEvolution {
 		// % Parameters for Network Population & Strategy: %
 		Integer populationSize = 1;													// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		Integer initialRoutesPerNetwork = 5;
+		Integer initialRoutesPerNetwork = 10;
 		Boolean mergeMetroWithRailway = true;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
@@ -98,7 +98,7 @@ public class NetworkEvolution {
 		Coord zurich_NetworkCenterCoord = new Coord(2683360.00, 1248100.00);		// default Coord(2683360.00, 1248100.00);  old:(2683000.00, 1247700.00)
 		Double xOffset = 1733436.0; 												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; 																					  																						X_MATSim= 2683476;
 		Double yOffset = -4748525.0;												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; 																						Y_MATSim= 1246811;
-		Double metroCityRadius = 3000.0; 											// DEFAULT = 3000 (OLD=3600)
+		Double metroCityRadius = 3000.0;											// DEFAULT = 3000 (OLD=3600)
 		Double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
 		Double maxMetroRadiusFactor = 1.70;											// DEFAULT = 1.70; (OLD=1.40: give some flexibility by increasing from 1.00 to 1.40)
 		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
@@ -124,10 +124,10 @@ public class NetworkEvolution {
 		
 		// %% Parameters Simulation, Events & Plans Processing %%
 		Integer firstGeneration = 1;
-		Integer lastGeneration = 1;
-		Integer lastIterationOriginal = 30;
+		Integer lastGeneration = 50;	// 50
+		Integer lastIterationOriginal = 50;	// 50
 		Integer lastIteration = lastIterationOriginal;
-		Integer iterationsToAverage = 1;
+		Integer iterationsToAverage = 30;	// 30
 		if (lastIterationOriginal < iterationsToAverage || lastIteration < iterationsToAverage)
 			{Log.writeAndDisplay(" iterationsToAverage > lastIterationSimulated. Aborting"); System.exit(0);}
 		Integer storeScheduleInterval = 1;	// every X generations the mergedSchedule/Vehicles are saved for continuation of simulation after undesired breakdown
@@ -144,8 +144,9 @@ public class NetworkEvolution {
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.25; 									// DEFAULT = 0.25
+		Double pCrossOver = 0.30; 									// DEFAULT = 0.25
 		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
+		Double maxConnectingDistance = 2000.0;
 		Boolean logEntireRoutes = false;
 		Double maxCrossingAngle = 110.0; 							// DEFAULT = 110
 		Double pMutation = 0.45;									// DEFAULT = 0.45; <=0.5, because used rankMethod has meanProbability of 0.5 by nature
@@ -160,10 +161,10 @@ public class NetworkEvolution {
 		final double ConstrCostUGnew = 1.5E5;								// within UG radius, new rails
 		final double ConstrCostUGdevelop = 2.25E4;							// DEFAULT: 0.25E5 = within UG radius, but existing train rails
 		final double ConstrCostOGnew = 4.0E4;
-		final double ConstrCostOGdevelop = 3.0E4;							// DEFAULT: 1.0E4
+		final double ConstrCostOGdevelop = 6.0E3;							// DEFAULT: 1.0E4
 		final double ConstrCostOGequip = 6.0E3;
-		final double ConstrCostPerStationNew = 1.2E5; // XXX
-		final double ConstrCostPerStationExtend = 0.1E5; // XXX
+		final double ConstrCostPerStationNew = 1.6E5;
+		final double ConstrCostPerStationExtend = 0.1E5;
 		final double costVehicle = 13.0E6;									// x2 because assumed to be replaced once for 40y total lifetime (=2x20y)
 		final double OpsCostPerVehDistUG = 20.5/1000;
 		final double OpsCostPerVehDistOG = 20.5/1000;
@@ -206,7 +207,7 @@ public class NetworkEvolution {
 		// RECALL MODULE
 		// - Uncomment "LogCleaner" & "Network Creation"
 		// - firstGeneration=generationToRecall
-//				int generationToRecall = 1;	// it is recommended to use the Generation before the one that failed in order
+//				int generationToRecall = 50;	// it is recommended to use the Generation before the one that failed in order
 //												// to make sure it's data is complete and ready for next clean generation
 //				firstGeneration = generationToRecall;
 //				Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
@@ -285,7 +286,7 @@ public class NetworkEvolution {
 						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
 						shortestPathStrategy, minInitialTerminalRadiusFromCenter, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter,
 						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, tFirstDep, tLastDep, odConsiderationThreshold,
-						xOffset, yOffset, stopUnprofitableRoutesReplacementGEN, blockFreqModGENs, generationNr);
+						xOffset, yOffset, stopUnprofitableRoutesReplacementGEN, blockFreqModGENs, generationNr, lastGeneration, maxConnectingDistance);
 			}		
 			
 		}
@@ -352,6 +353,7 @@ public class NetworkEvolution {
 				"alphaXover="+alphaXover  + ";\r\n" + 
 				"pCrossOver="+pCrossOver  + ";\r\n" + 
 				"minCrossingDistanceFactorFromRouteEnd="+minCrossingDistanceFactorFromRouteEnd  + ";\r\n" + 
+				"maxConnectingDistance="+maxConnectingDistance  + ";\r\n" + 
 				"logEntireRoutes="+logEntireRoutes  + ";\r\n" + 
 				"maxCrossingAngle="+maxCrossingAngle  + ";\r\n" + 
 				"pMutation="+pMutation  + ";\r\n" + 

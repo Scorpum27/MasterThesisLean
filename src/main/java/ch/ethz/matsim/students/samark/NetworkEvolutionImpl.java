@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,7 @@ import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.core.utils.charts.XYLineChart;
+import org.matsim.facilities.Facility;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitRouteStop;
@@ -96,9 +98,13 @@ public class NetworkEvolutionImpl {
 			// -aveTravTime PT;		-aveTravTime MPT;
 		
 		String plansFolder = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS";
-		(new File("zurich_1pm/cbpParametersOriginal")).mkdirs();
-		String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal"+lastIterationOriginal+".xml";
-		NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, lastIterationOriginal, iterationsToAverage);
+		if ( ! (new File("zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml")).exists()) {
+			(new File("zurich_1pm/cbpParametersOriginal")).mkdirs();
+			// String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal"+lastIterationOriginal+".xml";
+			// NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, lastIterationOriginal, iterationsToAverage);			
+			String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml";
+			NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, 100, 80);
+		}
 		
 		
 		// Initialize a customLinkMap with all links from original network
@@ -187,6 +193,8 @@ public class NetworkEvolutionImpl {
 			// The schedule has already been merged on the way (contains only stopFacilities by this point)
 			metroNetwork = NetworkOperators.superimpose2separateNetwork(
 					innerCityMetroNetwork, Sets.newHashSet("pt"), outerCityMetroNetwork, Sets.newHashSet("pt"), null);
+			connectRailStopsInMetroNetworkToSurroundingNodes(metroNetwork, railStops, maxNewMetroLinkDistance, Sets.newHashSet("pt"),
+					metroLinkAttributes,  networkPath + "/MetroStopFacilities.xml");
 			allMetroStops.putAll(innerCityMetroStops);
 			allMetroStops.putAll(outerCityMetroStops);			
 			
@@ -333,6 +341,94 @@ public class NetworkEvolutionImpl {
 			networkPopulation.addNetwork(mNetwork);
 		}
 		return networkPopulation;
+	}
+
+
+	public static void connectRailStopsInMetroNetworkToSurroundingNodes(Network metroNetwork,
+			Map<String, CustomStop> railStops, double maxNewMetroLinkDistance, Set<String> transportModes,
+			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, String transitScheduleFileName) throws IOException {
+		Config conf = ConfigUtils.createConfig();
+		conf.getModules().get("transit").addParam("transitScheduleFile",transitScheduleFileName);
+		Scenario sc = ScenarioUtils.loadScenario(conf);
+		TransitSchedule metroStopFacilities = sc.getTransitSchedule();
+//		Network newConnectionsNetwork = sc.getNetwork();
+		
+		for (CustomStop railStop : railStops.values()) {
+			List<Id<Node>> alreadyConnectedNodes = new ArrayList<Id<Node>>();
+			Node facilityNode = NetworkOperators.getNodeOfFacility(railStop.transitStopFacility, metroNetwork);
+			if (facilityNode == null) {
+				Log.write("CAUTION: facilityNode is null of facility="+railStop.transitStopFacility.getName());
+				continue;
+			}
+			else {
+				for (Link outLink : facilityNode.getOutLinks().values()) {
+					alreadyConnectedNodes.add(outLink.getToNode().getId());
+					Log.write("marking already connected nodes with node"+ outLink.getToNode().getId().toString());
+				}				
+			}
+			for (Node node : metroNetwork.getNodes().values()) {
+				if (node.getId().equals(facilityNode.getId()) || alreadyConnectedNodes.contains(node.getId())) {
+					continue;
+				}
+				if (GeomDistance.betweenNodes(facilityNode, node) < 500.0) {
+					Boolean otherNodeHasFacility = false;
+					TransitStopFacility otherNodeTSF = null;
+					for (TransitStopFacility tsf : metroStopFacilities.getFacilities().values()) {
+						if (node.getCoord().equals(tsf.getCoord())) {
+							otherNodeTSF = tsf;
+							otherNodeHasFacility = true;
+						}
+					}
+					
+					Link newLink = metroNetwork.getFactory().
+							createLink(Id.createLinkId(facilityNode.getId().toString() + "_" + node.getId().toString()), facilityNode, node);
+					if ( ! metroNetwork.getLinks().keySet().contains(newLink.getId())) {
+						newLink.setAllowedModes(transportModes);
+						metroNetwork.addLink(newLink);
+						
+//						Node fromNode = newLink.getFromNode();
+//						Node toNode = newLink.getToNode();
+//						Node newFromNode = newConnectionsNetwork.getFactory().createNode(Id.createNodeId(fromNode.getId().toString()), fromNode.getCoord());
+//						if ( !newConnectionsNetwork.getNodes().containsKey(newFromNode.getId())) {
+//							newConnectionsNetwork.addNode(newFromNode);
+//						}
+//						Node newToNode = newConnectionsNetwork.getFactory().createNode(Id.createNodeId(toNode.getId().toString()), toNode.getCoord());
+//						if ( !newConnectionsNetwork.getNodes().containsKey(newToNode.getId())) {
+//							newConnectionsNetwork.addNode(newToNode);
+//						}
+//						newConnectionsNetwork.addLink(newConnectionsNetwork.getFactory().createLink(Id.createLinkId(newLink.getId().toString()), newFromNode, newToNode));
+
+						CustomMetroLinkAttributes cmla = new CustomMetroLinkAttributes("newMetro");
+						cmla.fromNodeStopFacility = railStop.transitStopFacility;
+						if (otherNodeHasFacility) {
+							cmla.toNodeStopFacility = otherNodeTSF;
+						}
+						metroLinkAttributes.put(newLink.getId(), cmla);
+					}
+					else {
+						Log.write("CAUTION: Rail stop connecting link already exists: "+newLink.getId());
+					}
+					Link newLinkReverse = metroNetwork.getFactory().
+							createLink(Id.createLinkId(node.getId().toString() + "_" + facilityNode.getId().toString()), node, facilityNode);
+					if ( ! metroNetwork.getLinks().keySet().contains(newLinkReverse.getId())) {
+						newLinkReverse.setAllowedModes(transportModes);
+						metroNetwork.addLink(newLinkReverse);
+						CustomMetroLinkAttributes cmla = new CustomMetroLinkAttributes("newMetro");
+						cmla.toNodeStopFacility = railStop.transitStopFacility;
+						if (otherNodeHasFacility) {
+							cmla.fromNodeStopFacility = otherNodeTSF;
+						}
+						metroLinkAttributes.put(newLinkReverse.getId(), cmla);
+					}
+					else {
+						Log.write("CAUTION: Rail stop connecting link already exists: "+newLinkReverse.getId());
+					}
+				}
+			}
+		}
+		
+//		NetworkWriter nwConnect = new NetworkWriter(newConnectionsNetwork);
+//		nwConnect.write("testNetwork.xml");
 	}
 
 
@@ -1608,7 +1704,8 @@ public class NetworkEvolutionImpl {
 			String shortestPathStrategy, Double minTerminalDistance, Double minTerminalRadiusFromCenter, Double maxTerminalRadiusFromCenter,
 			Double minInitialTerminalRadiusFromCenter, Double maxInitialTerminalRadiusFromCenter, Double tFirstDep, Double tLastDep, Double odConsiderationThreshold,
 			Double xOffset, Double yOffset,
-			Integer stopUnprofitableRoutesReplacementGEN, Integer blockFreqModGENs, Integer currentGEN ) throws IOException {
+			Integer stopUnprofitableRoutesReplacementGEN, Integer blockFreqModGENs, Integer currentGEN, Integer lastGeneration,
+			Double maxConnectingDistance) throws IOException {
 		
 		
 		MNetworkPop newPopulation = Clone.mNetworkPop(evoNetworksToProcessPlans);
@@ -1645,10 +1742,26 @@ public class NetworkEvolutionImpl {
 				tFirstDep, tLastDep, eliteMNetwork,
 				odConsiderationThreshold, zurich_NetworkCenterCoord, xOffset, yOffset);
 		
+		// MERGE SINGLE ROUTES TO A NETWORK
+		// last merger is performed at the end of the second last GEN before last GEN is simulated, bc after last GEN sim no modifications are made to network
+		if (currentGEN % 4 == 0 || currentGEN == lastGeneration-1) {
+			EvoOpsMerger.mergeRoutes(newPopulation, globalNetwork, maxConnectingDistance, metroLinkAttributes, eliteMNetwork.networkID,
+					maxCrossingAngle);
+		}
+		
 		// APPLY TRANSIT + STORE POPULATION & TRANSITSCHEDULE (calculates & updates: routeLength, roundTripTravelTimes, nDepartures, depSpacing=d(nVehicles))
 		EvoOpsPTEngine.applyPT(newPopulation, globalNetwork, metroLinkAttributes, eliteMNetwork.networkID,
 				vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane,
 				useOdPairsForInitialRoutes, initialDepSpacing);
+		
+		// Remove empty networks (when all routes have died out)
+		Iterator<Entry<String, MNetwork>> networkIter = newPopulation.networkMap.entrySet().iterator();
+		while (networkIter.hasNext()) {
+			Entry<String, MNetwork> networkEntry = networkIter.next();
+			if (networkEntry.getValue().routeMap.size() == 0) {
+				networkIter.remove();
+			}
+		}
 		
 		// calculate and Log total Nr. of vehicles
 		for (MNetwork mn : newPopulation.networkMap.values()) {
@@ -1659,7 +1772,7 @@ public class NetworkEvolutionImpl {
 			mn.totalVehiclesNr = nVehicles;
 //			Log.write(mn.networkID+" carries nMetroVehicles="+nVehicles);
 		}
-		// SAVE DATA TO FILES
+		// (Save data to files if do not use routesLogger before next mobsim)
 		return newPopulation;
 	}
 
@@ -1722,13 +1835,26 @@ public class NetworkEvolutionImpl {
 				}
 				//else {Log.writeAndDisplay("   >>> MRoute Cross FAIL:  " + routeP1name + " X " + routeP2name);}
 			}
-			// this will come in place if inner loop has not found a feasible crossing and has therefore not broken inner loop to jump to outer loop
-			routesOut1.put(routeFromP1.routeID, routeFromP1);	
-			iter1.remove();
 		}
-		for (MRoute routeFromP2 : routesParent2.values()) { // add all routesFromP2 that could not be crossed with any routesFromP1
-			if (routesOut2.containsKey(routeFromP2.routeID)==false) {
-				routesOut2.put(routeFromP2.routeID, routeFromP2);
+		// The following section for uncrossed routes shall enhance further crossing activity by trading entire routes between Parent1 and Parent2
+		// add all routesFromP1 that could not be crossed with any routesFromP2 with 50:50 prob to Out1 or Out2
+		for (MRoute routeFromP1 : routesParent1.values()) {
+			if ((new Random()).nextDouble() < 0.5) {
+				routesOut1.put(routeFromP1.routeID+"x", routeFromP1);
+				// naming does not matter as the routes are renamed anyways,
+				// but the "x" makes sure we do not accidentally replace a crossed route with the same name
+			}
+			else {
+				routesOut2.put(routeFromP1.routeID+"x", routeFromP1);
+			}
+		}
+		// add all routesFromP2 that could not be crossed with any routesFromP1 with 50:50 prob to Out1 or Out2
+		for (MRoute routeFromP2 : routesParent2.values()) {
+			if ((new Random()).nextDouble() < 0.5) {
+				routesOut1.put(routeFromP2.routeID+"x", routeFromP2);
+			}
+			else {
+				routesOut2.put(routeFromP2.routeID+"x", routeFromP2);
 			}
 		}
 		
@@ -1786,6 +1912,7 @@ public class NetworkEvolutionImpl {
 				System.out.println("One of the MRoute parents has length<2xlinks. Crossing is prohibited.");
 				continue;
 			}
+			// this (min routeLength) and minCrossingDistanceFactorFromRouteEnd ensure that routes always keep a min link length also after crossover
 			for (Id<Link> linkFrom1 : route1LinkListOneway.subList((int) Math.floor((minCrossingDistanceFactorFromRouteEnd)*routeLength1), (int) Math.ceil((1-minCrossingDistanceFactorFromRouteEnd)*routeLength1))) {
 				Node fromNode1 = globalNetwork.getLinks().get(linkFrom1).getFromNode();
 				for (Id<Link> linkFrom2 : route2LinkListOneway.subList((int) Math.floor((minCrossingDistanceFactorFromRouteEnd)*routeLength2), (int) Math.ceil((1-minCrossingDistanceFactorFromRouteEnd)*routeLength2))) {
@@ -2386,9 +2513,6 @@ public class NetworkEvolutionImpl {
 			if (railStop.addedToNewSchedule == true) {
 				Log.write("Already added to network.");
 				Node addedNodeInnerCity = innerCityMetroNetwork.getNodes().get(railStop.newNetworkNode);	
-				if (railStop.newNetworkNode.toString().contains("351545")) {
-					Log.write("XXX 2436");
-				}
 				newNode = networkFactory.createNode(addedNodeInnerCity.getId(), addedNodeInnerCity.getCoord());	// build identical node as in innerCityMetroNetwork (Consistency)
 				connectNodeToRailwayStrings(newNode, outerCityMetroNetwork, railStop, metroLinkAttributes);
 			}
