@@ -4,9 +4,11 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Random;
 
 import org.apache.commons.io.FileUtils;
 import org.matsim.api.core.v01.Id;
@@ -30,6 +32,14 @@ import org.matsim.core.router.MainModeIdentifierImpl;
 import org.matsim.core.router.StageActivityTypesImpl;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.PtConstants;
+import org.matsim.pt.transitSchedule.api.Departure;
+import org.matsim.pt.transitSchedule.api.TransitLine;
+import org.matsim.pt.transitSchedule.api.TransitRoute;
+import org.matsim.pt.transitSchedule.api.TransitSchedule;
+import org.matsim.pt.transitSchedule.api.TransitScheduleFactory;
+import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
+import org.matsim.pt.transitSchedule.api.TransitStopFacility;
+
 import ch.ethz.matsim.baseline_scenario.BaselineModule;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
@@ -43,6 +53,7 @@ import ch.ethz.matsim.papers.mode_choice_paper.utils.LongPlanFilter;
 
 public class NetworkEvolutionRunSim {
 
+	
 	public static void run(String[] args, MNetwork mNetwork, String initialRouteType, 
 			String initialConfig, int lastIteration) throws ConfigurationException, IOException  {
 		
@@ -60,10 +71,12 @@ public class NetworkEvolutionRunSim {
 		modConfig.getModules().get("controler").addParam("lastIteration", Integer.toString(lastIteration));
 		modConfig.getModules().get("controler").addParam("writeEventsInterval", "1");
 		modConfig.getModules().get("controler").addParam("writePlansInterval", "1");
-		String inputNetworkFile = "Evolution/Population/BaseInfrastructure/GlobalNetwork.xml"; 
+		String inputNetworkFile = "Evolution/Population/BaseInfrastructure/GlobalNetwork.xml";
 		// See old versions BEFORE 06.09.2018 for how to load specific mergedNetworks OD/Random instead of Global Network with all links
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
-		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
+//		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
+		Metro_TransitScheduleImpl.SpeedSBahnModule(mNetwork, "MergedSchedule.xml", "MergedScheduleSpeedSBahn.xml");
+		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleSpeedSBahn.xml");
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml");
 //		modConfig.getModules().get("qsim").addParam("flowCapacityFactor", "10000");
 //		modConfig.getModules().get("global").addParam("numberOfThreads","1");
@@ -310,7 +323,7 @@ public class NetworkEvolutionRunSim {
 			CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers, populationFactor*otherUsers,
 					populationFactor*carTimeTotal,  populationFactor*carPersonDist,  populationFactor*ptTimeTotal,  populationFactor*ptPersonDist);
 			cbp.calculateAverages();
-			XMLOps.writeToFile(cbp, networkPath+networkName+"/cbpParameters"+lastIteration+".xml");
+			XMLOps.writeToFile(cbp, networkPath+networkName+"/cbpParametersAveraged"+lastIteration+".xml");
 		} // end of networkLoop
 		
 		for (MNetwork network : networkPopulation.networkMap.values()) {

@@ -76,7 +76,8 @@ public class VisualizerPedigree {
 		}
 
 		String thisGenNetwork = finalNetwork;
-		generationLoop: for (Integer gen = finalGeneration; gen >= firstGeneration; gen--) {
+		generationLoop:
+		for (Integer gen = finalGeneration; gen >= firstGeneration; gen--) {
 
 			BufferedImage blankImg = null;
 			blankImg = ImageIO.read(new File("zurich_1pm/bgImgMedium.png"));
@@ -95,6 +96,7 @@ public class VisualizerPedigree {
 			File routesNetworkFile = new File(routesFolder + "MRoutes" + thisGenNetwork + ".xml");
 			System.out.println("routesNetworkFile = " + routesNetworkFile);
 			if (routesNetworkFile.exists()) {
+				
 				Config config = ConfigUtils.createConfig();
 				config.getModules().get("network").addParam("inputNetworkFile", routesNetworkFile.toString());
 				Scenario scenario = ScenarioUtils.loadScenario(config);

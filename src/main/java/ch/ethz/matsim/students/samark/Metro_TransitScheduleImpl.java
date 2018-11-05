@@ -2,10 +2,13 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
@@ -15,6 +18,8 @@ import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.population.routes.NetworkRoute;
+import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.transitSchedule.api.Departure;
 import org.matsim.pt.transitSchedule.api.TransitLine;
@@ -345,6 +350,490 @@ public class Metro_TransitScheduleImpl {
 	}
 
 	
+	
+	
+	public static void TS_ModificationModule(String NetworkId) throws IOException {
+		// do this to modify original zurichSchedule e.g. compromizedZurichSchedule with only have of the tram routes
+		// CAUTION: make sure to use that new schedule in the MATSim run config!!
+		Log.write("  >> Removing half of the tram lines on VBZ schedule for  "+NetworkId);
+		Config config = ConfigUtils.createConfig();
+		config.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/Evolution/Population/"+NetworkId+"/MergedSchedule.xml");
+		Scenario scenario = ScenarioUtils.loadScenario(config);
+		TransitSchedule tsZH = scenario.getTransitSchedule();
+	
+		// now make sure to insert conditions accordingly in Clone.transitSchedule to modify the new schedule
+		// change in the RUNSim config the transitSchedule to MergedScheduleModified.xml
+		TransitSchedule tsZHCompromized = Clone.transitSchedule(tsZH);
+		TransitScheduleWriter tsw = new TransitScheduleWriter(tsZHCompromized);
+		tsw.writeFile("zurich_1pm/Evolution/Population/"+NetworkId+"/MergedScheduleModified.xml");
+	}
+	
+	
+	
+	public static TransitSchedule SpeedSBahnModule(MNetwork mNetwork, String transitScheduleFileNameOld, String transitScheduleFileNameNew) throws IOException {
+		
+		Log.write("  >> Modifying ZH SBahn network for "+mNetwork.networkID+". Optimize stop sequences with new metro capacities.");
+		Config configMerged = ConfigUtils.createConfig();
+		configMerged.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/"+transitScheduleFileNameOld);
+//		configOrig.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/zurich_transit_schedule.xml.gz");
+		Scenario scenarioMerged = ScenarioUtils.loadScenario(configMerged);
+		TransitSchedule tsMerged = scenarioMerged.getTransitSchedule();
+		
+		// GO THROUGH MERGED SCHEDULE and make OD pairs (travel times are not necessary)
+		List<ODRoutePairX> odPairsX = new ArrayList<ODRoutePairX>();
+		for (MRoute mr : mNetwork.routeMap.values()) {
+			for (TransitRoute tr : mr.transitLine.getRoutes().values()) {
+				for (TransitRouteStop trsO : tr.getStops().subList(0, tr.getStops().size()/2)) {
+					for (TransitRouteStop trsD : tr.getStops().subList(0, tr.getStops().size()/2)) {
+						if (trsO.getStopFacility().getId().equals(trsD.getStopFacility().getId())) {
+							continue;
+						}
+						Boolean odXAlreadyFeatured = false;
+						for (ODRoutePairX odPairX : odPairsX) {
+							if (GeomDistance.calculate(trsO.getStopFacility().getCoord(), odPairX.O)<300.0 
+									&& GeomDistance.calculate(trsD.getStopFacility().getCoord(), odPairX.D)<300.0) {
+								odXAlreadyFeatured = true;
+								break;
+							}
+						}
+						if (odXAlreadyFeatured.equals(false)) {
+							odPairsX.add(new ODRoutePairX(trsO.getStopFacility().getCoord(), trsD.getStopFacility().getCoord(),
+									trsO.getStopFacility().getName()+ "_" +trsD.getStopFacility().getName())); // one way
+							odPairsX.add(new ODRoutePairX(trsD.getStopFacility().getCoord(), trsO.getStopFacility().getCoord(),
+									trsD.getStopFacility().getName()+ "_" +trsO.getStopFacility().getName())); // and reverse (always added together)
+						}
+					}
+				}
+			}
+		}
+		
+		// OLD Version: half automatic (failed bc not all stops may be featured in metroSchedule)
+		//	List<Id<TransitStopFacility>> keyStops = Arrays.asList(
+		//			Id.create("8503000_metro", TransitStopFacility.class),	//  TSF-ID  Hauptbahnhof = 8503000_metro
+		//			Id.create("8503003_metro", TransitStopFacility.class),	//  TSF-ID  Stadelhofen = 8503003_metro 
+		//			Id.create("8503059_metro", TransitStopFacility.class),	//  TSF-ID  StadelhofenFB = 8503059_metro 
+		//			Id.create("8503006_metro", TransitStopFacility.class),  //  TSF-ID  Oerlikon = 8503006_metro
+		//			Id.create("8503001_metro", TransitStopFacility.class),  //  TSF-ID  Altstetten = 8503001_metro
+		//			Id.create("8503010_metro", TransitStopFacility.class)); //  TSF-ID  Enge = 8503010_metro
+		//	List<Coord> keyStopsX = new ArrayList<Coord>();
+		//	for (Id<TransitStopFacility> keyStop : keyStops) {
+		//		keyStopsX.add(tsMerged.getFacilities().get(keyStop).getCoord());
+		//	}
+		
+		// NEW Version: fully manual
+		List<Coord> keyStopsX = Arrays.asList(
+				new Coord(2683188.0, 1248066.0),  //  TSF-ID  Hauptbahnhof = 8503000_metro
+				new Coord(2683804.0, 1246754.0),  //  TSF-ID  Stadelhofen = 8503003_metro | StadelhofenFB = 8503059_metro 
+				new Coord(2683424.0, 1251770.0),  //  TSF-ID  Oerlikon = 8503006_metro
+				new Coord(2679313.0, 1249496.0),  //  TSF-ID  Altstetten = 8503001_metro
+				new Coord(2682503.0, 1246493.0)); //  TSF-ID  Enge = 8503010_metro
 
+		
+		TransitSchedule tsMod = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule();
+		for (TransitStopFacility tsf : tsMerged.getFacilities().values()) {
+			tsMod.addStopFacility(Metro_TransitScheduleImpl.cloneTransitStopFacility(tsf, tsMerged.getFactory()));
+		}
+		for (TransitLine tl : tsMerged.getTransitLines().values()) {
+			tsMod.addTransitLine(Metro_TransitScheduleImpl.cloneTransitLine(tl, tsMerged, odPairsX, keyStopsX));
+		}
+		
+		TransitScheduleWriter tswMod = new TransitScheduleWriter(tsMod);
+		tswMod.writeFile("zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/"+transitScheduleFileNameNew);
+		return tsMod;
+	}
+	
+	
+	
+	public static TransitStopFacility cloneTransitStopFacility(TransitStopFacility o, TransitScheduleFactory tsf) {
+		TransitStopFacility copy = tsf.createTransitStopFacility(o.getId(), o.getCoord(), o.getIsBlockingLane());
+		copy.setLinkId(o.getLinkId());
+		copy.setName(o.getName());
+		copy.setStopPostAreaId(o.getStopPostAreaId());
+		return copy;
+	}
+
+	public static TransitLine cloneTransitLine(TransitLine tlOrig, TransitSchedule tsMerged, List<ODRoutePairX> odPairsX, List<Coord> keyStopsX) throws IOException {
+		TransitLine tlNew = tsMerged.getFactory().createTransitLine(tlOrig.getId());
+		tlNew.setName(tlOrig.getName());
+		String lineNr = null;
+		if (tlOrig.getId().toString().contains("SBB_S")) {
+			lineNr = tlOrig.getId().toString().split("_")[1];
+		}
+		
+		for (TransitRoute trOrig : tlOrig.getRoutes().values()) {
+			TransitRoute trNew = null;
+			if (tlOrig.getId().toString().contains("SBB_S")) { // SBB
+//			if (false) {
+				trNew = speedUpSBahnRoute(trOrig, tsMerged, odPairsX, keyStopsX);
+				for (Departure d : trOrig.getDepartures().values()){				
+					trNew.addDeparture(d);
+				}
+			}
+			else { // DEFAULT
+				trNew = tsMerged.getFactory().createTransitRoute(trOrig.getId(), trOrig.getRoute().clone(), Clone.list(trOrig.getStops()), trOrig.getTransportMode());
+				for (Departure d : trOrig.getDepartures().values()){				
+					trNew.addDeparture(d);
+				}
+			}
+			tlNew.addRoute(trNew);
+		}
+		return tlNew;
+	}
+	
+	
+	public static TransitRoute speedUpSBahnRoute(TransitRoute trOrig, TransitSchedule tsMerged, List<ODRoutePairX> odPairsX, List<Coord> keyStopsX) throws IOException {
+		Config config = ConfigUtils.createConfig();
+		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
+		Network globalNetwork = ScenarioUtils.loadScenario(config).getNetwork();
+		// NetworkRoute trNewRoute = null;
+		
+		List<TransitRouteStop> trNewRouteStops = new ArrayList<TransitRouteStop>();
+		// List<Id<Link>> newRouteLinkIds = new ArrayList<Id<Link>>();
+		
+//		Log.write("Trying stop sequence of transitRoute "+trOrig.getId().toString()+" :");
+		for (TransitRouteStop trs : trNewRouteStops) {
+//			Log.write("Stop "+trs.getStopFacility()+"  ("+trs.getStopFacility().getName()+")");
+		}
+		if (trOrig.getStops().size()<3) { // size 2 or smaller means no intermediate stops to clear --> this route can be seen as cut already.
+			trNewRouteStops.addAll(trOrig.getStops());
+			// trNewRoute = trOrig.getRoute();
+		}
+		else {
+			trNewRouteStops.addAll(trOrig.getStops());
+			Boolean stopsRemovedThisIter = true;
+			while (stopsRemovedThisIter) {
+//				Log.write("stopsRemovedThisIter = "+stopsRemovedThisIter);
+				stopsRemovedThisIter = false;
+				ArrayList<TransitRouteStop> routeStopsCutTemp = new ArrayList<TransitRouteStop>();
+				routeStopsCutTemp.addAll(trNewRouteStops);
+				
+				OuterLoop:
+				for (TransitRouteStop trsO : trNewRouteStops.subList(0, trNewRouteStops.size()-2)) {	// -2 bc last intermediate stop that can be cleared is size-1
+//					Log.write("Origin Route Stop = "+trsO.getStopFacility()+"  ("+trsO.getStopFacility().getName()+")");
+					for (Coord keyCoord : keyStopsX) {
+						if (GeomDistance.calculate(keyCoord, trNewRouteStops.get(trNewRouteStops.indexOf(trsO)+1).getStopFacility().getCoord()) < 400.0) {
+							continue OuterLoop; // do not look for intermediate stops down the route if next stop down the route is a key stop -> Set O-stop to the keyStop.
+						}
+					}	
+					for (TransitRouteStop trsD : trNewRouteStops.subList(trNewRouteStops.indexOf(trsO)+2, trNewRouteStops.size())) {
+//						Log.write("Destination Route Stop = "+trsD.getStopFacility()+"  ("+trsD.getStopFacility().getName()+")");
+						for (ODRoutePairX odPairX : odPairsX) {
+//							Log.write("OD ");
+							if (GeomDistance.calculate(odPairX.O, trsO.getStopFacility().getCoord()) < 400.0
+									&& GeomDistance.calculate(odPairX.D, trsD.getStopFacility().getCoord()) < 400.0) {
+								Log.write("Cutting intermediate stops between OD-pair "+odPairX.odPairNames);
+								// Log.write("Found metro OD-pair: "+odPairX.odStopPairNames); // make additional field with names for this here!
+								// clear trNewRouteStops and only add again the stops before and after the od-pair (=clear intermediate stops)
+								// XXX update the times after the intermediate stops (arrival/departure sooner)
+								Integer indexO = trNewRouteStops.indexOf(trsO);
+								Integer indexD = trNewRouteStops.indexOf(trsD);
+								routeStopsCutTemp.clear();
+								routeStopsCutTemp.addAll(trNewRouteStops.subList(0, indexO+1));
+								routeStopsCutTemp.addAll(trNewRouteStops.subList(indexD, trNewRouteStops.size()));
+								//update times (make ANOTHER temp route copy first, where you can have updated times and then go over temp route to update w. new times)
+								ArrayList<TransitRouteStop> routeStopsTimeUpdatedTemp = new ArrayList<TransitRouteStop>();
+								routeStopsTimeUpdatedTemp.addAll(routeStopsCutTemp.subList(0, indexO+1));	// add those stops without time gains
+								Integer nClearedStops = indexD-indexO-1;
+								Double timeGainsPerClearedStop = 92.0; // seconds
+									//(comp. S15 to S9 between Uster->Stadelhofen | 4 clearedStops = 420s timeGains) // S25 to S8 HB->Wädenswil | 9 stops = 12min gains
+								for (TransitRouteStop stopToUpdateTime : routeStopsCutTemp.subList(indexO+1, routeStopsCutTemp.size())) {
+									TransitRouteStop timeUpdatedStop = tsMerged.getFactory().createTransitRouteStop(stopToUpdateTime.getStopFacility(),
+											stopToUpdateTime.getArrivalOffset()-nClearedStops*timeGainsPerClearedStop,
+											stopToUpdateTime.getDepartureOffset()-nClearedStops*timeGainsPerClearedStop);
+									timeUpdatedStop.setAwaitDepartureTime(true);
+									routeStopsTimeUpdatedTemp.add(timeUpdatedStop);
+								}
+								stopsRemovedThisIter = true;
+								routeStopsCutTemp.clear();
+								routeStopsCutTemp.addAll(routeStopsTimeUpdatedTemp);
+								break OuterLoop;
+							}
+						}
+						for (Coord keyCoord : keyStopsX) {
+							if (GeomDistance.calculate(keyCoord, trNewRouteStops.get(trNewRouteStops.indexOf(trsD)).getStopFacility().getCoord()) < 400.0) {
+								// if od-pair was not detected (so we don't jump out of the loops), but D-stop is a key stop,
+								// we must stop roaming along inner loop and proceed with outer loop. We do this until outer loop stop is the one before key stop
+								// when the outer loop moves onto the key stop and opens up the search along inner loop again down the route until the next key stop
+								continue OuterLoop;
+							}
+						}
+					}
+				}
+				trNewRouteStops.clear();
+				trNewRouteStops.addAll(routeStopsCutTemp);
+			}
+			// trNewRoute = RouteUtils.createNetworkRoute(newRouteLinkIds, globalNetwork);
+		}	// else loop
+		
+//			// Display cut routes
+//			for (Entry<String, ArrayList<Id<TransitStopFacility>>> routeStopsEntry : routeStopsMapX.entrySet()) {
+//				Log.write("Cut SBahn Line "+routeStopsEntry.getKey()+":");
+//				for (Id<TransitStopFacility> tsf : routeStopsEntry.getValue()) {
+//					if (tsMetro.getFacilities().containsKey(tsf)) {
+//						Log.write(tsf.toString() + " = " + tsMetro.getFacilities().get(tsf).getName());					
+//					}
+//					else if(tsOrig.getFacilities().containsKey(tsf)) {
+//						Log.write("(not featured in metro schedule) "+tsf.toString() + " = " + tsOrig.getFacilities().get(tsf).getName());
+//					}
+//					else {
+//						Log.write("(not featured in any schedule) "+tsf.toString());
+//					}
+//				}
+//			}	
+		
+		TransitRoute trNew = tsMerged.getFactory().createTransitRoute(trOrig.getId(), trOrig.getRoute().clone(), trNewRouteStops, trOrig.getTransportMode());
+		return trNew;
+	}
+
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+	
+
+	public static void FastSBahnModule(MNetwork mNetwork) throws IOException {
+		
+		// every sBahnStopSequence has several subRoutes as it is in the zurich_1pm transitSchedule file
+		Log.write("  >> Modifying ZH SBahn network for "+mNetwork.networkID+". Optimize stop sequences with new metro capacities.");
+		Config config = ConfigUtils.createConfig();
+		config.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
+//		configOrig.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/zurich_transit_schedule.xml.gz");
+		Scenario scenario = ScenarioUtils.loadScenario(config);
+		TransitSchedule tsMetro = scenario.getTransitSchedule();
+
+		
+		
+		// go through metro schedule and make OD pairs with travel times (update shortest travel times if found a faster one)
+		// make converter from original stopFacilityId <> newFacilityId
+		// convert original dominant lines to new system TransitRoute with arr/dep times
+		// run along these lines and remove intermediate stops if found OD pair (update immediately travel times arr/dep)
+		
+		// GO THROUGH METRO SCHEDULE and make OD pairs (travel times are not necessary)
+//		List<ODRoutePair> odPairs = new ArrayList<ODRoutePair>();
+		List<ODRoutePairX> odPairsX = new ArrayList<ODRoutePairX>();
+		for (MRoute mr : mNetwork.routeMap.values()) {
+			for (TransitRoute tr : mr.transitLine.getRoutes().values()) {
+				for (TransitRouteStop trsO : tr.getStops().subList(0, tr.getStops().size()/2)) {
+					for (TransitRouteStop trsD : tr.getStops().subList(0, tr.getStops().size()/2)) {
+						if (trsO.getStopFacility().getId().equals(trsD.getStopFacility().getId())) {
+							continue;
+						}
+//						Boolean odAlreadyFeatured = false;
+						Boolean odXAlreadyFeatured = false;
+//						for (ODRoutePair odPair : odPairs) {
+//							if (trsO.getStopFacility().getId().equals(odPair.O)
+//									&& trsD.getStopFacility().getId().equals(odPair.D)) {
+//								odAlreadyFeatured = true;
+//								break;
+//							}
+//						}
+						for (ODRoutePairX odPairX : odPairsX) {
+							if (GeomDistance.calculate(trsO.getStopFacility().getCoord(), odPairX.O)<300.0 
+									&& GeomDistance.calculate(trsD.getStopFacility().getCoord(), odPairX.D)<300.0) {
+								odXAlreadyFeatured = true;
+								break;
+							}
+						}
+//						if (odAlreadyFeatured.equals(false)) {
+//							odPairs.add(new ODRoutePair(trsO.getStopFacility().getId(), trsD.getStopFacility().getId()));		// one way
+//							odPairs.add(new ODRoutePair(trsD.getStopFacility().getId(), trsO.getStopFacility().getId()));		// and reverse (always added together)
+//						}
+						if (odXAlreadyFeatured.equals(false)) {
+							odPairsX.add(new ODRoutePairX(trsO.getStopFacility().getCoord(), trsD.getStopFacility().getCoord()));		// one way
+							odPairsX.add(new ODRoutePairX(trsD.getStopFacility().getCoord(), trsO.getStopFacility().getCoord()));		// and reverse (always added together)
+						}
+					}
+				}
+			}
+		}
+
+		
+		// EXTRACT all rail lines and routes (dirty form):
+		
+		Map<String, ArrayList<ArrayList<TransitRouteStop>>> sBahnStopSequences = new HashMap<String, ArrayList<ArrayList<TransitRouteStop>>>();
+		for (TransitLine tl : tsMetro.getTransitLines().values()) {
+			if (tl.getId().toString().contains("SBB_S")) {
+				String lineNr = tl.getId().toString().split("_")[1];
+//				Log.write("Scanning SBahn line "+lineNr);
+				for (TransitRoute tr : tl.getRoutes().values()) {
+					ArrayList<TransitRouteStop> routeStops = new ArrayList<TransitRouteStop>();
+					routeStops.addAll(tr.getStops());
+					if (sBahnStopSequences.containsKey(lineNr)) {
+						sBahnStopSequences.get(lineNr).add(routeStops);
+					}
+					else {
+						sBahnStopSequences.put(lineNr, new ArrayList<ArrayList<TransitRouteStop>>());
+						sBahnStopSequences.get(lineNr).add(routeStops);
+					}
+				}
+			}
+		}
+		
+		List<Id<TransitStopFacility>> keyStops = Arrays.asList(
+				Id.create("8503000_metro", TransitStopFacility.class),	//  TSF-ID  Hauptbahnhof = 8503000_metro
+				Id.create("8503003_metro", TransitStopFacility.class),	//  TSF-ID  Stadelhofen = 8503003_metro 
+				Id.create("8503059_metro", TransitStopFacility.class),	//  TSF-ID  StadelhofenFB = 8503059_metro 
+				Id.create("8503006_metro", TransitStopFacility.class),  //  TSF-ID  Oerlikon = 8503006_metro
+				Id.create("8503001_metro", TransitStopFacility.class),  //  TSF-ID  Altstetten = 8503001_metro
+				Id.create("8503010_metro", TransitStopFacility.class)); //  TSF-ID  Enge = 8503010_metro
+
+		List<Coord> keyStopsX = new ArrayList<Coord>();
+		for (Id<TransitStopFacility> keyStop : keyStops) {
+			keyStopsX.add(tsMetro.getFacilities().get(keyStop).getCoord());
+		}
+		
+		
+// ----------------------------------
+		
+		// EXTRACT in handy form the dominant rail lines:
+		// transitStopsMap: Main stop sequence of this line (TransitRouteStops with departures etc.)
+		// routeStopsMap: Main stop sequence of this line (TransitStopFacilities)
+		Map<String, ArrayList<TransitRouteStop>> transitStopsMap = new HashMap<String, ArrayList<TransitRouteStop>>();
+		Map<String, ArrayList<TransitStopFacility>> routeStopsMap = new HashMap<String, ArrayList<TransitStopFacility>>();
+
+		for (Entry<String, ArrayList<ArrayList<TransitRouteStop>>> sBahnStopSequence : sBahnStopSequences.entrySet()) {
+			String thisLine = sBahnStopSequence.getKey();
+			ArrayList<ArrayList<TransitRouteStop>> thisLineStopSequences = sBahnStopSequence.getValue();
+			Log.write("This line = "+thisLine + " has #StopSequences="+thisLineStopSequences.size());
+			ArrayList<TransitRouteStop> thisLineLongestStopSequence = new ArrayList<TransitRouteStop>();
+			Integer maxStopSequenceLength = 0;
+			for (ArrayList<TransitRouteStop> stopSequence : thisLineStopSequences) {
+				if (stopSequence.size() > maxStopSequenceLength) {
+					maxStopSequenceLength = stopSequence.size();
+					thisLineLongestStopSequence = stopSequence;
+				}
+			}
+			transitStopsMap.put(thisLine, thisLineLongestStopSequence);
+			ArrayList<TransitStopFacility> thisLineLongestStopSequenceFacilitiesOnly = new ArrayList<TransitStopFacility>();
+			// Log.write("Longest stop sequence:");
+			for (TransitRouteStop trs : thisLineLongestStopSequence) {
+				thisLineLongestStopSequenceFacilitiesOnly.add(trs.getStopFacility());
+				// Log.write(trs.getStopFacility().getId().toString() + "  ("+trs.getStopFacility().getName()+")");
+			}
+			routeStopsMap.put(thisLine, thisLineLongestStopSequenceFacilitiesOnly);
+		}
+		
+		
+
+		// CONVERTER from original stopFacilityId <> newFacilityId (see separate method)
+		// Map<String=superName, CustomStop=originalMainFacility,newStopFacility> railStops
+			// NetworkEvolutionImpl row 2360
+			// String superName = OriginalStopId.substring(0, OriginalStopId.indexOf("."));
+			// stopFacility has id="8500562.link:920757". First part is unique to the stop, but it can have several refLinks (second part)
+			// String newMetroStopFacilityId = oldStopSuperName+"_metro";
+
+		// convert original dominant lines to new system TransitRoute with arr/dep times
+//		Map<String, ArrayList<TransitRouteStop>> transitStopsMapX = new HashMap<String, ArrayList<TransitRouteStop>>();
+		Map<String, ArrayList<Id<TransitStopFacility>>> routeStopsMapX = new HashMap<String, ArrayList<Id<TransitStopFacility>>>();
+		Map<Id<TransitStopFacility>, Id<TransitStopFacility>> idsConversionTable = new HashMap<Id<TransitStopFacility>, Id<TransitStopFacility>>();
+		
+		for (Entry<String, ArrayList<TransitRouteStop>> transitRouteStops : transitStopsMap.entrySet()) {
+			ArrayList<Id<TransitStopFacility>> newSystemStopFacilityList = new ArrayList<Id<TransitStopFacility>>();
+			for (TransitRouteStop trs : transitRouteStops.getValue()) {
+				Id<TransitStopFacility> newSystemStopFacilityId = TransitStopFacilityOld2NewId(trs.getStopFacility().getId());
+				newSystemStopFacilityList.add(newSystemStopFacilityId);
+				idsConversionTable.put(newSystemStopFacilityId, trs.getStopFacility().getId());
+//				transitStopsMapX.put(transitRouteStops.getKey(), tsMetro.getFactory().createTransitRouteStop(stop, arrivalDelay, departureDelay));
+			}
+			routeStopsMapX.put(transitRouteStops.getKey(), newSystemStopFacilityList);
+		}
+//		List<ODRoutePair> odPairsOrig = new ArrayList<ODRoutePair>();
+			
+		
+		
+		Map<String, ArrayList<Id<TransitStopFacility>>> routeStopsMapXCut = new HashMap<String, ArrayList<Id<TransitStopFacility>>>();
+		for (Entry<String, ArrayList<Id<TransitStopFacility>>> routeStopsEntry : routeStopsMapX.entrySet()) {
+			ArrayList<Id<TransitStopFacility>> routeStops = routeStopsEntry.getValue();
+			if (routeStops.size()<3) {	// size 2 or smaller means no intermediate stops to clear --> this route can be seen as cut already.
+				routeStopsMapXCut.put(routeStopsEntry.getKey(), routeStops);
+				continue;
+			}
+			ArrayList<Id<TransitStopFacility>> routeStopsCut = new ArrayList<Id<TransitStopFacility>>();
+			routeStopsCut.addAll(routeStops);
+			Boolean stopsRemovedThisIter = true;
+			while (stopsRemovedThisIter) {
+				stopsRemovedThisIter = false;
+				ArrayList<Id<TransitStopFacility>> routeStopsCutTemp = new ArrayList<Id<TransitStopFacility>>();
+				routeStopsCutTemp.addAll(routeStopsCut);
+				
+				OuterLoop:
+				for (Id<TransitStopFacility> tsfO : routeStopsCut.subList(0, routeStopsCut.size()-2)) {	// -2 bc last intermediate stop that can be cleared is size-1
+					if (keyStops.contains(routeStopsCut.get(routeStopsCut.indexOf(tsfO)+1))) {
+						continue OuterLoop; // do not look for intermediate stops down the route if next stop down the route is a key stop -> Set O-stop to the keyStop.
+					}
+					for (Id<TransitStopFacility> tsfD : routeStopsCut.subList(routeStopsCut.indexOf(tsfO)+2, routeStopsCut.size())) {
+//						for (ODRoutePair odPair : odPairs) {
+//							if (odPair.O.equals(tsfO) && odPair.D.equals(tsfD)) {
+//								Log.write("Found metro OD-pair: "+tsMetro.getFacilities().get(odPair.O).getName()+" / "+tsMetro.getFacilities().get(odPair.D).getName());
+//								// third condition makes sure the od-pair is not just adjacent, but it runs along several stops
+//								// clear routeStopsCutTemp and only add again the stops before and after the od-pair (=clear intermediate stops)
+//								routeStopsCutTemp.clear();
+//								routeStopsCutTemp.addAll(routeStopsCut.subList(0, routeStopsCut.indexOf(tsfO)));
+//								routeStopsCutTemp.addAll(routeStopsCut.subList(routeStopsCut.indexOf(tsfD), routeStopsCut.size()));
+//								stopsRemovedThisIter = true;
+//								break OuterLoop;
+//							}
+//						}
+						if (keyStops.contains(tsfD)) {
+							// if od-pair was not detected (so we don't jump out of the loops), but D-stop is a key stop,
+							// we must stop roaming along inner loop and proceed with outer loop. We do this until outer loop stop is the one before key stop
+							// when the outer loop moves onto the key stop and opens up the search along inner loop again down the route until the next key stop
+							continue OuterLoop; 
+						}
+					}
+				}
+				routeStopsCut.clear();
+				routeStopsCut.addAll(routeStopsCutTemp);
+			}
+			routeStopsMapXCut.put(routeStopsEntry.getKey(), routeStopsCut);
+		}
+		// Display cut routes
+		for (Entry<String, ArrayList<Id<TransitStopFacility>>> routeStopsEntry : routeStopsMapX.entrySet()) {
+			Log.write("Cut SBahn Line "+routeStopsEntry.getKey()+":");
+			for (Id<TransitStopFacility> tsf : routeStopsEntry.getValue()) {
+				if (tsMetro.getFacilities().containsKey(tsf)) {
+					Log.write(tsf.toString() + " = " + tsMetro.getFacilities().get(tsf).getName());					
+				}
+//				else if(tsOrig.getFacilities().containsKey(tsf)) {
+//					Log.write("(not featured in metro schedule) "+tsf.toString() + " = " + tsOrig.getFacilities().get(tsf).getName());
+//				}
+//				else {
+//					Log.write("(not featured in any schedule) "+tsf.toString());
+//				}
+			}
+		}
+		
+		// XXX: Now roam along original routes with arr/dep and kill intermediate stops and adapt timing
+
+		
+		
+	}
+
+
+	public static Id<TransitStopFacility> TransitStopFacilityOld2NewId(Id<TransitStopFacility> OriginalStopId) {
+		String newIdString = OriginalStopId.toString().substring(0, OriginalStopId.toString().indexOf("."));
+		return Id.create(newIdString+"_metro", TransitStopFacility.class);
+	}
+
+	
 	
 }

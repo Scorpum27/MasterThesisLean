@@ -134,7 +134,7 @@ public class EvoOpsMerger {
 				autonomousMetroSubnetworks.add(newSubnetwork);
 			}
 			// Display here how many autonomous subnetworks there are
-			Log.write("The routes form #independentNetworks=" + autonomousMetroSubnetworks.size());
+			Log.write("The routes of "+mn.networkID+" form #independentNetworks=" + autonomousMetroSubnetworks.size());
 			
 			// XXX May try to connect these subnetworks by closest distance link: Possible approach:
 				// for all individual mroutes of one network, apply them to connectRouteToNetwork(mr, mn, maxConnectingDistance, globalNetwork, metroLinkAttributes, maxCrossingAngle);
@@ -253,7 +253,8 @@ public class EvoOpsMerger {
 					newRouteLinkList.addAll(NetworkEvolutionImpl.OppositeLinkListOf(newRouteLinkList));
 					mr.linkList = newRouteLinkList;
 					mr.networkRoute = RouteUtils.createNetworkRoute(mr.linkList, globalNetwork);
-					Log.write("Successfully attached possibly autonomous route="+mr.routeID.toString() + " to facility="+closestFacility.getName());
+//					Log.write("Successfully attached possibly autonomous route="+mr.routeID.toString() + " to facility="+closestFacility.getName());
+					Log.write("Successfully attached possibly autonomous route="+mr.routeID.toString());
 					Integer generationNr = 1;
 					String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/MRoutes";
 					NetworkEvolutionImpl.MRouteToNetwork(mr, globalNetwork,  Sets.newHashSet("pt"), historyFileLocation+"/"+mr.routeID+"_NetworkFileAttached.xml");
@@ -507,7 +508,7 @@ public class EvoOpsMerger {
 				}
 			}
 		}
-		Log.write(" Routes intersection modification successful: [ "+r1.routeID + " x " + r2.routeID + " ]  Try next");
+		Log.write(" Routes intersection modification successful: [ "+r1.routeID + " x " + r2.routeID + " ]");
 		return true;
 	}
 

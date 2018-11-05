@@ -135,14 +135,14 @@ public class MNetwork implements Serializable{
 	// - UtilityOfTime for MPT->PT Switchers
 	// - Substantial accident cost rate (what about accident cost in PT?)
 	
-	public void calculateRoutesAndNetworkScore(int lastIterationOriginal, double populationFactor,
+	public void calculateRoutesAndNetworkScore(int lastIteration, double populationFactor,
 			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
 			String cbpOriginalPath, String networkPath, String utilityFunctionSelection) throws IOException {
 		CostBenefitParameters cbpOriginal =
 //				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), cbpOriginalPath+"cbpParametersOriginal"+lastIterationOriginal+".xml");
 				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), cbpOriginalPath+"cbpParametersOriginalGlobal.xml");
 		CostBenefitParameters cbpNew =
-				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), networkPath+this.networkID+"/cbpParameters"+lastIterationOriginal+".xml");		
+				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), networkPath+this.networkID+"/cbpParametersAveraged"+lastIteration+".xml");		
 
 //		this.calculateTotalRouteLengthAndDrivenKM();
 		
@@ -331,7 +331,7 @@ public class MNetwork implements Serializable{
 			this.otherGains = vehicleSavings+extCostSavings+ptVatIncrease;
 
 			Log.write("-------------------  "+ this.networkID);
-			Log.write("DeltaPtUsers = "+(newCase.ptUsers-refCase.ptUsers));		
+			Log.write("DeltaPtUsers = "+(newCase.ptUsers-refCase.ptUsers));		// the cbp of newCase and refCase is already averaged!
 			Log.write("DeltaCarUsers = "+(newCase.carUsers - refCase.carUsers));
 			Log.write("TotalMetroRouteLength / Vehicles = "+this.totalRouteLength+" / "+this.totalVehiclesNr);
 			Log.write("lengthUG (%new / %develop) [Km] = "+lengthUG/1000 + " ("+newUGpercentage+" / "+developUGpercentage+")");

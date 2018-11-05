@@ -57,21 +57,10 @@ public class Demo {
 
 		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
 		
-		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
-		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
-		Config config = ConfigUtils.createConfig();
-		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
-		Network globalNetwork = ScenarioUtils.loadScenario(config).getNetwork();
-
-		MNetworkPop newPopulation = new MNetworkPop("testPopulation");
 		Integer n = 1;
 		Integer generationNr = 1;
-		Integer initialRoutesPerNetwork = 10;
+		Integer initialRoutesPerNetwork = 500;
 		MNetwork loadedNetwork = new MNetwork("Network"+n);
-		newPopulation.addNetwork(loadedNetwork);
-		newPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
-		Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
-//		for (int r : Arrays.asList(1, 2, 5)) {
 		for (int r=1; r<=initialRoutesPerNetwork; r++) {
 			String routeFilePath =
 					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
@@ -83,14 +72,45 @@ public class Demo {
 			}
 		}
 		
-		Double maxConnectingDistance = 2000.0;
-		Double maxCrossingAngle = 150.0;
-		EvoOpsMerger.mergeRoutes(newPopulation, globalNetwork, maxConnectingDistance,
-				metroLinkAttributes, "eliteNetwork", maxCrossingAngle);
-	
-		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/MRoutes";
-			NetworkEvolutionImpl.MRoutesToNetwork(loadedNetwork.getRouteMap(), globalNetwork, 
-					Sets.newHashSet("pt"), historyFileLocation+"/MRoutesNetwork1MergedTest"+".xml");
+		Metro_TransitScheduleImpl.SpeedSBahnModule(loadedNetwork, "MergedSchedule.xml", "MergedScheduleSpeedSBahn.xml");
+		
+//		// %%%
+//		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
+//		
+//		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+//		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
+//		Config config = ConfigUtils.createConfig();
+//		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
+//		Network globalNetwork = ScenarioUtils.loadScenario(config).getNetwork();
+//
+//		MNetworkPop newPopulation = new MNetworkPop("testPopulation");
+//		Integer n = 1;
+//		Integer generationNr = 1;
+//		Integer initialRoutesPerNetwork = 10;
+//		MNetwork loadedNetwork = new MNetwork("Network"+n);
+//		newPopulation.addNetwork(loadedNetwork);
+//		newPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
+//		Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
+////		for (int r : Arrays.asList(1, 2, 5)) {
+//		for (int r=1; r<=initialRoutesPerNetwork; r++) {
+//			String routeFilePath =
+//					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
+//			File f = new File(routeFilePath);
+//			if (f.exists()) {
+//				MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+//				loadedNetwork.addNetworkRoute(loadedRoute);
+//				Log.write("Adding network route "+loadedRoute.routeID);
+//			}
+//		}
+//		
+//		Double maxConnectingDistance = 2000.0;
+//		Double maxCrossingAngle = 150.0;
+//		EvoOpsMerger.mergeRoutes(newPopulation, globalNetwork, maxConnectingDistance,
+//				metroLinkAttributes, "eliteNetwork", maxCrossingAngle);
+//	
+//		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/MRoutes";
+//			NetworkEvolutionImpl.MRoutesToNetwork(loadedNetwork.getRouteMap(), globalNetwork, 
+//					Sets.newHashSet("pt"), historyFileLocation+"/MRoutesNetwork1MergedTest"+".xml");
 		
 		// %%% ---
 //		List<String> pair1 = Arrays.asList("1", "8");

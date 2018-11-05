@@ -100,8 +100,6 @@ public class NetworkEvolutionImpl {
 		String plansFolder = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS";
 		if ( ! (new File("zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml")).exists()) {
 			(new File("zurich_1pm/cbpParametersOriginal")).mkdirs();
-			// String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal"+lastIterationOriginal+".xml";
-			// NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, lastIterationOriginal, iterationsToAverage);			
 			String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml";
 			NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, 100, 80);
 		}
@@ -363,7 +361,6 @@ public class NetworkEvolutionImpl {
 			else {
 				for (Link outLink : facilityNode.getOutLinks().values()) {
 					alreadyConnectedNodes.add(outLink.getToNode().getId());
-					Log.write("marking already connected nodes with node"+ outLink.getToNode().getId().toString());
 				}				
 			}
 			for (Node node : metroNetwork.getNodes().values()) {
@@ -1136,9 +1133,6 @@ public class NetworkEvolutionImpl {
 					outerCityMetroStops.put(newStopSuperName, new CustomStop(metroCloneFacility, newNode.getId(), "newMetro", true));
 					railStop.mode = "railway2metro";
 					railStop.newNetworkNode = newNode.getId();
-					if (newNode.getId().toString().contains("351545")) {
-						Log.write("XXX 1027");
-					}
 					railStop.addedToNewSchedule = true;
 					railStop.transitStopFacility = metroCloneFacility;
 				}
@@ -1192,9 +1186,6 @@ public class NetworkEvolutionImpl {
 									}
 									// when we have connecting link to new node at lastStop, make connection links!
 									Node lastStopNetworkNode = outerCityMetroNetwork.getNodes().get(railStops.get(lastStopSuperName).newNetworkNode);
-									if (railStops.get(lastStopSuperName).newNetworkNode.toString().contains("351545")) {
-										Log.write("XXX 1082");
-									}
 									Id<Link> newLinkIdLastStop = Id.createLinkId(lastStopNetworkNode.getId().toString()+"RC_"+ firstFromNodeMetro.getId().toString());							
 									Id<Link> newLinkIdLastStopReverse = NetworkEvolutionImpl.ReverseLink(newLinkIdLastStop);
 									if (outerCityMetroNetwork.getLinks().containsKey(newLinkIdLastStop)==false) {
@@ -1248,9 +1239,6 @@ public class NetworkEvolutionImpl {
 									}
 									// now we have reached currentStop and can make connecting links there and add to network
 									Node currentStopNetworkNode = outerCityMetroNetwork.getNodes().get(railStops.get(currentStopSuperName).newNetworkNode);
-									if (railStops.get(currentStopSuperName).newNetworkNode.toString().contains("351545")) {
-										Log.write("XXX 1139");
-									}
 									Id<Link> newLinkIdCurrentStop = Id.createLinkId(currentStopNetworkNode.getId().toString()+"RC_"+ lastToNodeMetro.getId().toString());
 									Id<Link> newLinkIdCurrentStopReverse = NetworkEvolutionImpl.ReverseLink(newLinkIdCurrentStop);
 									if (outerCityMetroNetwork.getLinks().containsKey(newLinkIdCurrentStop)==false) {
@@ -1744,10 +1732,10 @@ public class NetworkEvolutionImpl {
 		
 		// MERGE SINGLE ROUTES TO A NETWORK
 		// last merger is performed at the end of the second last GEN before last GEN is simulated, bc after last GEN sim no modifications are made to network
-		if (currentGEN % 4 == 0 || currentGEN == lastGeneration-1) {
-			EvoOpsMerger.mergeRoutes(newPopulation, globalNetwork, maxConnectingDistance, metroLinkAttributes, eliteMNetwork.networkID,
-					maxCrossingAngle);
-		}
+//		if (currentGEN % 4 == 0 || currentGEN == lastGeneration-1) {
+//		}
+		EvoOpsMerger.mergeRoutes(newPopulation, globalNetwork, maxConnectingDistance, metroLinkAttributes, eliteMNetwork.networkID,
+				maxCrossingAngle);
 		
 		// APPLY TRANSIT + STORE POPULATION & TRANSITSCHEDULE (calculates & updates: routeLength, roundTripTravelTimes, nDepartures, depSpacing=d(nVehicles))
 		EvoOpsPTEngine.applyPT(newPopulation, globalNetwork, metroLinkAttributes, eliteMNetwork.networkID,
@@ -2246,7 +2234,7 @@ public class NetworkEvolutionImpl {
 
 	public static boolean logResults(List<Map<String, NetworkScoreLog>> networkScoreMaps, String historyFileLocation,
 			String networkScoreMapGeneralLocation, MNetworkPop latestPopulation, double averageTravelTimePerformanceGoal,
-			int finalGeneration, int lastIterationOriginal, double populationFactor,
+			int finalGeneration, int lastIteration, double populationFactor,
 			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Double lifeTime) throws IOException {
 		
 		Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
@@ -2261,7 +2249,7 @@ public class NetworkEvolutionImpl {
 			if(latestPopulation.modifiedNetworksInLastEvolution.contains(mnetwork.getNetworkID())) {
 				
 				mnetwork.lifeTime = lifeTime;
-				mnetwork.calculateRoutesAndNetworkScore(lastIterationOriginal, populationFactor, globalNetwork, metroLinkAttributes,
+				mnetwork.calculateRoutesAndNetworkScore(lastIteration, populationFactor, globalNetwork, metroLinkAttributes,
 						"zurich_1pm/cbpParametersOriginal/", "zurich_1pm/Evolution/Population/", "1"); // include here also part of routesHandling
 				XMLOps.writeToFile(mnetwork, "zurich_1pm/Evolution/Population/"+mnetwork.networkID+"/M"+mnetwork.networkID+".xml");
 				if (performanceGoalAccomplished == false) {		// checking whether performance goal achieved

@@ -5,6 +5,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.matsim.api.core.v01.Id;
@@ -149,18 +150,34 @@ public class Clone {
 	
 	public static TransitStopFacility transitStopFacility(TransitStopFacility o, TransitScheduleFactory tsf) {
 		TransitStopFacility copy = tsf.createTransitStopFacility(o.getId(), o.getCoord(), o.getIsBlockingLane());
+		copy.setLinkId(o.getLinkId());
+		copy.setName(o.getName());
+		copy.setStopPostAreaId(o.getStopPostAreaId());
 		return copy;
 	}
 
 	public static TransitLine transitLine(TransitLine o, TransitScheduleFactory tsf) {
 		TransitLine copy = tsf.createTransitLine(o.getId());
+		copy.setName(o.getName());
 		for (Id<TransitRoute> tr : o.getRoutes().keySet()) {
 			TransitRoute TR = o.getRoutes().get(tr);
 			TransitRoute TRR = tsf.createTransitRoute(tr, TR.getRoute().clone(), Clone.list(TR.getStops()), TR.getTransportMode());
+			// DEFAULT MODULE
 			for (Departure d : TR.getDepartures().values()){				
 				TRR.addDeparture(d);
 			}
-			copy.addRoute(TRR);
+			copy.addRoute(TRR);	
+			// MODULE FOR MODIFYING TRANSIT ROUTE e.g remove trams
+//			if (TR.getTransportMode().equals("tram") && (new Random()).nextDouble() < 1.0) {
+//				copy.addRoute(TRR);
+//			}
+//			else {
+//				for (Departure d : TR.getDepartures().values()){				
+//					TRR.addDeparture(d);
+//				}
+//				copy.addRoute(TRR);				
+//			}
+			// ---
 		}
 		return copy;
 	}
