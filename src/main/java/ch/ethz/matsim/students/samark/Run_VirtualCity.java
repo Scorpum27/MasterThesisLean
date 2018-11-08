@@ -387,7 +387,7 @@ public class Run_VirtualCity {
 		controler.addOverridingModule(new BaselineTransitModule());
 		controler.addOverridingModule(new ZurichModule());
 		controler.addOverridingModule(new BaselineTrafficModule(3.0));
-		controler.addOverridingModule(new CustomModeChoiceModule(cmd));
+//		controler.addOverridingModule(new CustomModeChoiceModule(cmd));
 		controler.run();
 		
 	}

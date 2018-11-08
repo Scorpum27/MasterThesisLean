@@ -22,10 +22,12 @@ public class MHandlerPassengers implements GenericEventHandler{
 
 	Map<String,Double> routeDistances;
 	List<String> metroPassengers;
+	double totalMetroPersonDist;
 	
 	public MHandlerPassengers() {
 		this.routeDistances = new HashMap<String,Double>();
 		this.metroPassengers = new ArrayList<String>();
+		totalMetroPersonDist = 0.0;
 	}
 
 	
@@ -37,7 +39,13 @@ public class MHandlerPassengers implements GenericEventHandler{
 		if (event.getEventType().contains("pt_transit")) {	// first add distance for every pt_transit movement
 			double distance = Double.parseDouble(event.getAttributes().get("travelDistance"));			
 			if (event.getAttributes().get("accessStop").contains("metro")) { // then add distance specifically for every METRO pt_transit movement
-				
+//				try {
+//					Log.write(event.toString());
+//					Log.write("Total metro distance = "+this.totalMetroPersonDist);
+//				} catch (IOException e) {
+//					e.printStackTrace();
+//				}
+				this.totalMetroPersonDist += distance;
 				// --- This subsection updates the distance by weighting links within city zone twice (CityZone= [Center=2683114/1248092], [Radius=4400])
 				// CAUTION: Several links touch the access/egressStops, but only one is referred to as refLinkId of the stop.
 				// So we can't just find access/egress links by linkRefIds as in this.transitSchedule.getFacilities().get(accessStopId).getLinkId();

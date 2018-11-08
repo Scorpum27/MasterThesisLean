@@ -429,12 +429,44 @@ public class Metro_TransitScheduleImpl {
 				new Coord(2682503.0, 1246493.0)); //  TSF-ID  Enge = 8503010_metro
 
 		
+		List<Id<TransitStopFacility>> unservicedTSFs = new ArrayList<Id<TransitStopFacility>>();
 		TransitSchedule tsMod = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule();
-		for (TransitStopFacility tsf : tsMerged.getFacilities().values()) {
-			tsMod.addStopFacility(Metro_TransitScheduleImpl.cloneTransitStopFacility(tsf, tsMerged.getFactory()));
-		}
+		
 		for (TransitLine tl : tsMerged.getTransitLines().values()) {
-			tsMod.addTransitLine(Metro_TransitScheduleImpl.cloneTransitLine(tl, tsMerged, odPairsX, keyStopsX));
+			tsMod.addTransitLine(Metro_TransitScheduleImpl.cloneTransitLine(tl, tsMerged, odPairsX, keyStopsX, unservicedTSFs));
+		}
+		
+		for (TransitStopFacility tsf : tsMerged.getFacilities().values()) {
+//			if (unservicedTSFs.contains(tsf.getId())) {
+			if (false) {
+				Log.write("Considering to clone TSF "+tsf.getId()+" ("+tsf.getName()+"). ");
+				Boolean tsfFeaturedInTransitRoutes = false;
+				tsSearchLoop:
+				for (TransitLine tl : tsMerged.getTransitLines().values()) {
+					for (TransitRoute tr : tl.getRoutes().values()) {
+						for (TransitRouteStop trs : tr.getStops()) {
+							if (trs.getStopFacility().getId().equals(tsf.getId())) {
+								tsfFeaturedInTransitRoutes = true;
+								break tsSearchLoop;
+							}
+						}
+					}
+				}
+				if (tsfFeaturedInTransitRoutes) {
+					tsMod.addStopFacility(Metro_TransitScheduleImpl.cloneTransitStopFacility(tsf, tsMerged.getFactory()));
+					Log.write("Adding TSF anyways as it is featured in a new metro route "+tsf.getId()+" ("+tsf.getName()+"). ");
+				}
+				else {
+					Log.write("StopFacility is not featured in any route since SBahn has jumped over it: "+tsf.getId()+" ("+tsf.getName()+"). "
+							+ "Therefore not adding it to the new schedule.");
+					// this is a dangerous operation for the case that the not added stop is called by any of the evaluation/evolution operations as it does not exist.
+					// However, those operations will only call MergedSchedule before deleting certain TSFs and therefore find any TSF they look for.
+					continue;
+				}
+			}
+			else {
+				tsMod.addStopFacility(Metro_TransitScheduleImpl.cloneTransitStopFacility(tsf, tsMerged.getFactory()));
+			}
 		}
 		
 		TransitScheduleWriter tswMod = new TransitScheduleWriter(tsMod);
@@ -448,11 +480,12 @@ public class Metro_TransitScheduleImpl {
 		TransitStopFacility copy = tsf.createTransitStopFacility(o.getId(), o.getCoord(), o.getIsBlockingLane());
 		copy.setLinkId(o.getLinkId());
 		copy.setName(o.getName());
-		copy.setStopPostAreaId(o.getStopPostAreaId());
+		copy.setStopAreaId(o.getStopAreaId());
 		return copy;
 	}
 
-	public static TransitLine cloneTransitLine(TransitLine tlOrig, TransitSchedule tsMerged, List<ODRoutePairX> odPairsX, List<Coord> keyStopsX) throws IOException {
+	public static TransitLine cloneTransitLine(TransitLine tlOrig, TransitSchedule tsMerged, List<ODRoutePairX> odPairsX, List<Coord> keyStopsX, 
+			List<Id<TransitStopFacility>> unservicedTSFs) throws IOException {
 		TransitLine tlNew = tsMerged.getFactory().createTransitLine(tlOrig.getId());
 		tlNew.setName(tlOrig.getName());
 		String lineNr = null;
@@ -464,7 +497,7 @@ public class Metro_TransitScheduleImpl {
 			TransitRoute trNew = null;
 			if (tlOrig.getId().toString().contains("SBB_S")) { // SBB
 //			if (false) {
-				trNew = speedUpSBahnRoute(trOrig, tsMerged, odPairsX, keyStopsX);
+				trNew = speedUpSBahnRoute(trOrig, tsMerged, odPairsX, keyStopsX, unservicedTSFs);
 				for (Departure d : trOrig.getDepartures().values()){				
 					trNew.addDeparture(d);
 				}
@@ -481,7 +514,8 @@ public class Metro_TransitScheduleImpl {
 	}
 	
 	
-	public static TransitRoute speedUpSBahnRoute(TransitRoute trOrig, TransitSchedule tsMerged, List<ODRoutePairX> odPairsX, List<Coord> keyStopsX) throws IOException {
+	public static TransitRoute speedUpSBahnRoute(TransitRoute trOrig, TransitSchedule tsMerged, List<ODRoutePairX> odPairsX, 
+			List<Coord> keyStopsX, List<Id<TransitStopFacility>> unservicedTSFs) throws IOException {
 		Config config = ConfigUtils.createConfig();
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
 		Network globalNetwork = ScenarioUtils.loadScenario(config).getNetwork();
@@ -529,15 +563,25 @@ public class Metro_TransitScheduleImpl {
 								Integer indexD = trNewRouteStops.indexOf(trsD);
 								routeStopsCutTemp.clear();
 								routeStopsCutTemp.addAll(trNewRouteStops.subList(0, indexO+1));
+								// note all intermediate stops which are not serviced
+//								for (TransitRouteStop unservicedTSF : trNewRouteStops.subList(indexO+1, indexD)) {
+//									if ( ! unservicedTSFs.contains(unservicedTSF.getStopFacility().getId())) {
+//										unservicedTSFs.add(unservicedTSF.getStopFacility().getId());
+//										Log.write("Adding unserviced StopFacility: "+unservicedTSF.getStopFacility().getId()+" ("+
+//										unservicedTSF.getStopFacility().getName()+")");
+//									}
+//								}
 								routeStopsCutTemp.addAll(trNewRouteStops.subList(indexD, trNewRouteStops.size()));
 								//update times (make ANOTHER temp route copy first, where you can have updated times and then go over temp route to update w. new times)
 								ArrayList<TransitRouteStop> routeStopsTimeUpdatedTemp = new ArrayList<TransitRouteStop>();
 								routeStopsTimeUpdatedTemp.addAll(routeStopsCutTemp.subList(0, indexO+1));	// add those stops without time gains
 								Integer nClearedStops = indexD-indexO-1;
 								Double timeGainsPerClearedStop = 92.0; // seconds
-									//(comp. S15 to S9 between Uster->Stadelhofen | 4 clearedStops = 420s timeGains) // S25 to S8 HB->Wädenswil | 9 stops = 12min gains
+									// (comp. S15 to S9 between Uster->Stadelhofen | 4 clearedStops = 7*60s timeGains)
+									// (comp. S25 to S8 between HB->Wädenswil      | 9 clearedStops = 12*60s timeGains)
 								for (TransitRouteStop stopToUpdateTime : routeStopsCutTemp.subList(indexO+1, routeStopsCutTemp.size())) {
-									TransitRouteStop timeUpdatedStop = tsMerged.getFactory().createTransitRouteStop(stopToUpdateTime.getStopFacility(),
+									TransitRouteStop timeUpdatedStop = tsMerged.getFactory().createTransitRouteStop(
+											Metro_TransitScheduleImpl.cloneTransitStopFacility(stopToUpdateTime.getStopFacility(), tsMerged.getFactory()),
 											stopToUpdateTime.getArrivalOffset()-nClearedStops*timeGainsPerClearedStop,
 											stopToUpdateTime.getDepartureOffset()-nClearedStops*timeGainsPerClearedStop);
 									timeUpdatedStop.setAwaitDepartureTime(true);

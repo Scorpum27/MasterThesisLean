@@ -28,6 +28,7 @@ import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRo
 import ch.ethz.matsim.baseline_scenario.zurich.ZurichModule;
 import ch.ethz.matsim.papers.mode_choice_paper.CustomModeChoiceModule;
 import ch.ethz.matsim.papers.mode_choice_paper.utils.LongPlanFilter;
+import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
 
 public class Run_ZurichScenarioEnriched {
 
@@ -42,7 +43,7 @@ static public void main(String[] args) throws ConfigurationException, IOExceptio
 		
 		Config config = ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml");
 		
-		int lastIteration = 100;
+		int lastIteration = 1000;
 		String simulationPath = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched";
 		new File(simulationPath).mkdirs();
 		config.getModules().get("controler").addParam("outputDirectory", simulationPath);
@@ -86,7 +87,7 @@ static public void main(String[] args) throws ConfigurationException, IOExceptio
 	    // See MATSIM-766 (https://matsim.atlassian.net/browse/MATSIM-766)
 	    strategy = new StrategySettings();
 	    strategy.setStrategyName("SubtourModeChoice");
-	    strategy.setDisableAfter(75);
+	    strategy.setDisableAfter(0);
 	    strategy.setWeight(0.0);
 	    config.strategy().addStrategySettings(strategy);
 
@@ -104,15 +105,18 @@ static public void main(String[] args) throws ConfigurationException, IOExceptio
 	    strategy.setStrategyName("KeepLastSelected");
 	    strategy.setWeight(0.85);
 	    config.strategy().addStrategySettings(strategy);
+
+	    boolean bestResponse = true;
 		
 	    Controler controler = new Controler(scenario);
+	    controler.addOverridingModule(new SwissRailRaptorModule());
 		controler.addOverridingModule(new BaselineModule());
 		controler.addOverridingModule(new BaselineTransitModule());
 		controler.addOverridingModule(new ZurichModule());
 		controler.addOverridingModule(new BaselineTrafficModule(3.0));
-		controler.addOverridingModule(new CustomModeChoiceModule(cmd));
+		controler.addOverridingModule(new CustomModeChoiceModule(cmd, bestResponse));
 		controler.run();
-	
+		
 	}
 
 //	Basic ZH Scenario (not enriched)

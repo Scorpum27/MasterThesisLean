@@ -152,7 +152,7 @@ public class Clone {
 		TransitStopFacility copy = tsf.createTransitStopFacility(o.getId(), o.getCoord(), o.getIsBlockingLane());
 		copy.setLinkId(o.getLinkId());
 		copy.setName(o.getName());
-		copy.setStopPostAreaId(o.getStopPostAreaId());
+		copy.setStopAreaId(o.getStopAreaId());
 		return copy;
 	}
 
@@ -162,13 +162,13 @@ public class Clone {
 		for (Id<TransitRoute> tr : o.getRoutes().keySet()) {
 			TransitRoute TR = o.getRoutes().get(tr);
 			TransitRoute TRR = tsf.createTransitRoute(tr, TR.getRoute().clone(), Clone.list(TR.getStops()), TR.getTransportMode());
-			// DEFAULT MODULE
+//			 DEFAULT MODULE
 			for (Departure d : TR.getDepartures().values()){				
 				TRR.addDeparture(d);
 			}
 			copy.addRoute(TRR);	
 			// MODULE FOR MODIFYING TRANSIT ROUTE e.g remove trams
-//			if (TR.getTransportMode().equals("tram") && (new Random()).nextDouble() < 1.0) {
+//			if (TR.getTransportMode().equals("rail") && (new Random()).nextDouble() < 0.0) {
 //				copy.addRoute(TRR);
 //			}
 //			else {

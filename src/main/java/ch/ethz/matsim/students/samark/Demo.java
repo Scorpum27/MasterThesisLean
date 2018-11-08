@@ -55,24 +55,29 @@ public class Demo {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
-		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
+
 		
-		Integer n = 1;
-		Integer generationNr = 1;
-		Integer initialRoutesPerNetwork = 500;
-		MNetwork loadedNetwork = new MNetwork("Network"+n);
-		for (int r=1; r<=initialRoutesPerNetwork; r++) {
-			String routeFilePath =
-					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
-			File f = new File(routeFilePath);
-			if (f.exists()) {
-				MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
-				loadedNetwork.addNetworkRoute(loadedRoute);
-				Log.write("Adding network route "+loadedRoute.routeID);
-			}
-		}
 		
-		Metro_TransitScheduleImpl.SpeedSBahnModule(loadedNetwork, "MergedSchedule.xml", "MergedScheduleSpeedSBahn.xml");
+//		// %%% Speed SBahn
+
+//		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
+//		
+//		Integer n = 1;
+//		Integer generationNr = 1;
+//		Integer initialRoutesPerNetwork = 500;
+//		MNetwork loadedNetwork = new MNetwork("Network"+n);
+//		for (int r=1; r<=initialRoutesPerNetwork; r++) {
+//			String routeFilePath =
+//					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
+//			File f = new File(routeFilePath);
+//			if (f.exists()) {
+//				MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+//				loadedNetwork.addNetworkRoute(loadedRoute);
+//				Log.write("Adding network route "+loadedRoute.routeID);
+//			}
+//		}
+//		
+//		Metro_TransitScheduleImpl.SpeedSBahnModule(loadedNetwork, "MergedSchedule.xml", "MergedScheduleSpeedSBahn.xml");
 		
 //		// %%%
 //		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run

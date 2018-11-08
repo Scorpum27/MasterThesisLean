@@ -50,12 +50,13 @@ import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRo
 import ch.ethz.matsim.baseline_scenario.zurich.ZurichModule;
 import ch.ethz.matsim.papers.mode_choice_paper.CustomModeChoiceModule;
 import ch.ethz.matsim.papers.mode_choice_paper.utils.LongPlanFilter;
+import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
 
 public class NetworkEvolutionRunSim {
 
 	
 	public static void run(String[] args, MNetwork mNetwork, String initialRouteType, 
-			String initialConfig, int lastIteration) throws ConfigurationException, IOException  {
+			String initialConfig, int lastIteration, Boolean useFastSBahnModule) throws ConfigurationException, IOException  {
 		
 		Log.write("  >> Running MATSim simulation on:  "+mNetwork.networkID);
 		
@@ -74,9 +75,15 @@ public class NetworkEvolutionRunSim {
 		String inputNetworkFile = "Evolution/Population/BaseInfrastructure/GlobalNetwork.xml";
 		// See old versions BEFORE 06.09.2018 for how to load specific mergedNetworks OD/Random instead of Global Network with all links
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
-//		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
-		Metro_TransitScheduleImpl.SpeedSBahnModule(mNetwork, "MergedSchedule.xml", "MergedScheduleSpeedSBahn.xml");
-		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleSpeedSBahn.xml");
+		if (useFastSBahnModule) {
+			Metro_TransitScheduleImpl.SpeedSBahnModule(mNetwork, "MergedSchedule.xml", "MergedScheduleSpeedSBahn.xml");
+			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleSpeedSBahn.xml");			
+		}
+		else {
+		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
+//		Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID);
+//		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleModified.xml");			
+		}
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml");
 //		modConfig.getModules().get("qsim").addParam("flowCapacityFactor", "10000");
 //		modConfig.getModules().get("global").addParam("numberOfThreads","1");
@@ -114,7 +121,7 @@ public class NetworkEvolutionRunSim {
 	    // See MATSIM-766 (https://matsim.atlassian.net/browse/MATSIM-766)
 	    strategy = new StrategySettings();
 	    strategy.setStrategyName("SubtourModeChoice");
-	    strategy.setDisableAfter(75);
+	    strategy.setDisableAfter(0);
 	    strategy.setWeight(0.0);
 	    modConfig.strategy().addStrategySettings(strategy);
 
@@ -132,20 +139,23 @@ public class NetworkEvolutionRunSim {
 	    strategy.setStrategyName("KeepLastSelected");
 	    strategy.setWeight(0.85);
 	    modConfig.strategy().addStrategySettings(strategy);
+	    
+	    boolean bestResponse = true;
 		
 	    Controler controler = new Controler(modScenario);
+	    controler.addOverridingModule(new SwissRailRaptorModule());
 		controler.addOverridingModule(new BaselineModule());
 		controler.addOverridingModule(new BaselineTransitModule());
 		controler.addOverridingModule(new ZurichModule());
 		controler.addOverridingModule(new BaselineTrafficModule(3.0));
-		controler.addOverridingModule(new CustomModeChoiceModule(cmd));
+		controler.addOverridingModule(new CustomModeChoiceModule(cmd, bestResponse));
 		controler.run();
 		
 	}
 
 	
 	public static MNetworkPop runEventsProcessing(MNetworkPop networkPopulation, Integer steadyStateIteration, Integer iterationsToAverage, 
-			Network globalNetwork, String networkPath) throws IOException {
+			Network globalNetwork, String networkPath, Integer populationFactor) throws IOException {
 		
 		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
 			if(networkPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
@@ -163,7 +173,7 @@ public class NetworkEvolutionRunSim {
 			
 			// Average the events output over several iteration (generationsToAverage). For every generation add its performance divided by its single weight
 			for (Integer thisIteration=steadyStateIteration-iterationsToAverage+1; thisIteration<=steadyStateIteration; thisIteration++) {
-//				Log.write("Iteration = "+thisIteration);
+				Log.write("Iteration = "+thisIteration);
 				// read and handle events
 				String eventsFile = networkPath+networkName+"/Simulation_Output/ITERS/it."+thisIteration+"/"+thisIteration+".events.xml.gz";			
 				MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
@@ -173,20 +183,24 @@ public class NetworkEvolutionRunSim {
 				eventsReader.readFile(eventsFile);
 				
 				nMetroUsersTotal += mPassengerHandler.metroPassengers.size();
+//				Log.write("Correct mPassengerHandler TOTAL metro distance = "+mPassengerHandler.totalMetroPersonDist);
 				
 				for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
 //					Log.write("New route entry: "+routeEntry.toString());
+//					Log.write(" --- A total metro distance = "+personMetroDistTotal);
 					personMetroDistTotal += routeEntry.getValue();
+//					Log.write(" --- B total metro distance = "+personMetroDistTotal);
 //					Log.write("Adding to totalDistance: "+routeEntry.getValue());
 					if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
-						mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist += routeEntry.getValue()/iterationsToAverage;
+						mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist += populationFactor*routeEntry.getValue()/iterationsToAverage;
 //						Log.write("Adding to "+routeEntry.getKey()+" - "+routeEntry.getValue());
 					}
 				}
+//				Log.write("New TOTAL metro distance = "+personMetroDistTotal);
 			} // end of averaging loop for performances
-			mNetwork.nMetroUsers = nMetroUsersTotal/iterationsToAverage;
+			mNetwork.nMetroUsers = populationFactor*nMetroUsersTotal/iterationsToAverage;
 			Log.write(mNetwork.networkID+" - nMetroUsers = "+mNetwork.nMetroUsers);
-			mNetwork.personMetroDist = personMetroDistTotal/iterationsToAverage;
+			mNetwork.personMetroDist = populationFactor*personMetroDistTotal/iterationsToAverage;
 			Log.write(mNetwork.networkID+" - totalMetroPersonKM = "+mNetwork.personMetroDist/1000);
 
 		}	// END of NETWORK Loop
@@ -320,8 +334,9 @@ public class NetworkEvolutionRunSim {
 			ptPersonDist /= iterationsToAverage;
 			
 			// calculate & save CBP stats
-			CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers, populationFactor*otherUsers,
-					populationFactor*carTimeTotal,  populationFactor*carPersonDist,  populationFactor*ptTimeTotal,  populationFactor*ptPersonDist);
+			CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers,
+					populationFactor*otherUsers, populationFactor*carTimeTotal,  populationFactor*carPersonDist, 
+					populationFactor*ptTimeTotal,  populationFactor*ptPersonDist, mNetwork.personMetroDist);
 			cbp.calculateAverages();
 			XMLOps.writeToFile(cbp, networkPath+networkName+"/cbpParametersAveraged"+lastIteration+".xml");
 		} // end of networkLoop
