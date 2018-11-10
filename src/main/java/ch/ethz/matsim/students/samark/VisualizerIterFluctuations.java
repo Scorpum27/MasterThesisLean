@@ -2,8 +2,10 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.matsim.api.core.v01.Id;
@@ -71,7 +73,8 @@ public class VisualizerIterFluctuations {
 		Map<Integer, Double> ptUsersByIteration = new HashMap<Integer, Double>();
 		Map<Integer, Double> ptUsersByIterationOriginal = new HashMap<Integer, Double>();
 		Map<Integer, Double> deltaPtUsersByIteration = new HashMap<Integer, Double>();
-
+		
+		
 		CostBenefitParameters cbpOriginal;
 		
 		for (Integer lastIteration = 1; lastIteration <= maxIterations; lastIteration++) {
@@ -155,6 +158,8 @@ public class VisualizerIterFluctuations {
 			ptUsersByIterationOriginal.put(lastIteration, cbpOriginal.ptUsers);
 			deltaPtUsersByIteration.put(lastIteration, cbpNew.ptUsers - cbpOriginal.ptUsers);
 			
+			
+			
 //			Log.write("lastIteration = "+lastIteration);
 //			Log.write("cbpNew.carUsers = "+cbpNew.carUsers);
 //			Log.write("cbpOld.carUsers = "+cbpOriginal.carUsers);
@@ -166,6 +171,18 @@ public class VisualizerIterFluctuations {
 			// | Times | carTimeSavings, ptTimeSavingsUtility |
 			// NetworkScore
 		}
+		
+		List<Double> deltaPtTimeAverage = new ArrayList<Double>();
+		List<Double> deltaCarTimeAverage = new ArrayList<Double>();
+		for (int iter=1; iter<=travelTimeAveragePtByIteration.size(); iter++) {
+			deltaPtTimeAverage.add(100*(travelTimeAveragePtByIteration.get(iter)-travelTimeAveragePtByIterationOriginal.get(iter))/travelTimeAveragePtByIterationOriginal.get(iter));
+			deltaCarTimeAverage.add(100*(travelTimeAverageCarByIteration.get(iter)-travelTimeAverageCarByIterationOriginal.get(iter))/travelTimeAverageCarByIterationOriginal.get(iter));
+		}
+		Double deltaPtTimeAverageStdDev = VisualizerStdDev.sampleStandardDeviation(deltaPtTimeAverage);
+		Double deltaCarTimeAverageStdDev = VisualizerStdDev.sampleStandardDeviation(deltaCarTimeAverage);
+		Double deltaPtTimeAverageMean = VisualizerStdDev.mean(deltaPtTimeAverage);
+		Double deltaCarTimeAverageMean = VisualizerStdDev.mean(deltaCarTimeAverage);		
+		
 		
 		// calculate average of all new cbp parameters here:
 		double ptUsers = 0.0;
@@ -222,13 +239,15 @@ public class VisualizerIterFluctuations {
 				Arrays.asList("Car - Metro Case", "Car - Default ZH Case", "PT - Metro Case", "PT - Default ZH Case"), 0.0, 0.0, null,
 				"ModeShareByIteration_1pm" + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2D(" AverageTravelTime by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n ",
+		Visualizer.plot2D(" AverageTravelTime by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n "
+				+ "[Metro case average = " +deltaCarTimeAverageMean+ " ],  [Standard deviation from reference value = " +deltaCarTimeAverageStdDev+" ]",
 				"MATSim Iteration", "AverageTravelTime [s]",
 				Arrays.asList(travelTimeAverageCarByIteration, travelTimeAverageCarByIterationOriginal),
 				Arrays.asList("Car - Metro Case", "Car - Default ZH Case"), 0.0, 0.0, null,
 				"AverageCarTravelTimeByIteration_1pm" + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2D(" AverageTravelTime by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n ",
+		Visualizer.plot2D(" AverageTravelTime by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n "
+				+ "[Metro case average = " +deltaPtTimeAverageMean+ " ],  [Standard deviation from reference value = " +deltaPtTimeAverageStdDev+" ]",
 				"MATSim Iteration", "AverageTravelTime [s]",
 				Arrays.asList(travelTimeAveragePtByIteration, travelTimeAveragePtByIterationOriginal),
 				Arrays.asList("PT - Metro Case", "PT - Default ZH Case"), 0.0, 0.0, null,

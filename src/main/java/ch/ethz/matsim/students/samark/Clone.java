@@ -167,8 +167,44 @@ public class Clone {
 				TRR.addDeparture(d);
 			}
 			copy.addRoute(TRR);	
-			// MODULE FOR MODIFYING TRANSIT ROUTE e.g remove trams
+			// MODULE FOR MODIFYING TRANSIT ROUTE - REMOVE RAIL
 //			if (TR.getTransportMode().equals("rail") && (new Random()).nextDouble() < 0.0) {
+//				copy.addRoute(TRR);	// add route without any departures i.e. empty route
+//			}
+//			else {
+//				for (Departure d : TR.getDepartures().values()){				
+//					TRR.addDeparture(d);
+//				}
+//				copy.addRoute(TRR);				
+//			}
+			// ---
+			// EXTEND RAIL SCHEDULE TO 15MIN FREQUENCY
+//			if (TR.getTransportMode().equals("rail")) {
+//				for (Departure d : TR.getDepartures().values()){				
+//					TRR.addDeparture(d);
+//					TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString()+"PLUS", Departure.class), d.getDepartureTime()+15*60.0));
+//				}
+//				copy.addRoute(TRR);
+//			}
+//			else {
+//				for (Departure d : TR.getDepartures().values()){				
+//					TRR.addDeparture(d);
+//				}
+//				copy.addRoute(TRR);				
+//			}
+			// ---
+			// REMOVE EVERY SECOND RAILS DEPARTURE
+//			if (TR.getTransportMode().equals("rail")) {
+//				Integer counter = 0;
+//				for (Departure d : TR.getDepartures().values()){				
+//					counter++;
+//					if (counter%2 == 1) {
+//						TRR.addDeparture(d);
+//					}
+//					else {
+//						continue;
+//					}
+//				}
 //				copy.addRoute(TRR);
 //			}
 //			else {

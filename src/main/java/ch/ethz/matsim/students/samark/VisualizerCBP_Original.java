@@ -10,7 +10,7 @@ public class VisualizerCBP_Original {
 
 	public static void main(String[] args) throws IOException {
 
-		// args: 100 1 1000 individual
+		// args: 600 1 1000 individual
 		Integer maxIterations = Integer.parseInt(args[0]);
 		Integer iterationsToAverage = Integer.parseInt(args[1]);
 		Integer populationFactor = Integer.parseInt(args[2]);

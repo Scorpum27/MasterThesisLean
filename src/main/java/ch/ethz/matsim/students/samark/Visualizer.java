@@ -47,9 +47,197 @@ public class Visualizer {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
-		// %%% --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- DISPLAY EVOLUTION OF
-		// NETWORKS --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %% ---
-		// %%%
+		Map<Integer, Double> constrCostL = new HashMap<Integer, Double>();
+		Map<Integer, Double> opsCostL = new HashMap<Integer, Double>();
+		Map<Integer, Double> travelTimeGainsL = new HashMap<Integer, Double>();
+		
+		Map<Integer, Double> constrCostS = new HashMap<Integer, Double>();
+		Map<Integer, Double> opsCostS = new HashMap<Integer, Double>();
+		Map<Integer, Double> travelTimeGainsS = new HashMap<Integer, Double>();
+		
+		constrCostS.put(1700, 6.902977452339385E7);		// 1.7*1000m
+		constrCostS.put(2720, 1.1100306526476438E8);	// 1.7*1600m
+		constrCostS.put(4250, 1.6320536507177228E8);	// 1.7*2400m
+		constrCostS.put(5950, 2.350633380775754E8);		// 1.7*3500m
+		constrCostS.put(8500, 2.905941414059561E8);		// 1.7*5000m
+		constrCostS.put(12750, 3.278998568289484E8);	// 1.7*7500m
+		constrCostS.put(18700, 4.156194319926613E8);	// 1.7*11000m
+		constrCostS.put(25500, 4.748733009056242E8);	// 1.7*15000m
+		constrCostS.put(34000, 4.607198592194826E8);	// 1.7*20000m
+		
+		opsCostS.put(1700, 2.529917825217225E7);
+		opsCostS.put(2720, 4.0698579703364246E7);
+		opsCostS.put(4250, 5.983940898202526E7);
+		opsCostS.put(5950, 9.019628921231318E7);
+		opsCostS.put(8500, 1.326258232350149E8);
+		opsCostS.put(12750, 1.9024728268439013E8);
+		opsCostS.put(18700, 3.088052994235236E8);
+		opsCostS.put(25500, 4.395053859601001E8);
+		opsCostS.put(34000, 6.147799305661485E8);
+
+		constrCostL.put(10, 2.3464058045818132E8);	// #lines = 10;
+		constrCostL.put(20, 4.896106234818264E8);	// #lines = 20;
+		constrCostL.put(40, 9.57577579432038E8);	// #lines = 40;
+		constrCostL.put(70, 1.7663871201192355E9);	// #lines = 70;
+		constrCostL.put(120, 2.770902645035945E9);	// #lines = 120;
+		constrCostL.put(200, 4.876622639974809E9);	// #lines = 200;
+		constrCostL.put(320, 7.380766295861484E9);	// #lines = 320;
+		constrCostL.put(500, 1.175860213446533E10);	// #lines = 500;
+		
+		opsCostL.put(10, 9.539060067852162E7);	// #lines = 10;
+		opsCostL.put(20, 2.0702397252031314E8);	// #lines = 20;
+		opsCostL.put(40, 4.042777162022962E8);	// #lines = 40;
+		opsCostL.put(70, 7.225828823353561E8);	// #lines = 70;
+		opsCostL.put(120, 1.2627351762087545E9);	// #lines = 120;
+		opsCostL.put(200, 2.067041009569469E9);	// #lines = 200;
+		opsCostL.put(320, 3.262419325128492E9);	// #lines = 320;
+		opsCostL.put(500, 5.070105129047192E9);	// #lines = 500;
+				
+		Visualizer.plot2D(" Dominant Costs for Different Metro Network Sizes [DepSpacing=420s] \r\n ",
+				"Size of metro network (Number of Lines = 10)", "Annual Cost [CHF]",
+				Arrays.asList(constrCostS, opsCostS),
+				Arrays.asList("Construction Costs", "Operational Costs"), 0.0, 0.0, null,
+				"Cost_SizeNetwork.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)		
+		
+		Visualizer.plot2D(" Dominant Costs for Different Numbers of Metro Lines [DepSpacing=420s] \r\n ",
+				"Number of Metro Lines (Metro Network Radius = 6800m)", "Annual Cost [CHF]",
+				Arrays.asList(constrCostL, opsCostL),
+				Arrays.asList("Construction Costs", "Operational Costs"), 0.0, 0.0, null,
+				"Cost_LinesNr.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+		
+/*		// %%% --- %% --- %% --- %% --- NETWORK PARAMETER IMPACT ON KEY INDICATORS --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %% ---
+		// all data extracted manually from Export folder 23(ref scenario) and 24(parameters)
+		Double refPtUsers = 349752.55;
+		Double refCarUsers = 911639.49;
+		Double refOtherUsers = 332805.31;
+		Double refAveragePtTime = 6781.65;
+		Double refAverageCarTime = 2648.16;
+		Double refPtPersonDistance = 1.3896E10;
+		Double refCarPersonDistance = 3.0434E10;
+		// changing metro #lines parameter
+		Integer lineNr;
+		Map<Integer, Double> ptUsersL = new HashMap<Integer, Double>();
+		Map<Integer, Double> carUsersL = new HashMap<Integer, Double>();
+		Map<Integer, Double> ptTimeL = new HashMap<Integer, Double>();
+		Map<Integer, Double> carTimeL = new HashMap<Integer, Double>();
+		Map<Integer, Double> ptUsersS = new HashMap<Integer, Double>();
+		Map<Integer, Double> carUsersS = new HashMap<Integer, Double>();
+		Map<Integer, Double> ptTimeS = new HashMap<Integer, Double>();
+		Map<Integer, Double> carTimeS = new HashMap<Integer, Double>();
+		
+//		ptUsersL.put(1, refPtUsers);	ptUsersL.put(1001, refPtUsers);   // horizontal ref line
+//		carUsersL.put(1, refCarUsers);	carUsersL.put(1001, refCarUsers);   // horizontal ref line
+//		ptTimeL.put(1, refAveragePtTime);	ptTimeL.put(1001, refAveragePtTime);   // horizontal ref line
+//		carTimeL.put(1, refAverageCarTime);	carTimeL.put(1001, refAverageCarTime);   // horizontal ref line
+		
+		// #Lines = 10;
+			lineNr = 10;
+			ptUsersL.put(lineNr, (350477.34-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));	// *100/(allRefUsersSummed)
+			carUsersL.put(lineNr, (910518.23-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeL.put(lineNr, 100*(6737.24-refAveragePtTime)/refAveragePtTime);
+			carTimeL.put(lineNr, 100*(2646.49-refAverageCarTime)/refAverageCarTime);
+		// #Lines = 40;
+			lineNr = 40;
+			ptUsersL.put(lineNr, (350932.04-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersL.put(lineNr, (910223.20-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeL.put(lineNr, 100*(6648.35-refAveragePtTime)/refAveragePtTime);
+			carTimeL.put(lineNr, 100*(2640.11-refAverageCarTime)/refAverageCarTime);			
+		// #Lines = 90;
+			lineNr = 90;
+			ptUsersL.put(lineNr, (350700.00-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersL.put(lineNr, (908625.41-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeL.put(lineNr, 100*(6667.17-refAveragePtTime)/refAveragePtTime);
+			carTimeL.put(lineNr, 100*(2634.39-refAverageCarTime)/refAverageCarTime);
+		// #Lines = 150;
+			lineNr = 150;
+			ptUsersL.put(lineNr, (351107.18-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersL.put(lineNr, (908865.19-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeL.put(lineNr, 100*(6601.23-refAveragePtTime)/refAveragePtTime);
+			carTimeL.put(lineNr, 100*(2634.96-refAverageCarTime)/refAverageCarTime);
+		// #Lines = 300;
+			lineNr = 300;
+			ptUsersL.put(lineNr, (350811.43-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersL.put(lineNr, (908309.55-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeL.put(lineNr, 100*(6587.87-refAveragePtTime)/refAveragePtTime);
+			carTimeL.put(lineNr, 100*(2634.11-refAverageCarTime)/refAverageCarTime);
+		// #LineNr = 600;
+			lineNr = 600;
+			ptUsersL.put(lineNr, (350198.90-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersL.put(lineNr, (907909.94-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeL.put(lineNr, 100*(6573.44-refAveragePtTime)/refAveragePtTime);
+			carTimeL.put(lineNr, 100*(2636.17-refAverageCarTime)/refAverageCarTime);
+		// #Lines = 1000;
+			lineNr = 1000;
+			ptUsersL.put(lineNr, (350188.40-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersL.put(lineNr, (907997.24-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeL.put(lineNr, 100*(6558.50-refAveragePtTime)/refAveragePtTime);
+			carTimeL.put(lineNr, 100*(2631.71-refAverageCarTime)/refAverageCarTime);
+	// ---
+			Integer size;
+		// #Lines = 10;
+			size = (int) 1.7*3000;
+			ptUsersS.put(size, (350148.06-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));	// *100/(allRefUsersSummed)
+			carUsersS.put(size, (910697.79-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeS.put(size, 100*(6675.94-refAveragePtTime)/refAveragePtTime);
+			carTimeS.put(size, 100*(2639.86-refAverageCarTime)/refAverageCarTime);
+		// #Lines = 40;
+			size = (int) 1.7*5000;
+			ptUsersS.put(size, (351990.05-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersS.put(size, (908356.35-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeS.put(size, 100*(6639.97-refAveragePtTime)/refAveragePtTime);
+			carTimeS.put(size, 100*(2630.66-refAverageCarTime)/refAverageCarTime);			
+		// #Lines = 90;
+			size = (int) 1.7*7000;
+			ptUsersS.put(size, (349774.03-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersS.put(size, (910010.49-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeS.put(size, 100*(6596.89-refAveragePtTime)/refAveragePtTime);
+			carTimeS.put(size, 100*(2635.23-refAverageCarTime)/refAverageCarTime);
+		// #Lines = 150;
+			size = (int) 1.7*9000;
+			ptUsersS.put(size, (352900.55-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersS.put(size, (908486.18-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeS.put(size, 100*(6538.18-refAveragePtTime)/refAveragePtTime);
+			carTimeS.put(size, 100*(2632.04-refAverageCarTime)/refAverageCarTime);
+		// #Lines = 300;
+			size = (int) 1.7*13000;
+			ptUsersS.put(size, (355356.35-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersS.put(size, (907564.08-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeS.put(size, 100*(6499.45-refAveragePtTime)/refAveragePtTime);
+			carTimeS.put(size, 100*(2622.92-refAverageCarTime)/refAverageCarTime);
+		// #LineNr = 600;
+			size = (int) 1.7*20000;
+			ptUsersS.put(size, (358534.80-refPtUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			carUsersS.put(size, (905602.20-refCarUsers)*100/(refPtUsers+refCarUsers+refOtherUsers));
+			ptTimeS.put(size, 100*(6289.46-refAveragePtTime)/refAveragePtTime);
+			carTimeS.put(size, 100*(2614.83-refAverageCarTime)/refAverageCarTime);
+
+			
+		Visualizer.plot2D(" Mode share deviation from ref. case without metro (ZH_1pct scenario) [r=8500m, DepSpacing=300s] \r\n ",
+				"Number of metro lines", "Deviation from ref. case [%]",
+				Arrays.asList(carUsersL, ptUsersL),
+				Arrays.asList("Mode = Car", "Mode = PT"), 0.0, 0.0, null,
+				"Dev_ModeShare_1pct.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+
+		Visualizer.plot2D(" Average travel time deviation from ref. case without metro (ZH_1pct scenario) [r=8500m, DepSpacing=300s] \r\n ",
+				"Number of metro lines", "Deviation from ref. case [%]",
+				Arrays.asList(carTimeL, ptTimeL),
+				Arrays.asList("Mode = Car", "Mode = PT"), 0.0, 0.0, null,
+				"Dev_AverageTravelTime_1pct.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+		
+		Visualizer.plot2D(" Mode share deviation from ref. case without metro (ZH_1pct scenario) [#metroLines=100, DepSpacing=300s] \r\n ",
+				"Metro network radius [m]", "Deviation from ref. case [%]",
+				Arrays.asList(carUsersS, ptUsersS),
+				Arrays.asList("Mode = Car", "Mode = PT"), 0.0, 0.0, null,
+				"MetroNetworkSize_Dev_ModeShare_1pct.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+
+		Visualizer.plot2D(" Average travel time deviation from ref. case without metro (ZH 1pct scenario) [#metroLines=100, DepSpacing=300s] \r\n ",
+				"Metro network radius [m]", "Average travel time deviation from ref. case [%]",
+				Arrays.asList(carTimeS, ptTimeS),
+				Arrays.asList("Mode = Car", "Mode = PT"), 0.0, 0.0, null,
+				"MetroNetworkSize_Dev_AverageTravelTime_1pct.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+*/
+		
+		// %%% --- %% --- %% --- %% --- %% --- DISPLAY EVOLUTION OF NETWORKS --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %% ---
 
 		// BufferedImage bgImage = null;
 		// bgImage = ImageIO.read(new File("zurich_1pm/bgImgMedium.png"));
@@ -423,18 +611,18 @@ public class Visualizer {
 			List<String> inputSeriesName, Double tickUnitX, Double tickUnitY, Range yRange, String outFileName)
 			throws IOException {
 
-		// old version charts
-		// XYLineChart chart = new XYLineChart(title, xAxisName, yAxisName);
-		// for (Integer seriesNr=0; seriesNr<inputSeries.size(); seriesNr++) {
-		// chart.addSeries(inputSeriesName.get(seriesNr), inputSeries.get(seriesNr));
-		// }
-		// chart.saveAsPng(outFileName, 800, 600);
+//		 old version charts
+//		 XYLineChart chart = new XYLineChart(title, xAxisName, yAxisName);
+//		 for (Integer seriesNr=0; seriesNr<inputSeries.size(); seriesNr++) {
+//		 chart.addSeries(inputSeriesName.get(seriesNr), inputSeries.get(seriesNr));
+//		 }
+//		 chart.saveAsPng("x"+outFileName, 800, 600);
 
 		// new version
 		JFreeChart lineChart = ChartFactory.createXYLineChart(title, xAxisName, yAxisName, null);
 		LegendTitle legend = lineChart.getLegend();
 		legend.setPosition(RectangleEdge.TOP); // RectangleEdge.RIGHT
-		legend.setItemFont(new Font("Arial", Font.PLAIN, 20));
+		legend.setItemFont(new Font("Arial", Font.PLAIN, 40));
 
 		XYPlot plot = (XYPlot) lineChart.getPlot();
 		List<XYDataset> dataSets = new ArrayList<XYDataset>();
@@ -462,13 +650,13 @@ public class Visualizer {
 			plot.setRenderer(dataSetNr, r);
 		}
 
-		Font font = new Font("Arial Bold", Font.BOLD, 30);
+		Font font = new Font("Arial Bold", Font.BOLD, 40);
 		NumberAxis domainAxis = (NumberAxis) plot.getDomainAxis();
 		domainAxis.setLabelFont(font);
 		if (tickUnitX > 0.0) {
 			domainAxis.setTickUnit(new NumberTickUnit(tickUnitX));
 		}
-		domainAxis.setTickLabelFont(new Font("Arial", Font.PLAIN, 20));
+		domainAxis.setTickLabelFont(new Font("Arial", Font.PLAIN, 40));
 		NumberAxis rangeAxis = (NumberAxis) plot.getRangeAxis();
 		rangeAxis.setLabelFont(font);
 		if (yRange != null) {
@@ -479,7 +667,7 @@ public class Visualizer {
 		if (!tickUnitY.equals(null) && tickUnitY > 0.0) {
 			rangeAxis.setTickUnit(new NumberTickUnit(tickUnitY));
 		}
-		rangeAxis.setTickLabelFont(new Font("Arial", Font.PLAIN, 20));
+		rangeAxis.setTickLabelFont(new Font("Arial", Font.PLAIN, 40));
 
 		plot.setDomainCrosshairVisible(true);
 		plot.setRangeCrosshairVisible(true);

@@ -20,8 +20,9 @@ import org.matsim.core.scenario.ScenarioUtils;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
 
 
-/* java -Xmx25G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 100 5000 300
- * cp -avr /nas/samark/Simulations/24_MetroBaseEffects/a_Size3000/samark-0.0.1-SNAPSHOT.jar /nas/samark/Simulations/24_MetroBaseEffects/c_Size7000
+/* java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT nLinesInit rad depSapcing popCensus globalCostFactor
+ * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 25 4000 300 1pct 1.0
+ * cp -avr /nas/samark/Simulations/25_CostStudy/samark-0.0.1-SNAPSHOT.jar /nas/samark/Simulations/25_CostStudy/100percent
  * java -Xmx20G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerIterFluctuations Network1 1 200 1 100 false true individual
  * java -Xmx20G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 200 180 100 individual2global
  *
@@ -72,14 +73,14 @@ public class NetworkEvolution {
 		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
 		PrintWriter pwEvo = new PrintWriter("zurich_1pm/Evolution/Population/LogEvo.txt");	pwEvo.close();				// Prepare empty evoLog file for run
 		Log.write("START TIME = "+(new SimpleDateFormat("HH:mm:ss")).format(Calendar.getInstance().getTime()));
-
+		
 	
-	// INITIALIZATIon
+	// INITIALIZATION
 	// - Initiate N networks to make a population
 		// % Parameters for Network Population & Strategy: %
-		Integer populationSize = 1;													// how many networks should be developed in parallel
+		Integer populationSize = Integer.parseInt(args[4]);													// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		Integer initialRoutesPerNetwork = Integer.parseInt(args[4]);				// DEFAULT = 5;
+		Integer initialRoutesPerNetwork = Integer.parseInt(args[5]);				// DEFAULT = 5;
 		Boolean mergeMetroWithRailway = true;
 		Boolean useFastSBahnModule = false;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
@@ -93,7 +94,7 @@ public class NetworkEvolution {
 		Coord zurich_NetworkCenterCoord = new Coord(2683360.00, 1248100.00);		// default Coord(2683360.00, 1248100.00);  old:(2683000.00, 1247700.00)
 		Double xOffset = 1733436.0; 												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; 																					  																						X_MATSim= 2683476;
 		Double yOffset = -4748525.0;												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; 																						Y_MATSim= 1246811;
-		Double metroCityRadius = Double.parseDouble(args[5]);						// DEFAULT = 3000 (OLD=3600) ... (800 for no rail tests)
+		Double metroCityRadius = Double.parseDouble(args[6]);						// DEFAULT = 3000 (OLD=3600) ... (800 for no rail tests)
 		Double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
 		Double maxMetroRadiusFactor = 1.70;											// DEFAULT = 1.70; (OLD=1.40: give some flexibility by increasing from 1.00 to 1.40)
 		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
@@ -114,13 +115,13 @@ public class NetworkEvolution {
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
 		String vehicleTypeName = "metro";  Double maxVelocity = 75.0/3.6 /*[m/s]*/;
 		Double vehicleLength = 200.0;  int vehicleSeats = 100; Integer vehicleStandingRoom = 600;
-		Double initialDepSpacing = Double.parseDouble(args[6]);	 Double tFirstDep = 6.0*60*60;  Double tLastDep = 20.5*60*60; 	// DEFAULT: initialDepSpacing = 5.0*60.0;
+		Double initialDepSpacing = Double.parseDouble(args[7]);	 Double tFirstDep = 6.0*60*60;  Double tLastDep = 21.5*60*60; 	// DEFAULT: initialDepSpacing = 5.0*60.0;
 		Double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		
 		// %% Parameters Simulation, Events & Plans Processing %%
 		Integer firstGeneration = 1;
 		Integer lastGeneration = 1;	// 50
-		Integer lastIterationOriginal = 100;	// 50
+		Integer lastIterationOriginal = 1000;	// 50
 		Integer lastIteration = lastIterationOriginal;
 		Integer iterationsToAverage = 1;	// 30
 		if (lastIterationOriginal < iterationsToAverage || lastIteration < iterationsToAverage)
@@ -130,21 +131,22 @@ public class NetworkEvolution {
 		// %% Parameters Events & Plans Processing, Scores %%
 		Double averageTravelTimePerformanceGoal = 40.0;
 		Integer maxConsideredTravelTimeInSec = 240*60;
-		String censusSize = "1pct"; // "1pct","1pm"
-		Integer populationFactor = 100;	// default 1000 for 1pm scenario 
+		String censusSize = args[8]; // "1pct","1pm"
+		Integer populationFactor;	// default 1000 for 1pm scenario 
 		if (censusSize.equals("1pct")) { populationFactor = 100; }
 		else if (censusSize.equals("1pm")) {populationFactor = 1000;}
+		else {populationFactor = 100; Log.writeAndDisplay(" CensusSize invalid. Aborting!"); System.exit(0);}
 		// TODO hand over to methods censusSize for to pick correct files folder for initial config, network, people's plans
 		
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.30; 									// DEFAULT = 0.25
+		Double pCrossOver = 0.35; 									// DEFAULT = 0.25
 		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
 		Double maxConnectingDistance = 2000.0;
 		Boolean logEntireRoutes = false;
 		Double maxCrossingAngle = 110.0; 							// DEFAULT = 110
-		Double pMutation = 0.45;									// DEFAULT = 0.45; <=0.5, because used rankMethod has meanProbability of 0.5 by nature
+		Double pMutation = 0.50;									// DEFAULT = 0.45; <=0.5, because used rankMethod has meanProbability of 0.5 by nature
 		Double pBigChange = 0.30;									// DEFAULT = 0.25
 		Double pSmallChange = 1.0-pBigChange;
 		String crossoverRouletteStrategy = "tournamentSelection3";	// Options: allPositiveProportional, rank, tournamentSelection3, logarithmic
@@ -153,16 +155,17 @@ public class NetworkEvolution {
 		Integer stopUnprofitableRoutesReplacementGEN = 20;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
 		
 		// %% Infrastructure Parameters %%
-		final double ConstrCostUGnew = 1.5E5;								// within UG radius, new rails
-		final double ConstrCostUGdevelop = 2.25E4;							// DEFAULT: 0.25E5 = within UG radius, but existing train rails
-		final double ConstrCostOGnew = 4.0E4;
-		final double ConstrCostOGdevelop = 6.0E3;							// DEFAULT: 1.0E4
-		final double ConstrCostOGequip = 6.0E3;
-		final double ConstrCostPerStationNew = 1.6E5;
-		final double ConstrCostPerStationExtend = 0.1E5;
-		final double costVehicle = 13.0E6;									// x2 because assumed to be replaced once for 40y total lifetime (=2x20y)
-		final double OpsCostPerVehDistUG = 20.5/1000;
-		final double OpsCostPerVehDistOG = 20.5/1000;
+		Double globalCostFactor = Double.parseDouble(args[9]);
+		final double ConstrCostUGnew = globalCostFactor*1.5E5;								// within UG radius, new rails
+		final double ConstrCostUGdevelop = globalCostFactor*2.25E4;							// DEFAULT: 0.25E5 = within UG radius, but existing train rails
+		final double ConstrCostOGnew = globalCostFactor*4.0E4;
+		final double ConstrCostOGdevelop = globalCostFactor*6.0E3;							// DEFAULT: 1.0E4
+		final double ConstrCostOGequip = globalCostFactor*6.0E3;
+		final double ConstrCostPerStationNew = globalCostFactor*1.6E5;
+		final double ConstrCostPerStationExtend = globalCostFactor*0.1E5;
+		final double costVehicle = globalCostFactor*13.0E6;									// x2 because assumed to be replaced once for 40y total lifetime (=2x20y)
+		final double OpsCostPerVehDistUG = globalCostFactor*20.5/1000;
+		final double OpsCostPerVehDistOG = globalCostFactor*20.5/1000;
 		final double occupancyRate = 1.40; 									// personsPerVehicle
 		final double ptPassengerCostPerDist = 0.1407/1000; 					// average price/km to buy a ticket for a trip with a certain distance
 		final double taxPerVehicleDist = 0.06/1000;

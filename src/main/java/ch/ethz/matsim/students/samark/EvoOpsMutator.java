@@ -43,7 +43,7 @@ public class EvoOpsMutator {
 					XMLOps.readFromFile((new CostBenefitParameters()).getClass(), 
 							"zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
 			CostBenefitParameters cbpNew = XMLOps.readFromFile((new CostBenefitParameters()).getClass(), 
-					"zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/cbpParameters"+lastIterationOriginal+".xml");
+					"zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/cbpParametersAveraged"+lastIterationOriginal+".xml");
 			Map<String, Double> routeScoreMap = new HashMap<String, Double>();
 			Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String, Double>();
 			for (MRoute mRoute : mNetwork.routeMap.values()) {

@@ -336,7 +336,7 @@ public class NetworkEvolutionRunSim {
 			// calculate & save CBP stats
 			CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers,
 					populationFactor*otherUsers, populationFactor*carTimeTotal,  populationFactor*carPersonDist, 
-					populationFactor*ptTimeTotal,  populationFactor*ptPersonDist, mNetwork.personMetroDist);
+					populationFactor*ptTimeTotal,  populationFactor*ptPersonDist, mNetwork.personMetroDist, mNetwork.totalTravelTime);
 			cbp.calculateAverages();
 			XMLOps.writeToFile(cbp, networkPath+networkName+"/cbpParametersAveraged"+lastIteration+".xml");
 		} // end of networkLoop

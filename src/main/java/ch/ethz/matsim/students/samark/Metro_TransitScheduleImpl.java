@@ -355,7 +355,8 @@ public class Metro_TransitScheduleImpl {
 	public static void TS_ModificationModule(String NetworkId) throws IOException {
 		// do this to modify original zurichSchedule e.g. compromizedZurichSchedule with only have of the tram routes
 		// CAUTION: make sure to use that new schedule in the MATSim run config!!
-		Log.write("  >> Removing half of the tram lines on VBZ schedule for  "+NetworkId);
+//		Log.write("  >> Removing half of the tram lines on VBZ schedule for  "+NetworkId);
+		Log.write("  >> Removing half of the rail departures for "+NetworkId);
 		Config config = ConfigUtils.createConfig();
 		config.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/Evolution/Population/"+NetworkId+"/MergedSchedule.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
