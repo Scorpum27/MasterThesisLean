@@ -21,10 +21,11 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 
 /* java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT nLinesInit rad depSapcing popCensus globalCostFactor
- * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 25 4000 300 1pct 1.0
+ * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 1 25 4000 300 1pct 1.0
+ * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 1 25 4000 300 1pm 1.0
  * cp -avr /nas/samark/Simulations/25_CostStudy/samark-0.0.1-SNAPSHOT.jar /nas/samark/Simulations/25_CostStudy/100percent
- * java -Xmx20G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerIterFluctuations Network1 1 200 1 100 false true individual
- * java -Xmx20G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 200 180 100 individual2global
+ * java -Xmx20G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerIterFluctuations Network1 1 600 1 1000 false true global
+ * java -Xmx20G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 1000 1 100 individual
  *
  *
  * TODO Tuning of EvoAlgo's
@@ -263,7 +264,8 @@ public class NetworkEvolution {
 			String networkScoreMapGeneralLocation = "zurich_1pm/Evolution/Population/networkScoreMaps.xml";
 //			Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
 			boolean performanceGoalAccomplished = NetworkEvolutionImpl.logResults(networkScoreMaps, historyFileLocation, networkScoreMapGeneralLocation, 
-					latestPopulation, averageTravelTimePerformanceGoal, generationNr, lastIterationOriginal, 1.0*populationFactor, globalNetwork, metroLinkAttributes, lifeTime);
+					latestPopulation, averageTravelTimePerformanceGoal, generationNr, lastIterationOriginal, 1.0*populationFactor, 
+					globalNetwork, metroLinkAttributes, lifeTime);
 			if(performanceGoalAccomplished == true) {		// 
 				break;
 			}

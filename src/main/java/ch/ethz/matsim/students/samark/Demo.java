@@ -55,8 +55,6 @@ public class Demo {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
-
-		
 		
 //		// %%% Speed SBahn
 

@@ -45,8 +45,11 @@ public class VisualizerCBP_Original {
 			double carPersonDist = 0.0;
 			double ptTimeTotal = 0.0;
 			double ptPersonDist = 0.0;
+			double walkBikeTimeTotal = 0.0;
+			double ptDisutilityEquivalentTimeTotal = 0.0;
+			
 			for (Integer i = maxIterations-iterationsToAverage+1; i<=maxIterations; i++) {
-				CostBenefitParameters cbpi = XMLOps.readFromFile(CostBenefitParameters.class,
+				CBPII cbpi = XMLOps.readFromFile(CBPII.class,
 						"zurich_1pm/cbpParametersOriginal/cbpParametersOriginal" + i + ".xml");
 				ptUsers += cbpi.ptUsers;
 				carUsers += cbpi.carUsers;
@@ -55,9 +58,14 @@ public class VisualizerCBP_Original {
 				carPersonDist += cbpi.carPersonDist;
 				ptTimeTotal += cbpi.ptTimeTotal;
 				ptPersonDist += cbpi.ptPersonDist;
+				walkBikeTimeTotal += cbpi.customVariable1;
+				ptDisutilityEquivalentTimeTotal += cbpi.customVariable3;
+				
 			}
-			CostBenefitParameters cbpGlobal = new CostBenefitParameters(ptUsers/iterationsToAverage, carUsers/iterationsToAverage, otherUsers/iterationsToAverage,
+			CBPII cbpGlobal = new CBPII(ptUsers/iterationsToAverage, carUsers/iterationsToAverage, otherUsers/iterationsToAverage,
 					carTimeTotal/iterationsToAverage, carPersonDist/iterationsToAverage, ptTimeTotal/iterationsToAverage, ptPersonDist/iterationsToAverage);
+			cbpGlobal.customVariable1 = walkBikeTimeTotal/iterationsToAverage;
+			cbpGlobal.customVariable3 = ptDisutilityEquivalentTimeTotal/iterationsToAverage;
 			XMLOps.writeToFile(cbpGlobal, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
 		}
 		else {

@@ -239,7 +239,7 @@ public class MRoute implements Serializable{
 	}
 
 	
-	public double performCostBenefitAnalysisRoute(CostBenefitParameters refCase, CostBenefitParameters newCase, double totalPersonMetroDist,
+	public double performCostBenefitAnalysisRoute(CBPII refCase, CBPII newCase, double totalPersonMetroDist,
 			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 		
 		this.sumStations();

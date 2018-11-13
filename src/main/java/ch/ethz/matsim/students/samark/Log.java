@@ -2,6 +2,9 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.logging.FileHandler;
@@ -77,5 +80,12 @@ public class Log {
 	public static void writeSameLine(String comment) throws IOException {
 		writeSameLine(defaultLogFile, comment);
 	}
+	
+	public static String readFile(String path, Charset encoding) 
+			  throws IOException 
+			{
+			  byte[] encoded = Files.readAllBytes(Paths.get(path));
+			  return new String(encoded, encoding);
+			}
 
 }

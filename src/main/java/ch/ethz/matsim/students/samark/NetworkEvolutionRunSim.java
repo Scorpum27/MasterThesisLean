@@ -15,6 +15,7 @@ import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
+import org.matsim.api.core.v01.population.Activity;
 import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
@@ -228,6 +229,8 @@ public class NetworkEvolutionRunSim {
 			Double carPersonDist = 0.0;
 			Double ptTimeTotal = 0.0;
 			Double ptPersonDist = 0.0;
+			Double walkBikeTimeTotal = 0.0;
+			Double ptDisutilityEquivalentTimeTotal = 0.0;
 			Double totalTravelTime = 0.0;
 			Double averageTravelTime = 0.0;
 			Double standardDeviation = 0.0;
@@ -257,25 +260,43 @@ public class NetworkEvolutionRunSim {
 						if (element instanceof Leg) {
 							Leg leg = (Leg) element;
 							// do following two conditions to avoid unreasonably high (transit_)walk times!
-							if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>7*60.0) {
-								leg.setTravelTime(7*60.0);
+							if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>35*60.0) {
+								leg.setTravelTime(35*60.0);
 							}
-							if (leg.getMode().equals("walk") && leg.getTravelTime()>12*60.0) {
-								leg.setTravelTime(12*60.0);
+							if ((leg.getMode().equals("walk") || leg.getMode().equals("bike")) && leg.getTravelTime()>60*60.0) {
+								leg.setTravelTime(60*60.0);
 							}
+							//
 							if (leg.getMode().contains("car")) {
 								carTimeTotal += leg.getTravelTime();
 								carPersonDist += leg.getRoute().getDistance();
 								isCarTraveler = true;
 							}
-							if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
+							else if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
 									leg.getMode().contains("transit_walk") || leg.getMode().contains("egress_walk")) {
 								ptTimeTotal += leg.getTravelTime();
 								ptPersonDist += leg.getRoute().getDistance();
 								isPtTraveler = true;
+								if (leg.getMode().equals("pt")) {
+									ptDisutilityEquivalentTimeTotal += (14.43/14.43)*leg.getTravelTime();
+								}
+								else if (leg.getMode().equals("transit_walk")) {
+									ptDisutilityEquivalentTimeTotal += (6.45/14.43)*leg.getTravelTime();
+									ptDisutilityEquivalentTimeTotal += 3600* (2.45/14.43);	// for transfer add unit share of an hour according to cost ratio!
+								}
+								else if (leg.getMode().equals("access_walk") || leg.getMode().equals("egress_walk")) {
+									ptDisutilityEquivalentTimeTotal += (24.13/14.43)*leg.getTravelTime();
+								}
+							}
+							else if (leg.getMode().equals("walk") || leg.getMode().equals("bike")){
+								walkBikeTimeTotal += leg.getTravelTime();
 							}
 							personTravelTime += leg.getTravelTime();	// totalPersonTravelTime
 						}
+//						else if(element instanceof Activity) {
+//							Activity act = (Activity) element;
+//							act.getStartTime();
+//						}
 					}
 					// travel time bins
 					if (personTravelTime>=maxTravelTimeInSec) {
@@ -332,11 +353,15 @@ public class NetworkEvolutionRunSim {
 			carPersonDist /= iterationsToAverage;
 			ptTimeTotal /= iterationsToAverage;
 			ptPersonDist /= iterationsToAverage;
+			walkBikeTimeTotal /= iterationsToAverage;
+			ptDisutilityEquivalentTimeTotal /= iterationsToAverage;
 			
 			// calculate & save CBP stats
-			CostBenefitParameters cbp = new CostBenefitParameters( populationFactor*ptUsers, populationFactor*carUsers,
+			CBPII cbp = new CBPII( populationFactor*ptUsers, populationFactor*carUsers,
 					populationFactor*otherUsers, populationFactor*carTimeTotal,  populationFactor*carPersonDist, 
 					populationFactor*ptTimeTotal,  populationFactor*ptPersonDist, mNetwork.personMetroDist, mNetwork.totalTravelTime);
+			cbp.customVariable1 = populationFactor*walkBikeTimeTotal;
+			cbp.customVariable3 = populationFactor*ptDisutilityEquivalentTimeTotal;
 			cbp.calculateAverages();
 			XMLOps.writeToFile(cbp, networkPath+networkName+"/cbpParametersAveraged"+lastIteration+".xml");
 		} // end of networkLoop
@@ -477,6 +502,7 @@ public class NetworkEvolutionRunSim {
 		}
 		
 	}
+	
 	
 }
 

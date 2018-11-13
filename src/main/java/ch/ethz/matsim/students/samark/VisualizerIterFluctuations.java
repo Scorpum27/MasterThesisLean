@@ -2,12 +2,14 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.jfree.data.Range;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
@@ -37,7 +39,7 @@ public class VisualizerIterFluctuations {
 		// for (iterations) runEvents, runPeoplePlansProcessing, calculate scores
 
 		// args: Network1 1 100 1 1000 false true 1
-		String networkName = args[0]; // 4,8,9
+		String networkName = args[0]; // Network1 1 100 1 1000 false false global 
 		Integer generationNr = Integer.parseInt(args[1]);
 		Integer maxIterations = Integer.parseInt(args[2]);
 		Integer iterationsToAverage = Integer.parseInt(args[3]);
@@ -74,8 +76,25 @@ public class VisualizerIterFluctuations {
 		Map<Integer, Double> ptUsersByIterationOriginal = new HashMap<Integer, Double>();
 		Map<Integer, Double> deltaPtUsersByIteration = new HashMap<Integer, Double>();
 		
+		Map<Integer, Double> totalBenefit = new HashMap<Integer, Double>();
+		Map<Integer, Double> travelTimeGainsPt = new HashMap<Integer, Double>();
+		Map<Integer, Double> travelTimeGainsCar = new HashMap<Integer, Double>();
+		Map<Integer, Double> travelTimeGains = new HashMap<Integer, Double>();
 		
-		CostBenefitParameters cbpOriginal;
+		CBPII cbpOriginal;
+		
+		MNetwork mNetwork = new MNetwork(networkName); // TODO choose which network
+		MNetworkPop latestPopulation = new MNetworkPop();
+		latestPopulation.addNetwork(mNetwork);
+		latestPopulation.modifiedNetworksInLastEvolution.add(networkName);
+		for (int r = 1; r <= 1000; r++) {
+			File routesFile = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation" + generationNr
+					+ "/MRoutes/" + networkName + "_Route" + r + "_RoutesFile.xml");
+			if (routesFile.exists()) {
+				System.out.println("Loading route =  Route"+r);
+				mNetwork.addNetworkRoute(XMLOps.readFromFile(MRoute.class, routesFile.toString()));
+			}
+		}
 		
 		for (Integer lastIteration = 1; lastIteration <= maxIterations; lastIteration++) {
 
@@ -91,32 +110,16 @@ public class VisualizerIterFluctuations {
 							(int) populationFactor, lastIteration, iterationsToAverage);
 				}
 			} else if (originalValuesSelection.equals("individual")){
-				cbpOriginal = XMLOps.readFromFile(CostBenefitParameters.class, outputFile);
+				cbpOriginal = XMLOps.readFromFile(CBPII.class, outputFile);
 			} else if (originalValuesSelection.equals("global")){
-				cbpOriginal = XMLOps.readFromFile(CostBenefitParameters.class, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
+				cbpOriginal = XMLOps.readFromFile(CBPII.class, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
 			} else {
-				cbpOriginal = XMLOps.readFromFile(CostBenefitParameters.class, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
+				cbpOriginal = XMLOps.readFromFile(CBPII.class, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
 			}
-
-			MNetwork mNetwork = new MNetwork(networkName); // TODO choose which network
-			MNetworkPop latestPopulation = new MNetworkPop();
-			latestPopulation.addNetwork(mNetwork);
-			latestPopulation.modifiedNetworksInLastEvolution.add(networkName);
-
 			
 			if (!(new File("zurich_1pm/Evolution/Population/" + networkName + "/cbpParametersAveraged" + lastIteration + ".xml")).exists()
 					|| recalculateNewCBP.equals(true)) {
-				// need to add routes for events and plans processing
-				for (int r = 1; r <= 1000; r++) {
-					File routesFile = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation" + generationNr
-							+ "/MRoutes/" + networkName + "_Route" + r + "_RoutesFile.xml");
-					if (routesFile.exists()) {
-//						System.out.println("Trying to load route  =  Route"+r);
-//						mNetwork.addNetworkRoute(XMLOps.readFromFile(MRoute.class, routesFile.toString()));
-						System.out.println("Creating new pseudo route  =  Route"+r);
-						mNetwork.addNetworkRoute(new MRoute(networkName+"_Route"+r));
-					}
-				}
+				// need to add routes to Network(Population) for events and plans processing - already added in outside loop
 				// do actual processing here (calculates cbp stats here already)
 				if (lastIteration < iterationsToAverage) { // then use all available (=lastIteration) for averaging
 					NetworkEvolutionRunSim.runEventsProcessing(latestPopulation, lastIteration, lastIteration,
@@ -132,15 +135,13 @@ public class VisualizerIterFluctuations {
 				}
 			}
 			
-//			Log.write("LOGGING SCORES of GEN" + generationNr + ":");
-//			mNetwork.lifeTime = lifeTime;
+//			// CALCULATE NETWORK SCORES (UTILITIES) - for SIMs after 13-11-18 12:00h, this is not necessary as it is done in evaluation directly
+//			// load MRoutes to a network - already done above
 //			mNetwork.calculateRoutesAndNetworkScore(lastIteration, populationFactor, globalNetwork, metroLinkAttributes,
-//					"zurich_1pm/cbpParametersOriginal/", "zurich_1pm/Evolution/Population/", utilityFunctionSelection);
+//					"zurich_1pm/cbpParametersOriginal/", "zurich_1pm/Evolution/Population/", "1");
 
-			// CostBenefitParameters cbpOriginal = // calculated already at the top!!
-			// XMLOps.readFromFile((new CostBenefitParameters()).getClass(),
-			// "zurich_1pm/cbpParametersOriginal"+lastIteration+".xml");
-			CostBenefitParameters cbpNew = XMLOps.readFromFile((new CostBenefitParameters()).getClass(),
+			
+			CBPII cbpNew = XMLOps.readFromFile((new CBPII()).getClass(),
 					"zurich_1pm/Evolution/Population/" + networkName + "/cbpParametersAveraged"+lastIteration+".xml");
 
 			utilityByIteration.put(lastIteration, mNetwork.overallScore);
@@ -157,8 +158,14 @@ public class VisualizerIterFluctuations {
 			ptUsersByIteration.put(lastIteration, cbpNew.ptUsers);
 			ptUsersByIterationOriginal.put(lastIteration, cbpOriginal.ptUsers);
 			deltaPtUsersByIteration.put(lastIteration, cbpNew.ptUsers - cbpOriginal.ptUsers);
+			totalBenefit.put(lastIteration, cbpNew.totalAnnualBenefit);
+			travelTimeGains.put(lastIteration, cbpNew.travelTimeGains);
+			travelTimeGainsPt.put(lastIteration, cbpNew.travelTimeGainsPt);
+			travelTimeGainsCar.put(lastIteration, cbpNew.travelTimeGainsCar);
 			
 			
+			// store as map that can be retrieved! Show fluctuations
+			// make new utility function with all MATSim utilities....
 			
 //			Log.write("lastIteration = "+lastIteration);
 //			Log.write("cbpNew.carUsers = "+cbpNew.carUsers);
@@ -196,7 +203,7 @@ public class VisualizerIterFluctuations {
 		int minIter = (int) Math.min(20.0, 1.0*maxIterations);
 		int iterGlobalAverage = maxIterations-minIter+1;
 		for (Integer i = minIter; i<=maxIterations; i++) {
-			CostBenefitParameters cbpi = XMLOps.readFromFile(CostBenefitParameters.class,
+			CBPII cbpi = XMLOps.readFromFile(CBPII.class,
 					"zurich_1pm/Evolution/Population/" + networkName + "/cbpParametersAveraged"+i+".xml");
 			ptUsers += cbpi.ptUsers;
 			carUsers += cbpi.carUsers;
@@ -207,51 +214,90 @@ public class VisualizerIterFluctuations {
 			ptPersonDist += cbpi.ptPersonDist;
 			metroPersonDist += cbpi.metroPersonDist;
 		}
-		CostBenefitParameters cbpGlobal = new CostBenefitParameters(ptUsers/iterGlobalAverage, carUsers/iterGlobalAverage, otherUsers/iterGlobalAverage,
+		CBPII cbpGlobal = new CBPII(ptUsers/iterGlobalAverage, carUsers/iterGlobalAverage, otherUsers/iterGlobalAverage,
 				carTimeTotal/iterGlobalAverage, carPersonDist/iterGlobalAverage, ptTimeTotal/iterGlobalAverage, ptPersonDist/iterGlobalAverage,
 				metroPersonDist/iterGlobalAverage);
 		XMLOps.writeToFile(cbpGlobal, "zurich_1pm/Evolution/Population/" + networkName + "/cbpParametersAveragedGlobal.xml");
 		
-		
+		String pop;
+		if(populationFactor==100) {
+			pop = "1pct";
+		}
+		else if(populationFactor==1000) {
+			pop = "1pm";
+		}
+		else {
+			pop = "";
+		}
 		
 		// Visualize developments
-		Visualizer.plot2D(" Network Utility by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n ",
-				"MATSim Iteration", "Annual Utility [Mio CHF]", Arrays.asList(utilityByIteration, totalCostByIteration,
-						travelTimeBenefitCarByIteration, travelTimeBenefitPtByIteration),
-				Arrays.asList("Total Utility - "+networkName, "Total Cost", "TravelTimeGains-Car", "TravelTimeGains-Pt"), 0.0, 0.0, null,
-				"UtilityByIteration" + networkName + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, 1.5E1)
-
-		Visualizer.plot2D(" Travel Time Gains by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n ",
-				"MATSim Iteration", "Annual Utility of Travel Time Gains [Mio CHF]",
-				Arrays.asList( travelTimeBenefitCarByIteration, travelTimeBenefitPtByIteration),
-				Arrays.asList("TravelTimeGains-Car", "TravelTimeGains-Pt"), 0.0, 0.0, null,
-				"TravelTimeGainsByIteration" + networkName + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, 1.5E1)
+//		Visualizer.plot2D(" Network Utility by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n ",
+//				"MATSim Iteration", "Annual Utility [Mio CHF]", Arrays.asList(utilityByIteration, totalCostByIteration,
+//						travelTimeBenefitCarByIteration, travelTimeBenefitPtByIteration),
+//				Arrays.asList("Total Utility - "+networkName, "Total Cost", "TravelTimeGains-Car", "TravelTimeGains-Pt"), 0.0, 0.0, null,
+//				"UtilityByIteration" + networkName + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, 1.5E1)
+//
+//		Visualizer.plot2D(" Travel Time Gains by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n ",
+//				"MATSim Iteration", "Annual Utility of Travel Time Gains [Mio CHF]",
+//				Arrays.asList( travelTimeBenefitCarByIteration, travelTimeBenefitPtByIteration),
+//				Arrays.asList("TravelTimeGains-Car", "TravelTimeGains-Pt"), 0.0, 0.0, null,
+//				"TravelTimeGainsByIteration" + networkName + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, 1.5E1)
 		
 		Visualizer.plot2D(" Modal Split (#usersAbsolute) by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n ",
 				"MATSim Iteration", "Delta #TransportModeUsers (MetroCase-DefaultCase)",
 				Arrays.asList(deltaCarUsersByIteration, deltaPtUsersByIteration),
 				Arrays.asList("Car", "PT"), 0.0, 0.0, null,
-				"DeltaModeUsersByIteration" + networkName + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
-
+				"DeltaModeUsersByIteration_" +pop + networkName + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+		
 		Visualizer.plot2D(" Modal Split (#users) by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n ",
 				"MATSim Iteration", "#TransportModeUsers",
 				Arrays.asList(carUsersByIteration, carUsersByIterationOriginal, ptUsersByIteration, ptUsersByIterationOriginal),
 				Arrays.asList("Car - Metro Case", "Car - Default ZH Case", "PT - Metro Case", "PT - Default ZH Case"), 0.0, 0.0, null,
-				"ModeShareByIteration_1pm" + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+				"ModeShareByIteration_"+pop + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+
+		Visualizer.plot2D(" Benefits [#maxMATSimIter=" + maxIterations + "] \r\n ",
+				"MATSim Iteration", "Annual Benefit [CHF p.a.]",
+				Arrays.asList(totalBenefit, travelTimeGains, travelTimeGainsPt, travelTimeGainsCar),
+				Arrays.asList("totalBenefit", "travelTimeGains", "travelTimeGainsPt", "travelTimeGainsCar"), 0.0, 0.0, null,
+				"BenefitsByIteration_"+pop + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+
 		
-		Visualizer.plot2D(" AverageTravelTime by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n "
-				+ "[Metro case average = " +deltaCarTimeAverageMean+ " ],  [Standard deviation from reference value = " +deltaCarTimeAverageStdDev+" ]",
+		CBPII cbpOriginalGlobal = XMLOps.readFromFile(CBPII.class, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
+		String[] originals = Log.readFile("zurich_1pm/cbpParametersOriginal/Percentiles_90.txt", Charset.defaultCharset()).split(",");
+		Double travelTimeAverageCarOrigConfInterval = Double.parseDouble(originals[0]);
+		Double travelTimeAveragePtOrigConfInterval = Double.parseDouble(originals[1]);
+		Double meanCarTime = VisualizerStdDev.meanMap(travelTimeAverageCarByIteration);
+		Double stdDevCarTime = VisualizerStdDev.getPercentileIntervalMap(travelTimeAverageCarByIteration, 90);
+		Double meanPtTime = VisualizerStdDev.meanMap(travelTimeAveragePtByIteration);
+		Double stdDevPtTime = VisualizerStdDev.getPercentileIntervalMap(travelTimeAveragePtByIteration, 90);
+//		System.out.println("meanCarTime="+meanCarTime);
+//		System.out.println("stdDevCarTime="+stdDevCarTime);
+//		System.out.println("meanPtTime="+meanPtTime);
+//		System.out.println("stdDevPtTime="+stdDevPtTime);
+		
+		Visualizer.plot2DConfIntervals(" AverageTravelTime by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n "
+				+ "[Metro scenario average = " +meanCarTime+ " ],  [StdDev from ref. value = " +stdDevCarTime+" ]",
 				"MATSim Iteration", "AverageTravelTime [s]",
 				Arrays.asList(travelTimeAverageCarByIteration, travelTimeAverageCarByIterationOriginal),
-				Arrays.asList("Car - Metro Case", "Car - Default ZH Case"), 0.0, 0.0, null,
-				"AverageCarTravelTimeByIteration_1pm" + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+				Arrays.asList("Car - Metro Case", "Car - Default ZH Case"), 0.0, 0.0, new Range(2000.0, 3000.0),
+				"AverageCarTravelTimeByIteration_" + pop + "_maxIter" + maxIterations + ".png",
+				Arrays.asList(
+					Arrays.asList(meanCarTime-stdDevCarTime, meanCarTime+stdDevCarTime),
+					Arrays.asList(cbpOriginalGlobal.averageCartime - travelTimeAverageCarOrigConfInterval,
+									cbpOriginalGlobal.averageCartime + travelTimeAverageCarOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2D(" AverageTravelTime by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n "
-				+ "[Metro case average = " +deltaPtTimeAverageMean+ " ],  [Standard deviation from reference value = " +deltaPtTimeAverageStdDev+" ]",
+		Visualizer.plot2DConfIntervals(" AverageTravelTime by MATSimIterationStage [#maxMATSimIter=" + maxIterations + "] \r\n "
+				+ "[Metro scenario average = " +meanPtTime+ " ],  [StdDev from ref. value = " +stdDevPtTime+" ]",
 				"MATSim Iteration", "AverageTravelTime [s]",
 				Arrays.asList(travelTimeAveragePtByIteration, travelTimeAveragePtByIterationOriginal),
-				Arrays.asList("PT - Metro Case", "PT - Default ZH Case"), 0.0, 0.0, null,
-				"AveragePtTravelTimeByIteration_1pm" + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+				Arrays.asList("PT - Metro Case", "PT - Default ZH Case"), 0.0, 0.0, new Range(6300.0, 7300.0),
+				"AveragePtTravelTimeByIteration_" + pop + "_maxIter" + maxIterations + ".png",
+				Arrays.asList(
+					Arrays.asList(meanPtTime-stdDevPtTime, meanPtTime+stdDevPtTime),
+					Arrays.asList(cbpOriginalGlobal.averagePtTime - travelTimeAveragePtOrigConfInterval,
+									cbpOriginalGlobal.averagePtTime + travelTimeAveragePtOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+		
+
 	}
 
 }

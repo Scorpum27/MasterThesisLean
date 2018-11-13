@@ -39,10 +39,10 @@ public class EvoOpsMutator {
 			if (mNetworkName.equals(eliteNetworkName)) {
 				continue;
 			}
-			CostBenefitParameters cbpOriginal =
-					XMLOps.readFromFile((new CostBenefitParameters()).getClass(), 
+			CBPII cbpOriginal =
+					XMLOps.readFromFile((new CBPII()).getClass(), 
 							"zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
-			CostBenefitParameters cbpNew = XMLOps.readFromFile((new CostBenefitParameters()).getClass(), 
+			CBPII cbpNew = XMLOps.readFromFile((new CBPII()).getClass(), 
 					"zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/cbpParametersAveraged"+lastIterationOriginal+".xml");
 			Map<String, Double> routeScoreMap = new HashMap<String, Double>();
 			Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String, Double>();
@@ -206,7 +206,7 @@ public class EvoOpsMutator {
 	}
 
 	
-	public static boolean applySmallChange(CostBenefitParameters refCase, CostBenefitParameters newCase,
+	public static boolean applySmallChange(CBPII refCase, CBPII newCase,
 			Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, Double maxCrossingAngle, MRoute mRoute,
 			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Double routeDisutilityLimit) throws IOException {
 

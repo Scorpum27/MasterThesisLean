@@ -138,11 +138,9 @@ public class MNetwork implements Serializable{
 	public void calculateRoutesAndNetworkScore(int lastIteration, double populationFactor,
 			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
 			String cbpOriginalPath, String networkPath, String utilityFunctionSelection) throws IOException {
-		CostBenefitParameters cbpOriginal =
+		CBPII cbpOriginal =	XMLOps.readFromFile((new CBPII()).getClass(), cbpOriginalPath+"cbpParametersOriginalGlobal.xml");
 //				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), cbpOriginalPath+"cbpParametersOriginal"+lastIterationOriginal+".xml");
-				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), cbpOriginalPath+"cbpParametersOriginalGlobal.xml");
-		CostBenefitParameters cbpNew =
-				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), networkPath+this.networkID+"/cbpParametersAveraged"+lastIteration+".xml");		
+		CBPII cbpNew = XMLOps.readFromFile((new CBPII()).getClass(), networkPath+this.networkID+"/cbpParametersAveraged"+lastIteration+".xml");		
 
 //		this.calculateTotalRouteLengthAndDrivenKM();
 		
@@ -223,9 +221,10 @@ public class MNetwork implements Serializable{
 		this.overallScore = this.performCostBenefitAnalysisNetwork(40.0, populationFactor, cbpOriginal, cbpNew, this.totalRouteLength, this.totalDrivenDist, 
 				overallUGpercentage, newUGpercentage, developUGpercentage, newOGpercentage, equipOGpercentage, developOGpercentage,
 				nStationsNew, nStationsExtend, utilityFunctionSelection);
+		XMLOps.writeToFile(cbpNew, networkPath+this.networkID+"/cbpParametersAveraged"+lastIteration+".xml");
 	}
 	
-	public double performCostBenefitAnalysisNetwork(double lifeTime, double populationFactor, CostBenefitParameters refCase, CostBenefitParameters newCase,
+	public double performCostBenefitAnalysisNetwork(double lifeTime, double populationFactor, CBPII refCase, CBPII newCase,
 			double totalRouteLength, double totalDrivenDistDaily, double overallUGpercentage, double newUGpercentage, double developUGpercentage, double newOGpercentage, 
 			double equipOGpercentage, double developOGpercentage, int nStationsNew, int nStationsExtend, String utilityFunctionSelection) throws IOException {
 		
@@ -269,6 +268,8 @@ public class MNetwork implements Serializable{
 		final double VATPercentage = infrastructureParameters.VATPercentage;
 		final double utilityOfTimePT = infrastructureParameters.utilityOfTimePT;
 		final double utilityOfTimeCar = infrastructureParameters.utilityOfTimeCar;
+		final double utilityOfTimeOther = 33.20/3600.0;	// infrastructureParameters.utilityOfTimeOther;		
+		
 
 //		// Option 1 : Total Utility of Time Approach
 //			Double travelTimeGainsCar = Math.max(0.0, 365*(refCase.carTimeTotal-newCase.carTimeTotal)*utilityOfTimeCar);
@@ -288,44 +289,59 @@ public class MNetwork implements Serializable{
 		if (utilityFunctionSelection.equals("1")) {	// New Module LEAN
 			// TRAFFIC MODEL SIMULATION
 			double discountFactor = 1.02;
-			double averageDiscountFactor = getAverageDiscountFactor(discountFactor, lifeTime);			//	[-], used to average discount over lifetime of yearly recurring cost
-			double annualDeltaCarPersonDist2020 = 250*(newCase.carPersonDist-refCase.carPersonDist);	//  [m/y], double annualDeltaCarVehicleDist2020 = annualDeltaCarPersonDist2020/occupancyRate
-			double annualDeltaPtPersonDist2020 = 250*(newCase.ptPersonDist-refCase.ptPersonDist);		//  [m/y]
+			double averageDiscountFactor = getAverageDiscountFactor(discountFactor, lifeTime);					//	[-], used to average discount over lifetime of yearly recurring cost
+			double annualDeltaCarPersonDist2020 = 250*(newCase.carPersonDist-refCase.carPersonDist);			//  [m/y], double annualDeltaCarVehicleDist2020 = annualDeltaCarPersonDist2020/occupancyRate
+			double annualDeltaPtPersonDist2020 = 250*(newCase.ptPersonDist-refCase.ptPersonDist);				//  [m/y]
 			List<Double> annualDeltaCarPersonDist20xx = makeMptUsagePrognosis(annualDeltaCarPersonDist2020);	//  [m/y]	// initiate with expected annual deltaCarPersonDist with 2020 MATSim result
 			List<Double> annualDeltaPtPersonDist20xx = makePtUsagePrognosis(annualDeltaPtPersonDist2020);		//  [m/y]	// initiate with expected annual deltaPtPersonDist with 2020 MATSim result
-			double annualDeltaCarPersonTime2020 = 250*(newCase.carTimeTotal-refCase.carTimeTotal);	//  [s/y], double annualDeltaCarVehicleDist2020 = annualDeltaCarPersonDist2020/occupancyRate
-			double annualDeltaPtPersonTime2020 = 250*(newCase.ptTimeTotal-refCase.ptTimeTotal);		//  [s/y]
+			double annualDeltaCarPersonTime2020 = 250*(newCase.carTimeTotal-refCase.carTimeTotal);				//  [s/y], double annualDeltaCarVehicleDist2020 = annualDeltaCarPersonDist2020/occupancyRate
+			double annualDeltaPtPersonTime2020 = 250*(newCase.customVariable3 - refCase.customVariable3);		//  [s/y]			
+			double annualDeltaOtherPersonTime2020 = 250*((newCase.ptTimeTotal-refCase.ptTimeTotal));			//  [s/y]
 			List<Double> annualDeltaCarPersonTime20xx = makeMptUsagePrognosis(annualDeltaCarPersonTime2020);	//  [s/y]	// initiate with expected annual deltaCarPersonDist with 2020 MATSim result
-			List<Double> annualDeltaPtPersonTime20xx = makePtUsagePrognosis(annualDeltaPtPersonTime2020);		//  [s/y]	// initiate with expected annual deltaPtPersonDist with 2020 MATSim result
+			List<Double> annualDeltaPtPersonTime20xx = makePtUsagePrognosis(annualDeltaPtPersonTime2020);		//  [s/y]	// initiate with expected annual deltaPtPersonDist with 2020 MATSim result		
+			List<Double> annualDeltaOtherPersonTime20xx = makeWalkBikeUsagePrognosis(annualDeltaOtherPersonTime2020);		//  [s/y]	// initiate with expected annual deltaOtherPersonDist with 2020 MATSim result
 		// COST
 			double constructionCost = (ConstrCostPerStationNew*nStationsNew + ConstrCostPerStationExtend*nStationsExtend +
 					ConstrCostUGnew*lengthUGnew + ConstrCostUGdevelop*lengthUGdevelopExisting +
 					ConstrCostOGnew*lengthOGnew + ConstrCostOGdevelop*lengthOGdevelopExisting + ConstrCostOGequip*lengthOGequip)/lifeTime; // [CHF/year]
-			double opsCost = averageDiscountFactor*365*(OpsCostPerVehDistUG*ptVehicleLengthDrivenUGdaily + OpsCostPerVehDistOG*ptVehicleLengthDrivenOGdaily); // 
-			double landCost = 0.01*constructionCost;					// [CHF/year], construction cost is already divided by its lifetime
-			double maintenanceCost = 1/6*opsCost;						// [CHF/year], opsCost already includes averageDiscountFactor
-			double repairCost = 1/6*opsCost*averageDiscountFactor;		// [CHF/year], opsCost already includes averageDiscountFactor	
-			double rollingStockCost = this.totalVehiclesNr*costVehicle*(1+1/Math.pow(discountFactor,lifeTime/2))/lifeTime;	// [CHF/year] averaged over lifetime; replaced at discount after 20 years
+			double opsCost = averageDiscountFactor*365*(OpsCostPerVehDistUG*ptVehicleLengthDrivenUGdaily + OpsCostPerVehDistOG*ptVehicleLengthDrivenOGdaily); //
+					newCase.opsCost = opsCost;
+			double landCost = 0.01*constructionCost; newCase.landCost = landCost;			// [CHF/year], construction cost is already divided by its lifetime
+			double maintenanceCost = 1/6*opsCost; 											// [CHF/year], opsCost already includes averageDiscountFactor
+			double repairCost = 1/6*opsCost;
+					newCase.mrCost = maintenanceCost + repairCost;	// [CHF/year], opsCost already includes averageDiscountFactor
+			double rollingStockCost = this.totalVehiclesNr*costVehicle*(1+1/Math.pow(discountFactor,lifeTime/2))/lifeTime;
+					newCase.rollingStockCost = rollingStockCost; // [CHF/year] averaged over lifetime; replaced at discount after 20 years
 			double externalCost = 0.0;
+					newCase.externalCost = externalCost; // [CHF/year] averaged over lifetime; replaced at discount after 20 years
 			double ptPassengerCost = 0.0;
+					newCase.ptPassengerCost = ptPassengerCost; // [CHF/year] averaged over lifetime; replaced at discount after 20 years
 			// BENEFIT
 			double vehicleSavings = -timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaCarPersonDist20xx), carCostPerVehDist/occupancyRate, discountFactor, true); // [CHF/year]
 			double extCostSavings = timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaPtPersonDist20xx), externalPtCosts, discountFactor, true) - 
 									timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaCarPersonDist20xx), externalCarCosts, discountFactor, true); // [CHF/year]
+					newCase.extCostSavings = extCostSavings;
 			Double travelTimeGainsCar = -timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaCarPersonTime20xx), utilityOfTimeCar, discountFactor, true); // [CHF/year]
-			Double travelTimeGainsPt = -timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaPtPersonTime20xx), utilityOfTimePT, discountFactor, true); // [CHF/year]
-			Double travelTimeGains = travelTimeGainsCar + travelTimeGainsPt;
+			Double travelTimeGainsPt = -timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaPtPersonTime20xx), utilityOfTimePT, discountFactor, true); // [CHF/year]			
+			Double travelTimeGainsWalkBike = -timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaOtherPersonTime20xx), utilityOfTimeOther, discountFactor, true); // [CHF/year]
+			Double travelTimeGains = travelTimeGainsCar + travelTimeGainsPt + travelTimeGainsWalkBike;
+					newCase.travelTimeGainsCar = travelTimeGainsCar;
+					newCase.travelTimeGainsPt = travelTimeGainsPt;
+					newCase.travelTimeGains = travelTimeGains;
+					newCase.customVariable2 = travelTimeGainsWalkBike;
+//			Double otherTravelUtil = newCase.travelUtil; // must make travelUtil in plansProcessing // add -timeCorrectedUtility( here!!!
 			double ptVatIncrease = 0.0;
+					newCase.ptVatIncrease = ptVatIncrease;
 			double congestionSavings = 0.0;
 							
 			// ---- annual total cost change
 			Double totalCost = constructionCost+landCost+rollingStockCost + opsCost + maintenanceCost + repairCost + externalCost + ptPassengerCost;
-			this.annualCost = totalCost;
+			this.annualCost = totalCost;	 newCase.totalAnnualCost = totalCost;
 			this.constructionCost = constructionCost;
 			this.operationalCost = opsCost + maintenanceCost + repairCost;
 			// ---- annual total utility change
 			Double totalUtility = vehicleSavings + extCostSavings + ptVatIncrease + travelTimeGains + congestionSavings;
-			this.annualBenefit = totalUtility;
+			this.annualBenefit = totalUtility;	 newCase.totalAnnualBenefit = totalUtility;
 			this.travelTimeGainsCar = travelTimeGainsCar;
 			this.travelTimeGainsPT  = travelTimeGainsPt;
 			this.otherGains = vehicleSavings+extCostSavings+ptVatIncrease;
@@ -347,8 +363,8 @@ public class MNetwork implements Serializable{
 			Log.write("DeltaAverageSpeedPersonCar [km/h] = "+(newCase.carPersonDist/newCase.carTimeTotal-refCase.carPersonDist/refCase.carTimeTotal)*3.6);
 			Log.write("vehicleSavingsAnnual = " + vehicleSavings);
 			Log.write("--Annual Cost (-) [Construction/Operation] = " + this.annualCost +  " ["+this.constructionCost+" / "+this.operationalCost+"]");
-			Log.write("--Annual Utility (+) [TravelTimeGains PT / Car + OtherGains] = " + totalUtility +  
-					" [ "+travelTimeGainsPt + " / "+travelTimeGainsCar+ " + " + (vehicleSavings+extCostSavings+ptVatIncrease)+" ]");
+			Log.write("--Annual Utility (+) [TravelTimeGains PT/Car/WalkBike + OtherGains] = " + totalUtility +  
+					" [ "+travelTimeGainsPt + "/"+travelTimeGainsCar+ "/"+ travelTimeGainsWalkBike + " + " + (vehicleSavings+extCostSavings+ptVatIncrease)+" ]");
 			Log.write("---UTILITY BALANCE " + this.networkID + " = "+(totalUtility-totalCost));
 			return totalUtility-totalCost;
 		}
@@ -438,6 +454,23 @@ public class MNetwork implements Serializable{
 		return averageDiscountFactor;
 	}
 
+	public static List<Double> makeWalkBikeUsagePrognosis(double deltaOtherPersonDist2020) {
+		List<Double> deltaOtherPersonDist20xx = new ArrayList<Double>(Arrays.asList(deltaOtherPersonDist2020));
+		for (Integer y=1; y<10; y++) {
+			deltaOtherPersonDist20xx.add(deltaOtherPersonDist20xx.get(y-1)*(1+(9159.9-8339.5)/(10.0*8339.5)));	// 
+		}
+		for (Integer y=10; y<20; y++) {
+			deltaOtherPersonDist20xx.add(deltaOtherPersonDist20xx.get(y-1)*(1+(9857.0-9159.9)/(10.0*9159.9)));	// 
+		}
+		for (Integer y=20; y<30; y++) {
+			deltaOtherPersonDist20xx.add(deltaOtherPersonDist20xx.get(y-1)*(1+(10176.1-9857.0)/(10.0*9857.0)));	// 
+		}
+		for (Integer y=30; y<40; y++) {
+			deltaOtherPersonDist20xx.add(deltaOtherPersonDist20xx.get(y-1)*(1+(10176.1-9857.0)/(10.0*9857.0)));	// 
+		}
+		return deltaOtherPersonDist20xx;
+	}
+	
 	public static List<Double> makePtUsagePrognosis(double deltaPtPersonDist2020) {
 		List<Double> deltaPtPersonDist20xx = new ArrayList<Double>(Arrays.asList(deltaPtPersonDist2020));
 		for (Integer y=1; y<10; y++) {
