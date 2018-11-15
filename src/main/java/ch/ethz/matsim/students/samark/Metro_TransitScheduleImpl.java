@@ -1,5 +1,6 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -16,6 +17,9 @@ import org.matsim.api.core.v01.Scenario;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
 import org.matsim.api.core.v01.network.Node;
+import org.matsim.api.core.v01.population.Person;
+import org.matsim.api.core.v01.population.Population;
+import org.matsim.api.core.v01.population.PopulationWriter;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.population.routes.NetworkRoute;
@@ -35,6 +39,8 @@ import org.matsim.vehicles.VehicleType;
 import org.matsim.vehicles.VehicleWriterV1;
 import org.matsim.vehicles.Vehicles;
 import org.matsim.vehicles.VehiclesFactory;
+
+import ch.ethz.matsim.baseline_scenario.zurich.cutter.population.PopulationCutter;
 
 public class Metro_TransitScheduleImpl {
 
@@ -356,7 +362,7 @@ public class Metro_TransitScheduleImpl {
 		// do this to modify original zurichSchedule e.g. compromizedZurichSchedule with only have of the tram routes
 		// CAUTION: make sure to use that new schedule in the MATSim run config!!
 //		Log.write("  >> Removing half of the tram lines on VBZ schedule for  "+NetworkId);
-		Log.write("  >> Removing half of the rail departures for "+NetworkId);
+//		Log.write("  >> Removing half of the rail departures for "+NetworkId);
 		Config config = ConfigUtils.createConfig();
 		config.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/Evolution/Population/"+NetworkId+"/MergedSchedule.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
@@ -866,11 +872,6 @@ public class Metro_TransitScheduleImpl {
 //				}
 			}
 		}
-		
-		// XXX: Now roam along original routes with arr/dep and kill intermediate stops and adapt timing
-
-		
-		
 	}
 
 
@@ -878,7 +879,7 @@ public class Metro_TransitScheduleImpl {
 		String newIdString = OriginalStopId.toString().substring(0, OriginalStopId.toString().indexOf("."));
 		return Id.create(newIdString+"_metro", TransitStopFacility.class);
 	}
-
+	
 	
 	
 }

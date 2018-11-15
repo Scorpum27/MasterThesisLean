@@ -1,5 +1,6 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -21,7 +22,6 @@ import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitSchedule;
 import org.matsim.pt.transitSchedule.api.TransitScheduleFactory;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
-import org.matsim.vehicles.Vehicles;
 
 public class Clone {
 
@@ -162,14 +162,25 @@ public class Clone {
 		for (Id<TransitRoute> tr : o.getRoutes().keySet()) {
 			TransitRoute TR = o.getRoutes().get(tr);
 			TransitRoute TRR = tsf.createTransitRoute(tr, TR.getRoute().clone(), Clone.list(TR.getStops()), TR.getTransportMode());
-//			 DEFAULT MODULE
+//		DEFAULT MODULE
 			for (Departure d : TR.getDepartures().values()){				
 				TRR.addDeparture(d);
 			}
 			copy.addRoute(TRR);	
-			// MODULE FOR MODIFYING TRANSIT ROUTE - REMOVE RAIL
-//			if (TR.getTransportMode().equals("rail") && (new Random()).nextDouble() < 0.0) {
-//				copy.addRoute(TRR);	// add route without any departures i.e. empty route
+		// MODULE FOR MODIFYING TRANSIT ROUTE - REMOVE TRAM except first departure
+//			if (TR.getTransportMode().equals("tram")) {
+//			Integer counter = 0;
+//				for (Departure d : TR.getDepartures().values()){				
+//					counter++;
+//					if (counter%2 == 1) {
+//						TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString(), Departure.class), 3.0*3600.0));
+//						break;			// break if added min one departure of route
+//					}
+//					else {
+//						continue;
+//					}
+//				}
+//			copy.addRoute(TRR);
 //			}
 //			else {
 //				for (Departure d : TR.getDepartures().values()){				
@@ -177,8 +188,7 @@ public class Clone {
 //				}
 //				copy.addRoute(TRR);				
 //			}
-			// ---
-			// EXTEND RAIL SCHEDULE TO 15MIN FREQUENCY
+		// EXTEND RAIL SCHEDULE TO 15MIN FREQUENCY
 //			if (TR.getTransportMode().equals("rail")) {
 //				for (Departure d : TR.getDepartures().values()){				
 //					TRR.addDeparture(d);
@@ -193,12 +203,12 @@ public class Clone {
 //				copy.addRoute(TRR);				
 //			}
 			// ---
-			// REMOVE EVERY SECOND RAILS DEPARTURE
+		// REMOVE EVERY SECOND RAILS DEPARTURE
 //			if (TR.getTransportMode().equals("rail")) {
 //				Integer counter = 0;
 //				for (Departure d : TR.getDepartures().values()){				
 //					counter++;
-//					if (counter%2 == 1) {
+//					if (counter%2 == 1) {			// every 2nd: if (counter%2 == 1) {
 //						TRR.addDeparture(d);
 //					}
 //					else {
@@ -213,7 +223,49 @@ public class Clone {
 //				}
 //				copy.addRoute(TRR);				
 //			}
-			// ---
+		// KEEP ONLY ONE RAILS DEPARTURE
+//			if (TR.getTransportMode().equals("rail")) {
+//				Integer counter = 0;
+//				for (Departure d : TR.getDepartures().values()){				
+//					counter++;
+//					if (counter%2 == 1) {
+//						TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString(), Departure.class), 3.0*3600.0));
+//						break;			// break if added min one departure of route
+//					}
+//					else {
+//						continue;
+//					}
+//				}
+//				copy.addRoute(TRR);
+//			}
+//			else {
+//				for (Departure d : TR.getDepartures().values()){				
+//					TRR.addDeparture(d);
+//				}
+//				copy.addRoute(TRR);				
+//			}
+		// REMOVE ALL PT EXCEPT METRO (except first departure of each route)
+//			if ( ! TR.getTransportMode().equals("metro")) {
+//				Integer counter = 0;
+//				for (Departure d : TR.getDepartures().values()){				
+//					counter++;
+//					if (counter%2 == 1) {
+//						TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString(), Departure.class), 3.0*3600.0));
+//						break;			// break if added min one departure of route
+//					}
+//					else {
+//						continue;
+//					}
+//				}
+//				copy.addRoute(TRR);
+//			}
+//			else {
+//				for (Departure d : TR.getDepartures().values()){				
+//					TRR.addDeparture(d);
+//				}
+//				copy.addRoute(TRR);				
+//			}
+		// ---
 		}
 		return copy;
 	}
@@ -314,5 +366,6 @@ public class Clone {
 		}
 		return copy;
 	}
-		
+	
+	
 }

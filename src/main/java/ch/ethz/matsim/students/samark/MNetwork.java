@@ -304,20 +304,22 @@ public class MNetwork implements Serializable{
 			double constructionCost = (ConstrCostPerStationNew*nStationsNew + ConstrCostPerStationExtend*nStationsExtend +
 					ConstrCostUGnew*lengthUGnew + ConstrCostUGdevelop*lengthUGdevelopExisting +
 					ConstrCostOGnew*lengthOGnew + ConstrCostOGdevelop*lengthOGdevelopExisting + ConstrCostOGequip*lengthOGequip)/lifeTime; // [CHF/year]
+				newCase.constCost = constructionCost;
 			double opsCost = averageDiscountFactor*365*(OpsCostPerVehDistUG*ptVehicleLengthDrivenUGdaily + OpsCostPerVehDistOG*ptVehicleLengthDrivenOGdaily); //
 					newCase.opsCost = opsCost;
-			double landCost = 0.01*constructionCost; newCase.landCost = landCost;			// [CHF/year], construction cost is already divided by its lifetime
-			double maintenanceCost = 1/6*opsCost; 											// [CHF/year], opsCost already includes averageDiscountFactor
-			double repairCost = 1/6*opsCost;
-					newCase.mrCost = maintenanceCost + repairCost;	// [CHF/year], opsCost already includes averageDiscountFactor
+			double landCost = 0.01*constructionCost; newCase.landCost = landCost;		// [CHF/year], construction cost is already divided by its lifetime
+			double maintenanceCost = opsCost/6.0; 										// [CHF/year], opsCost already includes averageDiscountFactor
+			double repairCost = opsCost/6.0;
+					newCase.mrCost = maintenanceCost + repairCost;						// [CHF/year], opsCost already includes averageDiscountFactor
 			double rollingStockCost = this.totalVehiclesNr*costVehicle*(1+1/Math.pow(discountFactor,lifeTime/2))/lifeTime;
-					newCase.rollingStockCost = rollingStockCost; // [CHF/year] averaged over lifetime; replaced at discount after 20 years
+					newCase.rollingStockCost = rollingStockCost; 						// [CHF/year] averaged over lifetime; replaced at discount after 20 years
 			double externalCost = 0.0;
-					newCase.externalCost = externalCost; // [CHF/year] averaged over lifetime; replaced at discount after 20 years
+					newCase.externalCost = externalCost; 								// [CHF/year] averaged over lifetime; replaced at discount after 20 years
 			double ptPassengerCost = 0.0;
-					newCase.ptPassengerCost = ptPassengerCost; // [CHF/year] averaged over lifetime; replaced at discount after 20 years
+					newCase.ptPassengerCost = ptPassengerCost; 							// [CHF/year] averaged over lifetime; replaced at discount after 20 years
 			// BENEFIT
 			double vehicleSavings = -timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaCarPersonDist20xx), carCostPerVehDist/occupancyRate, discountFactor, true); // [CHF/year]
+					newCase.customVariable4 = vehicleSavings;
 			double extCostSavings = timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaPtPersonDist20xx), externalPtCosts, discountFactor, true) - 
 									timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaCarPersonDist20xx), externalCarCosts, discountFactor, true); // [CHF/year]
 					newCase.extCostSavings = extCostSavings;
@@ -326,7 +328,7 @@ public class MNetwork implements Serializable{
 			Double travelTimeGainsWalkBike = -timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaOtherPersonTime20xx), utilityOfTimeOther, discountFactor, true); // [CHF/year]
 			Double travelTimeGains = travelTimeGainsCar + travelTimeGainsPt + travelTimeGainsWalkBike;
 					newCase.travelTimeGainsCar = travelTimeGainsCar;
-					newCase.travelTimeGainsPt = travelTimeGainsPt;
+					newCase.travelTimeGainsPt = travelTimeGainsPt;	// already corrected for equivalent disutility factor
 					newCase.travelTimeGains = travelTimeGains;
 					newCase.customVariable2 = travelTimeGainsWalkBike;
 //			Double otherTravelUtil = newCase.travelUtil; // must make travelUtil in plansProcessing // add -timeCorrectedUtility( here!!!

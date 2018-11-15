@@ -2,6 +2,8 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.File;
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
 // Calculate individual CBPs first for original reference simulations
 // Then select individual2global to average these values over #iterations = iterationsToAverage
@@ -38,34 +40,12 @@ public class VisualizerCBP_Original {
 						iterationsToAverage);
 		}
 		else if (recalculateOriginalCBPStrategy.equals("individual2global")) {
-			double ptUsers = 0.0;
-			double carUsers = 0.0;
-			double otherUsers = 0.0;
-			double carTimeTotal = 0.0;
-			double carPersonDist = 0.0;
-			double ptTimeTotal = 0.0;
-			double ptPersonDist = 0.0;
-			double walkBikeTimeTotal = 0.0;
-			double ptDisutilityEquivalentTimeTotal = 0.0;
-			
+			List<CBPII> CBPs = new ArrayList<CBPII>();
 			for (Integer i = maxIterations-iterationsToAverage+1; i<=maxIterations; i++) {
-				CBPII cbpi = XMLOps.readFromFile(CBPII.class,
-						"zurich_1pm/cbpParametersOriginal/cbpParametersOriginal" + i + ".xml");
-				ptUsers += cbpi.ptUsers;
-				carUsers += cbpi.carUsers;
-				otherUsers += cbpi.otherUsers;
-				carTimeTotal += cbpi.carTimeTotal;
-				carPersonDist += cbpi.carPersonDist;
-				ptTimeTotal += cbpi.ptTimeTotal;
-				ptPersonDist += cbpi.ptPersonDist;
-				walkBikeTimeTotal += cbpi.customVariable1;
-				ptDisutilityEquivalentTimeTotal += cbpi.customVariable3;
-				
+				CBPII cbpi = XMLOps.readFromFile(CBPII.class, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal" + i + ".xml");
+				CBPs.add(cbpi);
 			}
-			CBPII cbpGlobal = new CBPII(ptUsers/iterationsToAverage, carUsers/iterationsToAverage, otherUsers/iterationsToAverage,
-					carTimeTotal/iterationsToAverage, carPersonDist/iterationsToAverage, ptTimeTotal/iterationsToAverage, ptPersonDist/iterationsToAverage);
-			cbpGlobal.customVariable1 = walkBikeTimeTotal/iterationsToAverage;
-			cbpGlobal.customVariable3 = ptDisutilityEquivalentTimeTotal/iterationsToAverage;
+			CBPII cbpGlobal = CBPII.calculateAveragesX(CBPs);
 			XMLOps.writeToFile(cbpGlobal, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
 		}
 		else {

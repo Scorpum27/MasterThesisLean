@@ -27,7 +27,8 @@ public class EvoOpsRoutesAdder {
 	public static void topUpNetworkRouteMaps(Integer currentGEN, Integer stopUnprofitableRoutesReplacementGEN, MNetworkPop newPopulation,
 			Boolean useOdPairsForInitialRoutes, String shortestPathStrategy,
 			Double minInitialTerminalDistance, Double minTerminalRadiusFromCenter, Double maxTerminalRadiusFromCenter, 
-			Double minInitialTerminalRadiusFromCenter, Double maxInitialTerminalRadiusFromCenter, Double tFirstDep, Double tLastDep,
+			Double minInitialTerminalRadiusFromCenter, Double maxInitialTerminalRadiusFromCenter, Double metroCityRadius, Boolean varyInitRouteSize, 
+			Double tFirstDep, Double tLastDep,
 			MNetwork eliteMNetwork, Double odConsiderationThreshold, Coord zurich_NetworkCenterCoord, Double xOffset, Double yOffset) throws IOException {
 		
 		
@@ -66,7 +67,8 @@ public class EvoOpsRoutesAdder {
 				terminalFacilityCandidates = NetworkEvolutionImpl.findFacilitiesWithinBounds("zurich_1pm/Evolution/Population/BaseInfrastructure/MetroStopFacilities.xml",
 						zurich_NetworkCenterCoord, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, null);
 				newMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork, shortestPathStrategy,
-						terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, zurich_NetworkCenterCoord, minInitialTerminalDistance,
+						terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, zurich_NetworkCenterCoord, 
+						metroCityRadius, varyInitRouteSize, minInitialTerminalDistance,
 						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter);
 			}
 			else if (useOdPairsForInitialRoutes==true) {	

@@ -77,13 +77,14 @@ public class NetworkEvolutionRunSim {
 		// See old versions BEFORE 06.09.2018 for how to load specific mergedNetworks OD/Random instead of Global Network with all links
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
 		if (useFastSBahnModule) {
-			Metro_TransitScheduleImpl.SpeedSBahnModule(mNetwork, "MergedSchedule.xml", "MergedScheduleSpeedSBahn.xml");
+			Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID);
+			Metro_TransitScheduleImpl.SpeedSBahnModule(mNetwork, "MergedScheduleModified.xml", "MergedScheduleSpeedSBahn.xml");
 			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleSpeedSBahn.xml");			
 		}
 		else {
-		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
-//		Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID);
-//		modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleModified.xml");			
+			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
+//			Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID);
+//			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleModified.xml");			
 		}
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml");
 //		modConfig.getModules().get("qsim").addParam("flowCapacityFactor", "10000");
@@ -338,7 +339,7 @@ public class NetworkEvolutionRunSim {
 					}
 				}
 				standardDeviation += Math.sqrt(standardDeviationInnerSum/(travels-1));
-
+				
 			} // end of averaging processing loop
 			
 			// parameters have been summed up over entire loop --> have to be averaged now! 

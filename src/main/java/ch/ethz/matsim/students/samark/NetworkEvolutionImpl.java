@@ -73,7 +73,8 @@ public class NetworkEvolutionImpl {
 			String shortestPathStrategy, int iterationToReadOriginalNetwork, int lastIterationOriginal, Integer iterationsToAverage, double minMetroRadiusFromCenter,
 			double maxMetroRadiusFromCenter, double maxExtendedMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
 			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter, double minInitialTerminalDistance, 
-			double minInitialTerminalRadiusFromCenter, double maxInitialTerminalRadiusFromCenter, boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea,
+			double minInitialTerminalRadiusFromCenter, double maxInitialTerminalRadiusFromCenter, boolean varyInitRouteSize,
+			boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea,
 			double odConsiderationThreshold, boolean useOdPairsForInitialRoutes, double xOffset, double yOffset, double populationFactor,
 			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom,String defaultPtMode, 
 			boolean blocksLane, double stopTime, double maxVehicleSpeed, double tFirstDep, double tLastDep, double initialDepSpacing, double lifeTime
@@ -240,8 +241,8 @@ public class NetworkEvolutionImpl {
 
 			if (useOdPairsForInitialRoutes==false) {
 				initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork, shortestPathStrategy,
-						terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, zurich_NetworkCenterCoord, minInitialTerminalDistance,
-						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter);
+						terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, zurich_NetworkCenterCoord, metroCityRadius, varyInitRouteSize,
+						minInitialTerminalDistance, minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter);
 				// CAUTION: If NullPointerException, probably maxTerminalRadius >  metroNetworkRadius
 				separateRoutesNetwork = NetworkOperators.networkRoutesToNetwork(initialMetroRoutes, metroNetwork,
 						Sets.newHashSet("pt"), (mNetworkPath + "/0_MetroInitialRoutes_Random.xml"));
@@ -1328,8 +1329,12 @@ public class NetworkEvolutionImpl {
 		// REMEMBER: New nodes are named "MetroNodeLinkRef_"+linkID.toString()
 		public static ArrayList<NetworkRoute> createInitialRoutesRandom(Network newMetroNetwork, String shortestPathStrategy,
 				List<TransitStopFacility> terminalFacilities, Map<String, CustomStop> metroStops, int nRoutes, Coord zhCenterCoord,
-				double minTerminalDistance, double minInitialTerminalRadiusFromCenter, double maxInitialTerminalRadiusFromCenter) throws IOException {
+				double metroCityRadius, boolean varyInitRouteSize, 
+				double minTerminalDistance0, double minInitialTerminalRadiusFromCenter0, double maxInitialTerminalRadiusFromCenter0) throws IOException {
 
+			double minInitialTerminalRadiusFromCenter;
+			double maxInitialTerminalRadiusFromCenter;
+			double minTerminalDistance;
 			ArrayList<NetworkRoute> networkRouteArray = new ArrayList<NetworkRoute>();
 
 			// make nRoutes new routes
@@ -1340,7 +1345,16 @@ public class NetworkEvolutionImpl {
 			
 			OuterNetworkRouteLoop:
 			while (networkRouteArray.size() < nRoutes) {
-
+				if ((new Random()).nextDouble()<0.5 || !varyInitRouteSize) {
+					minInitialTerminalRadiusFromCenter = minInitialTerminalRadiusFromCenter0;
+					maxInitialTerminalRadiusFromCenter = maxInitialTerminalRadiusFromCenter0;
+					minTerminalDistance = minTerminalDistance0;
+				}
+				else {
+					minInitialTerminalRadiusFromCenter = 0.5*minInitialTerminalRadiusFromCenter0;
+					maxInitialTerminalRadiusFromCenter = 0.5*maxInitialTerminalRadiusFromCenter0;
+					minTerminalDistance = metroCityRadius;
+				}
 				// choose two random terminals
 				do {
 					Random r1 = new Random();
@@ -1709,8 +1723,8 @@ public class NetworkEvolutionImpl {
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, Coord zurich_NetworkCenterCoord, int lastIterationOriginal,
 			double pMutation, double pBigChange, double pSmallChange, double routeDisutilityLimit,
 			String shortestPathStrategy, Double minTerminalDistance, Double minTerminalRadiusFromCenter, Double maxTerminalRadiusFromCenter,
-			Double minInitialTerminalRadiusFromCenter, Double maxInitialTerminalRadiusFromCenter, Double tFirstDep, Double tLastDep, Double odConsiderationThreshold,
-			Double xOffset, Double yOffset,
+			Double minInitialTerminalRadiusFromCenter, Double maxInitialTerminalRadiusFromCenter, Double metroCityRadius, Boolean varyInitRouteSize, 
+			Double tFirstDep, Double tLastDep, Double odConsiderationThreshold, Double xOffset, Double yOffset,
 			Integer stopUnprofitableRoutesReplacementGEN, Integer blockFreqModGENs, Integer currentGEN, Integer lastGeneration,
 			Double maxConnectingDistance) throws IOException {
 		
@@ -1746,7 +1760,7 @@ public class NetworkEvolutionImpl {
 		// TOP UP NETWORK with routes if individuals have died out 
 		EvoOpsRoutesAdder.topUpNetworkRouteMaps(currentGEN, stopUnprofitableRoutesReplacementGEN, newPopulation, useOdPairsForInitialRoutes, shortestPathStrategy,
 				minTerminalDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter,
-				tFirstDep, tLastDep, eliteMNetwork,
+				metroCityRadius, varyInitRouteSize, tFirstDep, tLastDep, eliteMNetwork,
 				odConsiderationThreshold, zurich_NetworkCenterCoord, xOffset, yOffset);
 		
 		// MERGE SINGLE ROUTES TO A NETWORK

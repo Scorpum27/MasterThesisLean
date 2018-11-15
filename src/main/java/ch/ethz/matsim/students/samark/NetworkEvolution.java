@@ -8,6 +8,10 @@ import java.util.Calendar;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -21,10 +25,10 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 
 
 /* java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT nLinesInit rad depSapcing popCensus globalCostFactor
- * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 1 25 4000 300 1pct 1.0
- * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 1 25 4000 300 1pm 1.0
+ * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 1 0 4000 300 200 1pm 1.0
+ * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 1 25 4000 300 200 1pm 1.0
  * cp -avr /nas/samark/Simulations/25_CostStudy/samark-0.0.1-SNAPSHOT.jar /nas/samark/Simulations/25_CostStudy/100percent
- * java -Xmx20G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerIterFluctuations Network1 1 600 1 1000 false true global
+ * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerIterFluctuations Network1 1 200 1 1000 false true global
  * java -Xmx20G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 1000 1 100 individual
  *
  *
@@ -79,11 +83,13 @@ public class NetworkEvolution {
 	// INITIALIZATION
 	// - Initiate N networks to make a population
 		// % Parameters for Network Population & Strategy: %
-		Integer populationSize = Integer.parseInt(args[4]);													// how many networks should be developed in parallel
+		Integer populationSize = Integer.parseInt(args[4]);						// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
-		Integer initialRoutesPerNetwork = Integer.parseInt(args[5]);				// DEFAULT = 5;
+		Integer initialRoutesPerNetwork = Integer.parseInt(args[5]);			// DEFAULT = 5;
 		Boolean mergeMetroWithRailway = true;
 		Boolean useFastSBahnModule = false;
+		Boolean varyInitRouteSize = true;
+		Boolean enableThreading = true;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
 		Boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
@@ -100,13 +106,13 @@ public class NetworkEvolution {
 		Double maxMetroRadiusFactor = 1.70;											// DEFAULT = 1.70; (OLD=1.40: give some flexibility by increasing from 1.00 to 1.40)
 		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
-		Double maxExtendedMetroRadiusFromCenter = 2.1*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (2.1 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
+		Double maxExtendedMetroRadiusFromCenter = 2.5*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (2.1 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
 		Integer nMostFrequentLinks = (int) (metroCityRadius/20.0);					// DEFAULT = (int) (metroCityRadius/20.0) (or 70; will further be reduced during merging procedure for close facilities)
 		Double maxNewMetroLinkDistance = Math.min(2100.0,Math.max(0.33*metroCityRadius, 1400));		// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
 		Double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
 		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
-		Double minInitialTerminalRadiusFromCenter = 0.30*metroCityRadius; 			// DEFAULT = 0.30*metroCityRadius | put in parameter file and in routes creation file!
-		Double maxInitialTerminalRadiusFromCenter = 1.20*metroCityRadius;			// DEFAULT = 1.20*metroCityRadius | put in parameter file and in routes creation file!
+		Double minInitialTerminalRadiusFromCenter = 0.20*maxExtendedMetroRadiusFromCenter; 			// DEFAULT = 0.30*metroCityRadius | put in parameter file and in routes creation file!
+		Double maxInitialTerminalRadiusFromCenter = 0.80*maxExtendedMetroRadiusFromCenter;			// DEFAULT = 1.20*metroCityRadius | put in parameter file and in routes creation file!
 		Double minInitialTerminalDistance = 
 		   (minInitialTerminalRadiusFromCenter+maxInitialTerminalRadiusFromCenter); // DEFAULT = minInitialTerminalRadiusFromCenter+maxInitialTerminalRadiusFromCenter (OLD=0.80*maxMetroRadiusFromCenter)
 		Double railway2metroCatchmentArea = 150.0;									// DEFAULT = 150 or metroProximityRadius/3
@@ -122,7 +128,7 @@ public class NetworkEvolution {
 		// %% Parameters Simulation, Events & Plans Processing %%
 		Integer firstGeneration = 1;
 		Integer lastGeneration = 1;	// 50
-		Integer lastIterationOriginal = 1000;	// 50
+		Integer lastIterationOriginal = Integer.parseInt(args[8]);	// 50
 		Integer lastIteration = lastIterationOriginal;
 		Integer iterationsToAverage = 1;	// 30
 		if (lastIterationOriginal < iterationsToAverage || lastIteration < iterationsToAverage)
@@ -132,10 +138,12 @@ public class NetworkEvolution {
 		// %% Parameters Events & Plans Processing, Scores %%
 		Double averageTravelTimePerformanceGoal = 40.0;
 		Integer maxConsideredTravelTimeInSec = 240*60;
-		String censusSize = args[8]; // "1pct","1pm"
+		String censusSize = args[9]; // "1pct","1pm"
 		Integer populationFactor;	// default 1000 for 1pm scenario 
 		if (censusSize.equals("1pct")) { populationFactor = 100; }
 		else if (censusSize.equals("1pm")) {populationFactor = 1000;}
+		else if (censusSize.equals("3pm")) {populationFactor = 333;}
+		else if (censusSize.equals("6pm")) {populationFactor = 167;}
 		else {populationFactor = 100; Log.writeAndDisplay(" CensusSize invalid. Aborting!"); System.exit(0);}
 		// TODO hand over to methods censusSize for to pick correct files folder for initial config, network, people's plans
 		
@@ -156,7 +164,7 @@ public class NetworkEvolution {
 		Integer stopUnprofitableRoutesReplacementGEN = 20;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
 		
 		// %% Infrastructure Parameters %%
-		Double globalCostFactor = Double.parseDouble(args[9]);
+		Double globalCostFactor = Double.parseDouble(args[10]);
 		final double ConstrCostUGnew = globalCostFactor*1.5E5;								// within UG radius, new rails
 		final double ConstrCostUGdevelop = globalCostFactor*2.25E4;							// DEFAULT: 0.25E5 = within UG radius, but existing train rails
 		final double ConstrCostOGnew = globalCostFactor*4.0E4;
@@ -189,7 +197,7 @@ public class NetworkEvolution {
 					iterationsToAverage, 
 					minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
 					maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalDistance, 
-					minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, mergeMetroWithRailway, railway2metroCatchmentArea,
+					minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, varyInitRouteSize, mergeMetroWithRailway, railway2metroCatchmentArea,
 					metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, 1.0*populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 
 					vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing, lifeTime
 					);
@@ -231,20 +239,31 @@ public class NetworkEvolution {
 		
 			Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
 			Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
-
-			// % Normal approach! (See before 11.10.2018 for alternative threading approaches incl. executorMethod)
-			for (MNetwork mNetwork : latestPopulation.getNetworks().values()) {
-				if (latestPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())==false) {
-					// must not simulate this loop again, because it has not been changed in last evolution
-					// Comment this if lastIteration changes over evolutions !!
-					continue;
-				}
-				mNetwork.evolutionGeneration = generationNr;
-				String initialConfig = "zurich_1pm/zurich_config.xml";
-				NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule);
-			} // End Network Simulation Loop
-			Log.write("Completed all MATSim runs.");
+			String initialConfig = "zurich_1pm/zurich_config.xml";
 			
+			if (enableThreading) {
+				ExecutorService executorService = Executors.newFixedThreadPool(latestPopulation.networkMap.size());
+				for (MNetwork mNetwork : latestPopulation.getNetworks().values()) {
+					if (latestPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())==false) {continue;}
+					mNetwork.evolutionGeneration = generationNr;
+					RunnableRunSim MATSimRunnable = new RunnableRunSim(args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule);
+					executorService.execute(MATSimRunnable);
+				} // End Network Simulation Loop
+				executorService.shutdown();
+				try { executorService.awaitTermination(Long.MAX_VALUE, TimeUnit.NANOSECONDS); } catch (InterruptedException e) {}
+			}
+			else { // % Normal approach! (See before 11.10.2018 for alternative threading approaches incl. executorMethod)
+				for (MNetwork mNetwork : latestPopulation.getNetworks().values()) {
+					if (latestPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())==false) {
+						// must not simulate this loop again, because it has not been changed in last evolution
+						// Comment this if lastIteration changes over evolutions !!
+						continue;
+					}
+					mNetwork.evolutionGeneration = generationNr;
+					NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule);
+				} // End Network Simulation Loop
+			}
+			Log.write("Completed all MATSim runs.");
 			
 		// - EVENTS PROCESSING: 
 			Log.write("EVENTS PROCESSING of GEN"+generationNr+"");
@@ -285,7 +304,8 @@ public class NetworkEvolution {
 						defaultPtMode, stopTime, blocksLane, logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
 						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
 						shortestPathStrategy, minInitialTerminalRadiusFromCenter, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter,
-						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, tFirstDep, tLastDep, odConsiderationThreshold,
+						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, metroCityRadius, varyInitRouteSize, 
+						tFirstDep, tLastDep, odConsiderationThreshold,
 						xOffset, yOffset, stopUnprofitableRoutesReplacementGEN, blockFreqModGENs, generationNr, lastGeneration, maxConnectingDistance);
 			}		
 			
