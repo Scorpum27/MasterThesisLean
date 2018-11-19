@@ -566,7 +566,7 @@ public class Visualizer {
 		plot.setDomainGridlinePaint(new Color(0x00, 0x00, 0xff));
 		plot.setRangeGridlinePaint(new Color(0xff, 0x00, 0x00));
 
-		Log.write("should be making png here!");
+//		Log.write("should be making png here!");
 		
 		File file = new File(outFileName);
 		ChartUtilities.saveChartAsPNG(file, lineChart, 1280, 960);

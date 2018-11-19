@@ -82,9 +82,9 @@ public class NetworkEvolutionRunSim {
 			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleSpeedSBahn.xml");			
 		}
 		else {
-			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
-//			Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID);
-//			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleModified.xml");			
+//			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
+			Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID);
+			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleModified.xml");			
 		}
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml");
 //		modConfig.getModules().get("qsim").addParam("flowCapacityFactor", "10000");
@@ -175,7 +175,7 @@ public class NetworkEvolutionRunSim {
 			
 			// Average the events output over several iteration (generationsToAverage). For every generation add its performance divided by its single weight
 			for (Integer thisIteration=steadyStateIteration-iterationsToAverage+1; thisIteration<=steadyStateIteration; thisIteration++) {
-				Log.write("Iteration = "+thisIteration);
+//				Log.write("Iteration = "+thisIteration);
 				// read and handle events
 				String eventsFile = networkPath+networkName+"/Simulation_Output/ITERS/it."+thisIteration+"/"+thisIteration+".events.xml.gz";			
 				MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
@@ -471,7 +471,7 @@ public class NetworkEvolutionRunSim {
 			MNetwork loadedNetwork = new MNetwork("Network"+n);
 			latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
 			Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
-			for (int r=1; r<=initialRoutesPerNetwork; r++) {
+			for (int r=1; r<= (int)Math.max(15.0,1.0*initialRoutesPerNetwork); r++) {
 				String routeFilePath =
 						"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationToRecall+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
 				File f = new File(routeFilePath);

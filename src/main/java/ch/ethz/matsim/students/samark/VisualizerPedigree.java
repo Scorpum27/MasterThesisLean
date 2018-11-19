@@ -5,7 +5,9 @@ import java.awt.Color;
 import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -25,15 +27,22 @@ import org.matsim.core.scenario.ScenarioUtils;
 public class VisualizerPedigree {
 	
 	@SuppressWarnings("unchecked")
-	public static void main(String[] args) throws IOException, XMLStreamException {
+	public static void main(String[] args) throws IOException, XMLStreamException, URISyntaxException {
 	// %%% --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- DISPLAY EVOLUTION OF NETWORKS---%%---%%---%%---%%---%%---%%---%%---%%---%%---%%%
 	
-		// args[0] = firstGenerationPedigreeTree;
-		// args[1] = finalGenerationPedigreeTree;
-		// args[2] = networkName;
+		// args[0] = Sim folder name;
+		// args[1] = firstGenerationPedigreeTree;
+		// args[2] = finalGenerationPedigreeTree;
+		// args[3] = networkName;
+		
+		final Integer finalNetworkNrFirst = Integer.parseInt(args[3]); // e.g. "1"
+		final Integer finalNetworkNrLast = Integer.parseInt(args[4]); // e.g. "10"
+		String simName = args[0];
 					
 		BufferedImage bgImage = null;
-		bgImage = ImageIO.read(new File("zurich_1pm/bgImgMedium.png"));
+		bgImage = ImageIO.read(new FileInputStream(simName + "/zurich_1pm/bgImgMedium.png"));
+		// bgImage = ImageIO.read(BufferedImage.class.getResource(simName + "/zurich_1pm/bgImgMedium.png"));
+		// bgImage = ImageIO.read(new File(BufferedImage.class.getResource(simName + "/zurich_1pm/bgImgMedium.png").toURI()));
 		Double xSize = (double) bgImage.getWidth();
 		Double ySize = (double) bgImage.getHeight();
 				
@@ -48,93 +57,94 @@ public class VisualizerPedigree {
 		Double yScalingFactor = (y1 - y0) / ySize; // will be negative due to y-decrease of COS for increasing graphicsCOS
 
 		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
-		String historyLogFolder = "zurich_1pm/Evolution/Population/HistoryLog/";
+		String historyLogFolder = simName + "/zurich_1pm/Evolution/Population/HistoryLog/";
 		pedigreeTree.addAll(XMLOps.readFromFile(pedigreeTree.getClass(), historyLogFolder + "pedigreeTree.xml"));
 		System.out.println("pedigreeTreeSize = " + pedigreeTree.size());
 
-		final String finalNetwork = args[2]; // e.g. "Network3"
 		final Integer firstGeneration;
 		final Integer finalGeneration;
-		if (args[0].equals("null")) {
+		if (args[1].equals("null")) {
 			firstGeneration = 1;
 		} else {
-			firstGeneration = Integer.parseInt(args[0]);
+			firstGeneration = Integer.parseInt(args[1]);
 		}
-		if (args[1].equals("null")) {
+		if (args[2].equals("null")) {
 			finalGeneration = pedigreeTree.size() + 1;
 		} else {
-			finalGeneration = Integer.parseInt(args[1]);
+			finalGeneration = Integer.parseInt(args[2]);
 		}
-		System.out.println(finalNetwork.getClass());
 		if (args[2].equals("null")) {
 			System.out.println(args[1]);
 		}
 
 		if (pedigreeTree.size() != finalGeneration - 1) {
-			Log.writeAndDisplay(
-					"CAUTION: Pedigree tree has not same number of generations as finalGeneration! Please check.");
+//			Log.writeAndDisplay(
+//					"CAUTION: Pedigree tree has not same number of generations as finalGeneration! Please check.");
 		}
 
-		String thisGenNetwork = finalNetwork;
-		generationLoop:
-		for (Integer gen = finalGeneration; gen >= firstGeneration; gen--) {
-
-			BufferedImage blankImg = null;
-			blankImg = ImageIO.read(new File("zurich_1pm/bgImgMedium.png"));
-			Graphics2D g = (Graphics2D) blankImg.createGraphics();
-			g.setColor(Color.CYAN);
-			g.setStroke(new BasicStroke(3));
-
-			String routesFolder = historyLogFolder + "Generation" + gen + "/MRoutes/";
-
-			// alternative: display all MRoutes individually (can display with different colors then)
-			// for (Integer r=0; r<50; r++) {
-			// 		if ((new File("routesFolder" + thisGenNetwork + "_Route"+r +"_RoutesFile.xml")).exists()) {
-			// 		// display routes
-			// 		}
-			// }
-			File routesNetworkFile = new File(routesFolder + "MRoutes" + thisGenNetwork + ".xml");
-			System.out.println("routesNetworkFile = " + routesNetworkFile);
-			if (routesNetworkFile.exists()) {
-				
-				Config config = ConfigUtils.createConfig();
-				config.getModules().get("network").addParam("inputNetworkFile", routesNetworkFile.toString());
-				Scenario scenario = ScenarioUtils.loadScenario(config);
-				Network routesNetwork = scenario.getNetwork();
-				for (Link link : routesNetwork.getLinks().values()) { // for links in network
-					Coord fromCoordImg = zh2img(link.getFromNode().getCoord(), xScalingFactor, yScalingFactor, x0, y0);
-					Coord toCoordImg = zh2img(link.getToNode().getCoord(), xScalingFactor, yScalingFactor, x0, y0);
-					Integer xA = (int) Math.ceil(fromCoordImg.getX());
-					Integer yA = (int) Math.ceil(fromCoordImg.getY());
-					Integer xB = (int) Math.floor(toCoordImg.getX());
-					Integer yB = (int) Math.floor(toCoordImg.getY());
-					if (xA > xSize || xB > xSize || yA > ySize || yB > ySize) {
-						Log.write("Link " + link.toString()
-								+ " violates max window size and is therefore not displayed.");
-						continue;
+		for (Integer n=finalNetworkNrFirst; n<=finalNetworkNrLast; n++) {
+			String finalNetwork = "Network"+n;
+			String thisGenNetwork = finalNetwork;
+			generationLoop:
+			for (Integer gen = finalGeneration; gen >= firstGeneration; gen--) {
+	
+				BufferedImage blankImg = null;
+				blankImg = ImageIO.read(new File(simName + "/zurich_1pm/bgImgMedium.png"));
+				Graphics2D g = (Graphics2D) blankImg.createGraphics();
+				g.setColor(Color.CYAN);
+				g.setStroke(new BasicStroke(3));
+	
+				String routesFolder = historyLogFolder + "Generation" + gen + "/MRoutes/";
+	
+				// alternative: display all MRoutes individually (can display with different colors then)
+				// for (Integer r=0; r<50; r++) {
+				// 		if ((new File("routesFolder" + thisGenNetwork + "_Route"+r +"_RoutesFile.xml")).exists()) {
+				// 		// display routes
+				// 		}
+				// }
+				File routesNetworkFile = new File(routesFolder + "MRoutes" + thisGenNetwork + ".xml");
+				System.out.println("routesNetworkFile = " + routesNetworkFile);
+				if (routesNetworkFile.exists()) {
+					
+					Config config = ConfigUtils.createConfig();
+					config.getModules().get("network").addParam("inputNetworkFile", routesNetworkFile.toString());
+					Scenario scenario = ScenarioUtils.loadScenario(config);
+					Network routesNetwork = scenario.getNetwork();
+					for (Link link : routesNetwork.getLinks().values()) { // for links in network
+						Coord fromCoordImg = zh2img(link.getFromNode().getCoord(), xScalingFactor, yScalingFactor, x0, y0);
+						Coord toCoordImg = zh2img(link.getToNode().getCoord(), xScalingFactor, yScalingFactor, x0, y0);
+						Integer xA = (int) Math.ceil(fromCoordImg.getX());
+						Integer yA = (int) Math.ceil(fromCoordImg.getY());
+						Integer xB = (int) Math.floor(toCoordImg.getX());
+						Integer yB = (int) Math.floor(toCoordImg.getY());
+						if (xA > xSize || xB > xSize || yA > ySize || yB > ySize) {
+	//						Log.write("Link " + link.toString()
+	//								+ " violates max window size and is therefore not displayed.");
+							continue;
+						}
+						// g.draw(new Line2D.Float(30, 20, 80, 90));
+						g.drawLine(xA, yA, xB, yB);
 					}
-					// g.draw(new Line2D.Float(30, 20, 80, 90));
-					g.drawLine(xA, yA, xB, yB);
+				} else {
+	//				Log.write("CAUTION: Network routes file does not exist! Jumping to its parent.");
+					continue generationLoop;
 				}
-			} else {
-				Log.write("CAUTION: Network routes file does not exist! Jumping to its parent.");
-				continue generationLoop;
-			}
-
-			try {
-				File outputfile = new File(historyLogFolder + "XbloodLineFinal" + finalNetwork + "GEN" + gen + ".png");
-				ImageIO.write(blankImg, "png", outputfile);
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			if (gen > firstGeneration) { // do this loop to update the network (parent) which shall be displayed in
-											// generation prior to this one.
-				System.out.println("Pedigree tree GEN" + (gen - 2) + " = ");
-				System.out.println(pedigreeTree.get(gen - 2));
-				thisGenNetwork = pedigreeTree.get(gen - 2).get(thisGenNetwork); // -2 because go from gen(minimum=1) to
-																				// pedigreeList(minimum=0) and need one
-																				// gen before
-				System.out.println("Parent Network = " + thisGenNetwork);
+	
+				try {
+					File outputfile = new File(simName + "/PedigreeBloodLine_" + finalNetwork + "GEN" + gen + ".png");
+					ImageIO.write(blankImg, "png", outputfile);
+				} catch (IOException e) {
+					e.printStackTrace();
+				}
+				if (gen > firstGeneration) { // do this loop to update the network (parent) which shall be displayed in
+												// generation prior to this one.
+					System.out.println("Pedigree tree GEN" + (gen - 2) + " = ");
+					System.out.println(pedigreeTree.get(gen - 2));
+					thisGenNetwork = pedigreeTree.get(gen - 2).get(thisGenNetwork); // -2 because go from gen(minimum=1) to
+																					// pedigreeList(minimum=0) and need one
+																					// gen before
+					System.out.println("Parent Network = " + thisGenNetwork);
+				}
 			}
 		}
 	}

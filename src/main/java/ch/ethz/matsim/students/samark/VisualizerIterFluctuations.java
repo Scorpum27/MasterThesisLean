@@ -57,7 +57,8 @@ public class VisualizerIterFluctuations {
 		else if (censusSize.equals("1pm")) {populationFactor = 1000; yRange = null; } 	// yRange = new Range(7400.0, 8100.0);
 		else if (censusSize.equals("3pm")) {populationFactor = 333; yRange = null; }
 		else if (censusSize.equals("6pm")) {populationFactor = 167; yRange = null; }
-		else {System.out.println("Census Size invalid! Please check. Aborting...");};
+		else {System.out.println("Census Size invalid! Please check. Aborting..."); System.exit(0);};
+
 		
 
 	// ---------- INITIALIZATION ----------

@@ -230,8 +230,8 @@ public class EvoOpsMerger {
 				else {
 					//unfeasibleIntersectFacilities.add(closestFacility);
 					possibleIntersectFacilities.remove(closestFacility);
-					Log.write(possibleIntersectFacilities.toString());
-					Log.write(closestFacility.toString());
+//					Log.write(possibleIntersectFacilities.toString());
+//					Log.write(closestFacility.toString());
 //					Log.write(" --> Turning angles not ok. Removing from possible facilities "+closestFacility.getName());
 					continue;
 				}
@@ -263,8 +263,8 @@ public class EvoOpsMerger {
 				else {
 					//unfeasibleIntersectFacilities.add(closestFacility);
 //					Log.write(" --> Turning angles not ok. Removing from possible facilities "+closestFacility.getName());
-					Log.write(closestFacility.toString());
-					Log.write(possibleIntersectFacilities.toString());
+//					Log.write(closestFacility.toString());
+//					Log.write(possibleIntersectFacilities.toString());
 					possibleIntersectFacilities.remove(closestFacility);
 					continue;
 				}
@@ -419,8 +419,8 @@ public class EvoOpsMerger {
 		Id<Link> r2nextFacilityLinkDOWN;
 		Integer attemptedStopsCounterUpstream = 0;
 		Integer attemptedStopsCounterDownstream = 0;
-		List<Id<Link>> mergerLinkListDOWN = null;
-		List<Id<Link>> mergerLinkListUP = null;
+		List<Id<Link>> mergerLinkListDOWN = new ArrayList<Id<Link>>();
+		List<Id<Link>> mergerLinkListUP = new ArrayList<Id<Link>>();
 
 		for (Id<Link> routeLinkIdUP : r2linkList.subList(r2linkList.indexOf(link2.getId()), r2linkList.size())) {
 //			Log.write("Trying next route link UP = "+routeLinkIdUP.toString());
@@ -481,8 +481,16 @@ public class EvoOpsMerger {
 		
 		// add up the two route parts adding up to a rerouted line intersecting route 1 at a mutual stopFacility!
 		List<Id<Link>> reroutedLinkList = new ArrayList<Id<Link>>();
-		reroutedLinkList.addAll(mergerLinkListDOWN);
-		reroutedLinkList.addAll(mergerLinkListUP);
+		if (mergerLinkListDOWN.size()>0) {
+			reroutedLinkList.addAll(mergerLinkListDOWN);			
+		}
+		if (mergerLinkListUP.size()>0) {
+			reroutedLinkList.addAll(mergerLinkListUP);
+		}
+		if (reroutedLinkList.size()==0) {
+			Log.write("CAUTION: mergerLinkLists were size zero again. Check code if this is shown frequently.");
+			return false;
+		}
 		// check again entire route for turning constraint. This also avoids strange shortest paths along original line with U-turns!
 		if (!EvoOpsMutator.checkIfTurningAnglesOkIdOnly(maxCrossingAngle, reroutedLinkList, globalNetwork)) {
 			return false;

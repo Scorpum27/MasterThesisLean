@@ -7,8 +7,10 @@ import java.awt.Graphics2D;
 import java.awt.geom.Line2D;
 import java.awt.image.BufferedImage;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -56,9 +58,12 @@ public class Demo {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static void main(String[] args) throws IOException, XMLStreamException {
+	public static void main(String[] args) throws IOException, XMLStreamException, URISyntaxException {
 
-		
+		BufferedImage bgImage = null;
+		bgImage = ImageIO.read(new FileInputStream("zurich_1pm/bgImgMedium.png"));
+		Double xSize = (double) bgImage.getWidth();
+		Double ySize = (double) bgImage.getHeight();
 		
 //		// %%% Speed SBahn
 

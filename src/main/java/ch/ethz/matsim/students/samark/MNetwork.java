@@ -351,6 +351,7 @@ public class MNetwork implements Serializable{
 			Log.write("-------------------  "+ this.networkID);
 			Log.write("DeltaPtUsers = "+(newCase.ptUsers-refCase.ptUsers));		// the cbp of newCase and refCase is already averaged!
 			Log.write("DeltaCarUsers = "+(newCase.carUsers - refCase.carUsers));
+			Log.write("DeltaOtherUsers = "+(newCase.otherUsers - refCase.otherUsers));
 			Log.write("TotalMetroRouteLength / Vehicles = "+this.totalRouteLength+" / "+this.totalVehiclesNr);
 			Log.write("lengthUG (%new / %develop) [Km] = "+lengthUG/1000 + " ("+newUGpercentage+" / "+developUGpercentage+")");
 			Log.write("lengthOG (%new / %develop) [Km] = "+lengthOG/1000 + " ("+newOGpercentage+" / "+developOGpercentage+")");
@@ -359,6 +360,7 @@ public class MNetwork implements Serializable{
 			Log.write("DeltaPersonPtTimeDaily - Average [s] = "+(newCase.averagePtTime-refCase.averagePtTime));
 			Log.write("DeltaPersonPtDist - Total [Mio Km/y] = "+timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaPtPersonDist20xx), 1.0E-9, discountFactor, false)); // 1Mio km = 10^9m
 			Log.write("DeltaAverageSpeedPersonPt [km/h] = "+(newCase.ptPersonDist/newCase.ptTimeTotal-refCase.ptPersonDist/refCase.ptTimeTotal)*3.6);
+			Log.write("DeltaPersonOtherTimeDaily - Average [s] = "+(newCase.customVariable1-refCase.customVariable1));
 			Log.write("AveragePersonCarTimeDaily [s] = " + newCase.averageCartime);
 			Log.write("DeltaPersonCarTimeDaily - Average [s] = "+(newCase.averageCartime-refCase.averageCartime));
 			Log.write("DeltaPersonCarDist - Total [Mio Km/y] = "+timeCorrectedUtility((int) lifeTime, Arrays.asList(annualDeltaCarPersonDist20xx), 1.0E-9, discountFactor, false)); // 1Mio km = 10^9m

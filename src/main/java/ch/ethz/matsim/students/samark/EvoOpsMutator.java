@@ -79,13 +79,13 @@ public class EvoOpsMutator {
 					Random rBig = new Random();
 					if (rBig.nextDouble() < pBigChange) { // make big change
 						if(linkListMutate.size()>2) {
-							Log.writeAndDisplay("  >> Applying big change");
+							Log.writeAndDisplay("  >> Attempting big change");
 							hasHadMutation = EvoOpsMutator.applyBigChange2(allMetroStops, linkListMutate, globalNetwork, maxCrossingAngle, zurich_NetworkCenterCoord,
 									mRoute, mrouteIter, metroLinkAttributes);
 						}
 					}
 					else{ // make small change
-						Log.writeAndDisplay("  >> Applying small change");
+						Log.writeAndDisplay("  >> Attempting small change");
 						boolean smallChangeSucceeded = EvoOpsMutator.applySmallChange(cbpOriginal, cbpNew, mrouteIter, linkListMutate, 
 								globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes, routeDisutilityLimit);
 						if (smallChangeSucceeded == false) {
@@ -212,9 +212,17 @@ public class EvoOpsMutator {
 
 		if (mRoute.utilityBalance > routeDisutilityLimit) { // extend route
 			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
+			// with 50% chance try another extension
+			if ((new Random()).nextDouble()<0.5) {
+				extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);				
+			}
 		}
 		else { // shorten route
 			shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
+			// with 50% chance try another shortening
+			if ((new Random()).nextDouble()<0.5) {
+				shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
+			}
 		}
 		if (linkListMutate.size() < 2) {
 			Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);
@@ -228,8 +236,8 @@ public class EvoOpsMutator {
 	}
 	
 	public static void shortenRoute(Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, 
-			double maxCrossingAngle, MRoute mRoute,
-			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+			double maxCrossingAngle, MRoute mRoute, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+		Log.writeAndDisplay("  > Attempting route shortening for "+mRoute.getId());
 		Random rEnd = new Random();
 		if(rEnd.nextDouble() < 0.5) { // shorten on start link
 			Id<Link> nextLinkWithFacility = null;
@@ -305,6 +313,7 @@ public class EvoOpsMutator {
 			linkListMutate.removeAll(linksToKillTillNextFacility);
 		}
 		mRoute.hasBeenShortened = true;	// do this to tell frequencyModifier that he can further remove a vehicle!
+		Log.writeAndDisplay("  > Susscessul SHORTENING for "+mRoute.getId());
 	}
 	
 	
@@ -313,6 +322,7 @@ public class EvoOpsMutator {
 	public static void extendRoute(Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, 
 			double maxCrossingAngle, MRoute mRoute,
 			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+		Log.writeAndDisplay("  > Attempting route extension for "+mRoute.getId());
 		Random rEnd = new Random();
 		if(rEnd.nextDouble() < 0.5) { // add on start link
 //			Log.write("Trying to add extension before start link");
@@ -393,15 +403,18 @@ public class EvoOpsMutator {
 		
 		double pDelete = 0.05;
 		if ((new Random()).nextDouble() < pDelete) {	// DELETE ONE STOP: so that this stop is not serviced
+			Log.writeAndDisplay("  > Attempting stop skipper for "+mRoute.getId());
 			// do not service one stop facility: this facility will be blocked when running stopAddingRoutine along route and it will not be added as a route stop
 
 			Id<Link> blockedLink = linkListMutateFacilityLinks.get((new Random()).nextInt(linkListMutateFacilityLinks.size()-2)+1);
 			mRoute.facilityBlockedLinks.add(blockedLink);
 			mRoute.facilityBlockedLinks.add(NetworkEvolutionImpl.ReverseLink(blockedLink));
 //			Log.write("Blocking facility links for servicing an active stop:  "+blockedLink.toString() + "  &  " + NetworkEvolutionImpl.ReverseLink(blockedLink));
+			Log.writeAndDisplay("  > Delete a stop for = "+mRoute.getId());
 		}
 		else { /// PERFORM OTHER BIG MODIFICATION
 			if ((new Random()).nextDouble() < 0.5) {	// CUT OPEN AND SWITCH ONE TERMINAL to another stopfacility within constraints				
+				Log.writeAndDisplay("  > Attempting terminal switch for "+mRoute.getId());
 //				Log.write("extraLog.txt", "X, it's happening...");
 
 				List<Integer> cutIndices = new ArrayList<Integer>();
@@ -475,6 +488,7 @@ public class EvoOpsMutator {
 //								Log.write("extraLog.txt", "newLinkPathIds="+linkListMutate.toString());
 								linkListMutate.addAll(newLinkPathIds);
 //								Log.write("extraLog.txt", "Success: final linkList="+linkListMutate.toString());
+								Log.writeAndDisplay("  > Successul TERMINAL SWITCH for "+mRoute.getId());
 								break FindCutLoop;
 							}
 						}
@@ -485,6 +499,7 @@ public class EvoOpsMutator {
 				}
 			}
 			else {
+				Log.writeAndDisplay("  > Attempting stop insertion for "+mRoute.getId());
 				// insert an additional stop facility (facility insertion)
 				// if it can't just be inserted, remove existing legs between stops to be able to reasonably connect new stop facility links
 				// removing one existing leg between two stops and connecting loose ends to new stop instead is identical to "replacing a stop"
@@ -583,12 +598,13 @@ public class EvoOpsMutator {
 		mRoute.linkList = Clone.list(linkListMutate);
 		mRoute.networkRoute = RouteUtils.createNetworkRoute(linkListMutate, globalNetwork);
 		if (linkListMutate.size() < 2) {
-			Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);
+			Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting after stop insertion route "+mRoute.routeID);
 			mrouteIter.remove();
 			return true;
 		}
 		else if ( ! linkListMutate.equals(originalLinkListMutate)) {
 			mRoute.significantRouteModOccured = true;
+			Log.writeAndDisplay("  > Susscessul STOP INSERTION for "+mRoute.getId());
 			return true;
 		}
 		else {
@@ -750,6 +766,15 @@ public class EvoOpsMutator {
 		Link startLink = globalNetwork.getLinks().get(routeLinks.get(0));
 		Node startNode = globalNetwork.getNodes().get(startLink.getFromNode().getId());
 		if (lowestTreeLevel == 1) {
+			for (Link previousLink : startNode.getInLinks().values()) {	// first for loop to favor rail2metro links for extension (with 80% chance)
+				if ( metroLinkAttributes.get(startLink.getId()) != null &&  metroLinkAttributes.get(previousLink.getId()) != null &&
+						metroLinkAttributes.get(previousLink.getId()).type.equals("rail2newMetro") && (new Random()).nextDouble()<0.8  &&
+						searchAcceptableStopFacilitiesOnLink(metroLinkAttributes, previousLink, metroLinkAttributes.get(startLink.getId()).fromNodeStopFacility) != null) {
+					// second condition makes sure that a link is not added, which has same facility on FromNode as end link on ToNode given that they touch.
+					routeLinks.add(previousLink.getId());
+					return routeLinks;
+				}
+			}
 			for (Link previousLink : startNode.getInLinks().values()) {
 				if (GeomDistance.angleBetweenLinks(previousLink, startLink) > maxCrossingAngle || metroLinkAttributes.get(startLink.getId()) == null) {
 					continue;
@@ -786,7 +811,16 @@ public class EvoOpsMutator {
 		Link endLink = globalNetwork.getLinks().get(routeLinks.get(routeLinks.size()-1));
 		Node endNode = globalNetwork.getNodes().get(endLink.getToNode().getId());
 		if (lowestTreeLevel == 1) {
-			for (Link nextLink : endNode.getOutLinks().values()) {
+			for (Link nextLink : endNode.getOutLinks().values()) {	// first for loop to favor rail2metro links for extension (with 80% chance)
+				if (metroLinkAttributes.get(endLink.getId()) != null && metroLinkAttributes.get(nextLink.getId()) != null && 
+						metroLinkAttributes.get(nextLink.getId()).type.equals("rail2newMetro") && (new Random()).nextDouble()<0.8  &&
+						searchAcceptableStopFacilitiesOnLink(metroLinkAttributes, nextLink, metroLinkAttributes.get(endLink.getId()).toNodeStopFacility) != null) {
+					// second condition makes sure that a link is not added, which has same facility on FromNode as end link on ToNode given that they touch.
+					routeLinks.add(nextLink.getId());
+					return routeLinks;
+				}
+			}
+			for (Link nextLink : endNode.getOutLinks().values()) {	// second for loop to consider any links for extension (first hit with 100% chance)
 				if (GeomDistance.angleBetweenLinks(nextLink, endLink) > maxCrossingAngle || metroLinkAttributes.get(endLink.getId()) == null) {
 					continue;
 				}

@@ -16,7 +16,6 @@ import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.scenario.ScenarioUtils;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 
-import com.google.common.collect.Sets;
 
 public class EvoOpsRoutesAdder {
 
@@ -24,7 +23,7 @@ public class EvoOpsRoutesAdder {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static void topUpNetworkRouteMaps(Integer currentGEN, Integer stopUnprofitableRoutesReplacementGEN, MNetworkPop newPopulation,
+	public static void topUpNetworkRouteMaps(Integer initialRoutesPerNetwork, Integer currentGEN, Integer stopUnprofitableRoutesReplacementGEN, MNetworkPop newPopulation,
 			Boolean useOdPairsForInitialRoutes, String shortestPathStrategy,
 			Double minInitialTerminalDistance, Double minTerminalRadiusFromCenter, Double maxTerminalRadiusFromCenter, 
 			Double minInitialTerminalRadiusFromCenter, Double maxInitialTerminalRadiusFromCenter, Double metroCityRadius, Boolean varyInitRouteSize, 
@@ -48,7 +47,7 @@ public class EvoOpsRoutesAdder {
 		for (MNetwork mNetwork : newPopulation.networkMap.values()) {
 			
 			if (mNetwork.networkID.equals(eliteMNetwork.networkID) || newPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false
-					|| mNetwork.routeMap.size() == 5) {
+					|| mNetwork.routeMap.size() >= initialRoutesPerNetwork) {
 				// make DAMN SURE that all condition in applyPT are placed here as well.
 				// Code will fail if routes are topped up, but no PT is applied to them afterwards!
 				continue;
@@ -58,8 +57,8 @@ public class EvoOpsRoutesAdder {
 				newPopulation.modifiedNetworksInLastEvolution.add(mNetwork.networkID);
 			}
 			
-			int initialRoutesPerNetwork = 5-mNetwork.routeMap.size();
-			Log.write("Introducing " +initialRoutesPerNetwork+ " new routes on " + mNetwork.networkID + ":");
+			int nRoutesToBeToppedUp = initialRoutesPerNetwork-mNetwork.routeMap.size();
+			Log.write("Introducing " +nRoutesToBeToppedUp+ " new routes on " + mNetwork.networkID + ":");
 			
 			ArrayList<NetworkRoute> newMetroRoutes = new ArrayList<NetworkRoute>();
 			if (useOdPairsForInitialRoutes==false) {
@@ -67,13 +66,13 @@ public class EvoOpsRoutesAdder {
 				terminalFacilityCandidates = NetworkEvolutionImpl.findFacilitiesWithinBounds("zurich_1pm/Evolution/Population/BaseInfrastructure/MetroStopFacilities.xml",
 						zurich_NetworkCenterCoord, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, null);
 				newMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork, shortestPathStrategy,
-						terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, zurich_NetworkCenterCoord, 
+						terminalFacilityCandidates, allMetroStops, nRoutesToBeToppedUp, zurich_NetworkCenterCoord, 
 						metroCityRadius, varyInitRouteSize, minInitialTerminalDistance,
 						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter);
 			}
 			else if (useOdPairsForInitialRoutes==true) {	
 				// Initial Routes OD_Pairs within bounds
-				newMetroRoutes = OD_ProcessorImpl.createInitialRoutesOD(metroNetwork, initialRoutesPerNetwork,
+				newMetroRoutes = OD_ProcessorImpl.createInitialRoutesOD(metroNetwork, nRoutesToBeToppedUp,
 						minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, odConsiderationThreshold,
 						zurich_NetworkCenterCoord, "zurich_1pm/Evolution/Input/Data/OD_Input/Demand2013_PT.csv",
 						"zurich_1pm/Evolution/Input/Data/OD_Input/OD_ZoneCodesLocations.csv", xOffset, yOffset);

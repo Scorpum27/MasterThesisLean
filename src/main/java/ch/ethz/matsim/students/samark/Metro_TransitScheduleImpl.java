@@ -379,7 +379,7 @@ public class Metro_TransitScheduleImpl {
 	
 	public static TransitSchedule SpeedSBahnModule(MNetwork mNetwork, String transitScheduleFileNameOld, String transitScheduleFileNameNew) throws IOException {
 		
-		Log.write("  >> Modifying ZH SBahn network for "+mNetwork.networkID+". Optimize stop sequences with new metro capacities.");
+		Log.write("  >> Modifying ZH SBahn network for "+mNetwork.networkID+". Optimize stop sequences with new metro capacities --> Speed S-Bahn");
 		Config configMerged = ConfigUtils.createConfig();
 		configMerged.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/"+transitScheduleFileNameOld);
 //		configOrig.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/zurich_transit_schedule.xml.gz");
@@ -562,7 +562,7 @@ public class Metro_TransitScheduleImpl {
 //							Log.write("OD ");
 							if (GeomDistance.calculate(odPairX.O, trsO.getStopFacility().getCoord()) < 400.0
 									&& GeomDistance.calculate(odPairX.D, trsD.getStopFacility().getCoord()) < 400.0) {
-								Log.write("Cutting intermediate stops between OD-pair "+odPairX.odPairNames);
+//								Log.write("Cutting intermediate stops between OD-pair "+odPairX.odPairNames);
 								// Log.write("Found metro OD-pair: "+odPairX.odStopPairNames); // make additional field with names for this here!
 								// clear trNewRouteStops and only add again the stops before and after the od-pair (=clear intermediate stops)
 								// XXX update the times after the intermediate stops (arrival/departure sooner)
@@ -660,7 +660,7 @@ public class Metro_TransitScheduleImpl {
 	
 	
 	
-
+	@Deprecated
 	public static void FastSBahnModule(MNetwork mNetwork) throws IOException {
 		
 		// every sBahnStopSequence has several subRoutes as it is in the zurich_1pm transitSchedule file
