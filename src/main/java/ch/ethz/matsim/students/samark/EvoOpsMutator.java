@@ -58,15 +58,23 @@ public class EvoOpsMutator {
 			List<String> rankedRoutes = EvoOpsMutator.sortRoutesByScore(routeScoreMap);	// highest first
 			int N = rankedRoutes.size();
 			for (int n=0; n<N; n++) {
-				routeMutationProbabilitiesMap.put(rankedRoutes.get(n), 1-(N-n)/(N*(0.5*N+0.5))-(N-2.0)/N);
+				routeMutationProbabilitiesMap.put(rankedRoutes.get(n), 2.0*(n+1)/(N+1));
 				// 1-p(n), because highest score should least likely be mutated
+			}
+			Double pMutationUptodate;
+			if (pMutation>1.0*(N+1)/(2*N)) {
+				pMutationUptodate = 1.0*(N+1)/(2*N);
+				Log.write("CAUTION: pMutation too high for the number of remaining routes. Lowering to"+pMutationUptodate);
+			}
+			else {
+				pMutationUptodate = pMutation;
 			}
 			Iterator<Entry<String, MRoute>> mrouteIter = mNetwork.routeMap.entrySet().iterator();
 			while (mrouteIter.hasNext()) {
 				Entry<String, MRoute> mrouteEntry = mrouteIter.next();
 				MRoute mRoute = mrouteEntry.getValue();
 				Random rMutation = new Random();
-				if (rMutation.nextDouble() < routeMutationProbabilitiesMap.get(mRoute.routeID) * pMutation/0.5 ) {
+				if (rMutation.nextDouble() < routeMutationProbabilitiesMap.get(mRoute.routeID) * pMutationUptodate) {
 					// meanMutationRate=0.5 by nature of rankMethod. xpMutation for bringing down overall mutation rate to a desired value.
 					if ((new Random()).nextDouble() < 0.5) {
 						// do this to give 50/50 chance of taking either direction (this increases randomness e.g. for crawling along route when inserting new nodes)
@@ -219,7 +227,7 @@ public class EvoOpsMutator {
 		}
 		else { // shorten route
 			shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
-			// with 50% chance try another shortening
+			// with 100% chance try another shortening
 			if ((new Random()).nextDouble()<0.5) {
 				shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 			}

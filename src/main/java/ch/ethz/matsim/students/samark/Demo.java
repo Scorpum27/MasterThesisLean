@@ -60,11 +60,13 @@ public class Demo {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException, URISyntaxException {
 
-		BufferedImage bgImage = null;
-		bgImage = ImageIO.read(new FileInputStream("zurich_1pm/bgImgMedium.png"));
-		Double xSize = (double) bgImage.getWidth();
-		Double ySize = (double) bgImage.getHeight();
-		
+		Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String,Double>();
+		List<String> rankedRoutes = Arrays.asList("1","2","3","4","5","6","7","8","9","10");
+		int N = rankedRoutes.size();
+		for (int n=0; n<N; n++) {
+			routeMutationProbabilitiesMap.put(rankedRoutes.get(n), 2.0*(n+1)/(N+1)*(N+1)/(2*N));
+		}
+		System.out.println(routeMutationProbabilitiesMap.toString());
 //		// %%% Speed SBahn
 
 //		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run

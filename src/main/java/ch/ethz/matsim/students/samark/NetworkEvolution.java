@@ -154,12 +154,13 @@ public class NetworkEvolution {
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.30; 									// DEFAULT = 0.35
+		Double pCrossOver = 0.25; 									// DEFAULT = 0.35
 		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
 		Double maxConnectingDistance = 2000.0;
 		Boolean logEntireRoutes = false;
 		Double maxCrossingAngle = 110.0; 							// DEFAULT = 110
-		Double pMutation = 0.7;									// DEFAULT = 0.50; <=0.5, because used rankMethod has meanProbability of 0.5 by nature
+		Double pMutation = 0.4;										// pMutation <= (N+1)/(2*N) !!!
+		if (pMutation>1.0*(initialRoutesPerNetwork+1)/(2*initialRoutesPerNetwork)) {System.out.println("pMutation too high. Choose lower. Aborting."); System.exit(0);}
 		Double pBigChange = 0.30;									// DEFAULT = 0.25
 		Double pSmallChange = 1.0-pBigChange;
 		String crossoverRouletteStrategy = "tournamentSelection3";	// Options: allPositiveProportional, rank, tournamentSelection3, logarithmic

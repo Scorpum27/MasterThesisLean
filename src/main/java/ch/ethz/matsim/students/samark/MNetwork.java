@@ -150,9 +150,8 @@ public class MNetwork implements Serializable{
 		for (MRoute mr : this.routeMap.values()) {
 			Log.write("Processing MRoute = " + mr.routeID);
 			mr.lifeTime = this.lifeTime;
-			mr.calculatePercentages(globalNetwork, metroLinkAttributes);
 			mr.sumStations(); // both, nStationsNew/Extended
-			mr.performCostBenefitAnalysisRoute(cbpOriginal, cbpNew, this.personMetroDist, globalNetwork, metroLinkAttributes);
+			mr.calculatePercentages(globalNetwork, metroLinkAttributes);
 			this.totalRouteLength += mr.routeLength;
 			this.totalDrivenDist += mr.totalDrivenDist;
 		}
@@ -222,6 +221,9 @@ public class MNetwork implements Serializable{
 				overallUGpercentage, newUGpercentage, developUGpercentage, newOGpercentage, equipOGpercentage, developOGpercentage,
 				nStationsNew, nStationsExtend, utilityFunctionSelection);
 		XMLOps.writeToFile(cbpNew, networkPath+this.networkID+"/cbpParametersAveraged"+lastIteration+".xml");
+		for (MRoute mr : this.routeMap.values()) {
+			mr.performCostBenefitAnalysisRoute(cbpOriginal, cbpNew, this, globalNetwork, metroLinkAttributes);
+		}
 	}
 	
 	public double performCostBenefitAnalysisNetwork(double lifeTime, double populationFactor, CBPII refCase, CBPII newCase,
