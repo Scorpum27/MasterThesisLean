@@ -667,7 +667,7 @@ public class NetworkEvolutionImpl {
 					if (metroRailwayMergedLinks.get(thisLink).getDominantStopFacility() == null
 							|| metroRailwayMergedLinks.get(otherLink).getDominantStopFacility() == null) {
 						// will receive NullPointer if CoordThis/CoordOther cannot be found by .getDominantStopFacility() in next line
-						Log.write("We have a dom. stop facility null pointer issue - ;-))");
+						Log.write("EvolutionImpl. ~line670  -- We have a dom. stop facility null pointer issue - ;-)).");
 						continue;
 					}
 					else {
@@ -698,13 +698,17 @@ public class NetworkEvolutionImpl {
 		
 
 		public static Map<Id<Link>, CustomLinkAttributes> findMostFrequentLinks(int nMostFrequentLinks,
-				Map<Id<Link>, CustomLinkAttributes> customLinkMap, Network network, String fileName) {
+				Map<Id<Link>, CustomLinkAttributes> customLinkMap, Network network, String fileName) throws IOException {
 			// output is a map with all links above threshold and their traffic (number of link enter events)
 
 			// add links if they are within top nMostFrequentlinks
 			Map<Id<Link>, CustomLinkAttributes> mostFrequentLinks = new HashMap<Id<Link>, CustomLinkAttributes>( nMostFrequentLinks);
 			int i = 0;
 			for (Id<Link> linkID : customLinkMap.keySet()) {
+				if (customLinkMap.get(linkID).getTotalTraffic() == 0) {
+//					Log.write("Cannot add link to mostFrequentlinks because it has no traffic and will therefore have no domStopFacility!");
+					continue;
+				}
 				mostFrequentLinks.put(linkID, customLinkMap.get(linkID));
 				i++;
 				if (i == nMostFrequentLinks) {
@@ -727,7 +731,7 @@ public class NetworkEvolutionImpl {
 			// double average = getAverageTrafficOnLinks(mostFrequentLinks);
 //			System.out.println("Average pt traffic on most frequent n=" + nMostFrequentLinks
 //					+ " links (person arrivals + departures) is: " + average);
-//			System.out.println("Number of most frequent links is: " + mostFrequentLinks.size());
+			Log.write("Number of most frequent links is: " + mostFrequentLinks.size());
 
 			if (fileName != null) {
 				createNetworkFromCustomLinks(mostFrequentLinks, network, fileName);

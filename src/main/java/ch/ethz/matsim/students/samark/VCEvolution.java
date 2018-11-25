@@ -30,7 +30,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 // CHANGE ZH_FILES
 
 public class VCEvolution {
-	
+
 
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws ConfigurationException, IOException, InterruptedException {
@@ -71,7 +71,7 @@ public class VCEvolution {
 		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
 		Double maxExtendedMetroRadiusFromCenter = 1.0*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (2.1 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
-		Integer nMostFrequentLinks = (int) (metroCityRadius/250.0);					// DEFAULT = (int) (metroCityRadius/20.0) (or 70; will further be reduced during merging procedure for close facilities)
+		Integer nMostFrequentLinks = (int) (metroCityRadius/50.0);					// DEFAULT = (int) (metroCityRadius/20.0) (or 70; will further be reduced during merging procedure for close facilities)
 //		Double maxNewMetroLinkDistance = 1000.0;									// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
 		Double maxNewMetroLinkDistance = 4000.0;									// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
 
