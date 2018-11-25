@@ -57,16 +57,23 @@ public class Demo {
 		return correctedUtility;
 	}
 	
+
+	
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException, URISyntaxException {
-
-		Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String,Double>();
-		List<String> rankedRoutes = Arrays.asList("1","2","3","4","5","6","7","8","9","10");
-		int N = rankedRoutes.size();
-		for (int n=0; n<N; n++) {
-			routeMutationProbabilitiesMap.put(rankedRoutes.get(n), 2.0*(n+1)/(N+1)*(N+1)/(2*N));
-		}
-		System.out.println(routeMutationProbabilitiesMap.toString());
+		
+		int nodeX = (int) Math.round(999.0/2000.0);
+//		System.out.println(nodeX);
+		int y = Math.floorDiv(7, 4);
+		System.out.println(y);
+		
+//		Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String,Double>();
+//		List<String> rankedRoutes = Arrays.asList("1","2","3","4","5","6","7","8","9","10");
+//		int N = rankedRoutes.size();
+//		for (int n=0; n<N; n++) {
+//			routeMutationProbabilitiesMap.put(rankedRoutes.get(n), 2.0*(n+1)/(N+1)*(N+1)/(2*N));
+//		}
+//		System.out.println(routeMutationProbabilitiesMap.toString());
 //		// %%% Speed SBahn
 
 //		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run

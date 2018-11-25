@@ -38,14 +38,17 @@ public class RunnableRunSim implements Runnable {
 	String initialConfig;
 	int lastIteration;
 	boolean useFastSBahnModule;
+	String ptRemoveScenario;
 	
-	public RunnableRunSim(String[] args, MNetwork mNetwork, String initialRouteType, String initialConfig, int lastIteration, boolean useFastSBahnModule) {
+	public RunnableRunSim(String[] args, MNetwork mNetwork, String initialRouteType,
+			String initialConfig, int lastIteration, boolean useFastSBahnModule, String ptRemoveScenario) {
 		this.args = args;
 		this.mNetwork = mNetwork;
 		this.initialRouteType = initialRouteType;
 		this.initialConfig = initialConfig;
 		this.lastIteration = lastIteration;
 		this.useFastSBahnModule = useFastSBahnModule;
+		this.ptRemoveScenario = ptRemoveScenario;
 	}
 	
 	
@@ -78,7 +81,7 @@ public class RunnableRunSim implements Runnable {
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
 		if (this.useFastSBahnModule) {
 			try {
-				Metro_TransitScheduleImpl.TS_ModificationModule(this.mNetwork.networkID);
+				Metro_TransitScheduleImpl.TS_ModificationModule(this.mNetwork.networkID, ptRemoveScenario);
 				Metro_TransitScheduleImpl.SpeedSBahnModule(this.mNetwork, "MergedScheduleModified.xml", "MergedScheduleSpeedSBahn.xml");
 			} catch (IOException e) {
 				// TODO Auto-generated catch block

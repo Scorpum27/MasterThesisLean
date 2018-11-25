@@ -30,7 +30,7 @@ public class PopulationCutterPM {
 			}
 		}
 		PopulationWriter pw = new PopulationWriter(popCut);
-		pw.write("zurich_1pm/zurich_population_"+pmSize+"pm.xml.gz");
+		pw.write("zurich_1pm/VC_files/zurich_population_0"+pmSize+"pm.xml.gz");
 		System.out.println("PopSize = "+popSize);
 		System.out.println("PopSizeMax = "+pmSize*0.1*pop1pct.getPersons().size());
 	}

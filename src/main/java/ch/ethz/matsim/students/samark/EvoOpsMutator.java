@@ -25,12 +25,23 @@ public class EvoOpsMutator {
 
 	
 	@SuppressWarnings("unchecked")
-	public static MNetworkPop applyMutations(MNetworkPop newPopulation, Network globalNetwork, Coord zurich_NetworkCenterCoord, int lastIterationOriginal,
+	public static MNetworkPop applyMutations(Integer currentGEN, MNetworkPop newPopulation, Network globalNetwork, Coord zurich_NetworkCenterCoord, int lastIterationOriginal,
 			double pMutation, double pBigChange, double pSmallChange, Double routeDisutilityLimit,
 			double maxCrossingAngle, String eliteNetworkName, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
 		Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
 		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
 
+		if (currentGEN >= 27) {
+			pMutation = 0.30;
+			pBigChange = 0.30;
+			pSmallChange = 1-pBigChange;
+		}
+		if (currentGEN >= 39) {
+			pMutation = 0.25;
+			pBigChange = 0.20;
+			pSmallChange = 1-pBigChange;
+		}
+		
 		List<String> mutatedNetworks = new ArrayList<String>();
 		List<Id<Link>> linkListMutate;
 		for (MNetwork mNetwork : newPopulation.networkMap.values()) {
@@ -221,14 +232,24 @@ public class EvoOpsMutator {
 		if (mRoute.utilityBalance > routeDisutilityLimit) { // extend route
 			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 			// with 50% chance try another extension
-			if ((new Random()).nextDouble()<0.5) {
+			if (linkListMutate.size() < 2) {
+				Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);
+				mrouteIter.remove();
+				return false;
+			}
+			else if ((new Random()).nextDouble()<0.5) {
 				extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);				
 			}
 		}
 		else { // shorten route
 			shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 			// with 100% chance try another shortening
-			if ((new Random()).nextDouble()<0.5) {
+			if (linkListMutate.size() < 2) {
+				Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);
+				mrouteIter.remove();
+				return false;
+			}
+			else if ((new Random()).nextDouble()<0.5) {
 				shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 			}
 		}
@@ -406,6 +427,11 @@ public class EvoOpsMutator {
 				linkListMutateFacilityLinks.add(linkId);
 				servicedFacilities.addAll(facilitiesOnLink);
 			}
+		}
+		if (linkListMutateFacilityLinks.size() < 2) {
+			Log.write("CAUTION: Number of links with facilities = " + linkListMutateFacilityLinks.size() + " --> Removing"+mRoute.routeID);
+			mrouteIter.remove();
+			return true;
 		}
 		
 		

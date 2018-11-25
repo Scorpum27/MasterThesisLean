@@ -337,7 +337,7 @@ public class MNetwork implements Serializable{
 			double ptVatIncrease = 0.0;
 					newCase.ptVatIncrease = ptVatIncrease;
 			double congestionSavings = 0.0;
-							
+			
 			// ---- annual total cost change
 			Double totalCost = constructionCost+landCost+rollingStockCost + opsCost + maintenanceCost + repairCost + externalCost + ptPassengerCost;
 			this.annualCost = totalCost;	 newCase.totalAnnualCost = totalCost;

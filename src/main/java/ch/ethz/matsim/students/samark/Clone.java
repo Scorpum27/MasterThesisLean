@@ -2,6 +2,7 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -162,110 +163,10 @@ public class Clone {
 		for (Id<TransitRoute> tr : o.getRoutes().keySet()) {
 			TransitRoute TR = o.getRoutes().get(tr);
 			TransitRoute TRR = tsf.createTransitRoute(tr, TR.getRoute().clone(), Clone.list(TR.getStops()), TR.getTransportMode());
-		// DEFAULT MODULE
-//			for (Departure d : TR.getDepartures().values()){
-//				TRR.addDeparture(d);
-//			}
-//			copy.addRoute(TRR);	
-		// MODULE FOR MODIFYING TRANSIT ROUTE - REMOVE TRAM except first departure
-			if (TR.getTransportMode().equals("tram")) {
-			Integer counter = 0;
-				for (Departure d : TR.getDepartures().values()){				
-					counter++;
-					if (counter%2 == 1) {
-						TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString(), Departure.class), 3.0*3600.0));
-						break;			// break if added min one departure of route
-					}
-					else {
-						continue;
-					}
-				}
+			for (Departure d : TR.getDepartures().values()){ 			// DEFAULT MODULE
+				TRR.addDeparture(d);
+			}
 			copy.addRoute(TRR);
-			}
-			else {
-				for (Departure d : TR.getDepartures().values()){				
-					TRR.addDeparture(d);
-				}
-				copy.addRoute(TRR);				
-			}
-		// EXTEND RAIL SCHEDULE TO 15MIN FREQUENCY
-//			if (TR.getTransportMode().equals("rail")) {
-//				for (Departure d : TR.getDepartures().values()){				
-//					TRR.addDeparture(d);
-//					TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString()+"PLUS", Departure.class), d.getDepartureTime()+15*60.0));
-//				}
-//				copy.addRoute(TRR);
-//			}
-//			else {
-//				for (Departure d : TR.getDepartures().values()){				
-//					TRR.addDeparture(d);
-//				}
-//				copy.addRoute(TRR);				
-//			}
-			// ---
-		// REMOVE EVERY SECOND RAILS DEPARTURE
-//			if (TR.getTransportMode().equals("rail")) {
-//				Integer counter = 0;
-//				for (Departure d : TR.getDepartures().values()){				
-//					counter++;
-//					if (counter%2 == 1) {			// every 2nd: if (counter%2 == 1) {
-//						TRR.addDeparture(d);
-//					}
-//					else {
-//						continue;
-//					}
-//				}
-//				copy.addRoute(TRR);
-//			}
-//			else {
-//				for (Departure d : TR.getDepartures().values()){				
-//					TRR.addDeparture(d);
-//				}
-//				copy.addRoute(TRR);				
-//			}
-		// KEEP ONLY ONE RAILS DEPARTURE
-//			if (TR.getTransportMode().equals("rail")) {
-//				Integer counter = 0;
-//				for (Departure d : TR.getDepartures().values()){				
-//					counter++;
-//					if (counter%2 == 1) {
-//						TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString(), Departure.class), 3.0*3600.0));
-//						break;			// break if added min one departure of route
-//					}
-//					else {
-//						continue;
-//					}
-//				}
-//				copy.addRoute(TRR);
-//			}
-//			else {
-//				for (Departure d : TR.getDepartures().values()){				
-//					TRR.addDeparture(d);
-//				}
-//				copy.addRoute(TRR);				
-//			}
-		// REMOVE ALL PT EXCEPT METRO (except first departure of each route)
-//			if ( ! TR.getTransportMode().equals("metro")) {
-//				Integer counter = 0;
-//				for (Departure d : TR.getDepartures().values()){				
-//					counter++;
-//					if (counter%2 == 1) {
-//						TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString(), Departure.class), 3.0*3600.0));
-//						break;			// break if added min one departure of route
-//					}
-//					else {
-//						continue;
-//					}
-//				}
-//				copy.addRoute(TRR);
-//			}
-//			else {
-//				for (Departure d : TR.getDepartures().values()){				
-//					TRR.addDeparture(d);
-//				}
-//				copy.addRoute(TRR);				
-//			}
-		// ---
 		}
 		return copy;
 	}

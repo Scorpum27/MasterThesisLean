@@ -31,11 +31,6 @@ public class EvoOpsRoutesAdder {
 			MNetwork eliteMNetwork, Double odConsiderationThreshold, Coord zurich_NetworkCenterCoord, Double xOffset, Double yOffset) throws IOException {
 		
 		
-		// make here eliteNetwork exclusion so that it is not topped up if elite, because will not run through applyPT loop then and give empty routes!!!
-		if (currentGEN >= stopUnprofitableRoutesReplacementGEN) {		// no more new routes introductions allowed due to advanced development
-			return;
-		}
-		
 		Config config = ConfigUtils.createConfig();
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/TotalMetroNetwork.xml");
 		Scenario scenario = ScenarioUtils.loadScenario(config);
@@ -46,10 +41,27 @@ public class EvoOpsRoutesAdder {
 		
 		for (MNetwork mNetwork : newPopulation.networkMap.values()) {
 			
-			if (mNetwork.networkID.equals(eliteMNetwork.networkID) || newPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false
-					|| mNetwork.routeMap.size() >= initialRoutesPerNetwork) {
+			if (mNetwork.networkID.equals(eliteMNetwork.networkID) || newPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.networkID)==false) {
 				// make DAMN SURE that all condition in applyPT are placed here as well.
 				// Code will fail if routes are topped up, but no PT is applied to them afterwards!
+				// make here eliteNetwork exclusion so that it is not topped up if elite, because will not run through applyPT loop then and give empty routes!!!
+				continue;
+			}
+			
+			int nRoutesToBeToppedUp; // = nRoutesPerNetwork-mNetwork.routeMap.size();
+			// || mNetwork.routeMap.size() >= nRoutesPerNetwork... continue...			
+			if (currentGEN < stopUnprofitableRoutesReplacementGEN) {		// no more new routes introductions allowed due to advanced development
+				if (mNetwork.routeMap.size() >= initialRoutesPerNetwork) {
+					continue;
+				}
+				else {
+					nRoutesToBeToppedUp = initialRoutesPerNetwork - mNetwork.routeMap.size();					
+				}
+			}
+			else if (percentageOfProfitableRoute(mNetwork) >= 2.0/3.0) {	// if past replacement generation but enough profitable routes, then add one more route!
+				nRoutesToBeToppedUp = 1;
+			}
+			else {	// if past replacement generation and not enough profitable routes, then do not top up
 				continue;
 			}
 			
@@ -57,7 +69,6 @@ public class EvoOpsRoutesAdder {
 				newPopulation.modifiedNetworksInLastEvolution.add(mNetwork.networkID);
 			}
 			
-			int nRoutesToBeToppedUp = initialRoutesPerNetwork-mNetwork.routeMap.size();
 			Log.write("Introducing " +nRoutesToBeToppedUp+ " new routes on " + mNetwork.networkID + ":");
 			
 			ArrayList<NetworkRoute> newMetroRoutes = new ArrayList<NetworkRoute>();
@@ -70,7 +81,7 @@ public class EvoOpsRoutesAdder {
 						metroCityRadius, varyInitRouteSize, minInitialTerminalDistance,
 						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter);
 			}
-			else if (useOdPairsForInitialRoutes==true) {	
+			else if (useOdPairsForInitialRoutes==true) {
 				// Initial Routes OD_Pairs within bounds
 				newMetroRoutes = OD_ProcessorImpl.createInitialRoutesOD(metroNetwork, nRoutesToBeToppedUp,
 						minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, odConsiderationThreshold,
@@ -97,6 +108,16 @@ public class EvoOpsRoutesAdder {
 				mNetwork.addNetworkRoute(mRoute);
 			}
 		}
+	}
+
+	public static double percentageOfProfitableRoute(MNetwork mNetwork) {
+		double profRoutesPercentage = 0.0;
+		for (MRoute mroute : mNetwork.routeMap.values()) {
+			if (mroute.utilityBalance > 0.0) {
+				profRoutesPercentage += 1.0/mNetwork.routeMap.size();
+			}
+		}
+		return profRoutesPercentage;
 	}
 	
 }

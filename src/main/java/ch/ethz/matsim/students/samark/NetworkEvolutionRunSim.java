@@ -57,7 +57,7 @@ public class NetworkEvolutionRunSim {
 
 	
 	public static void run(String[] args, MNetwork mNetwork, String initialRouteType, 
-			String initialConfig, int lastIteration, Boolean useFastSBahnModule) throws ConfigurationException, IOException  {
+			String initialConfig, int lastIteration, Boolean useFastSBahnModule, String ptRemoveScenario) throws ConfigurationException, IOException  {
 		
 		Log.write("  >> Running MATSim simulation on:  "+mNetwork.networkID);
 		
@@ -77,13 +77,13 @@ public class NetworkEvolutionRunSim {
 		// See old versions BEFORE 06.09.2018 for how to load specific mergedNetworks OD/Random instead of Global Network with all links
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
 		if (useFastSBahnModule) {
-			Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID);
+			Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID, ptRemoveScenario);
 			Metro_TransitScheduleImpl.SpeedSBahnModule(mNetwork, "MergedScheduleModified.xml", "MergedScheduleSpeedSBahn.xml");
 			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleSpeedSBahn.xml");			
 		}
 		else {
 //			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedSchedule.xml");
-			Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID);
+			Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID, ptRemoveScenario);
 			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleModified.xml");			
 		}
 		modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+mNetwork.networkID+"/MergedVehicles.xml");
@@ -289,8 +289,13 @@ public class NetworkEvolutionRunSim {
 									ptDisutilityEquivalentTimeTotal += (24.13/14.43)*leg.getTravelTime();
 								}
 							}
-							else if (leg.getMode().equals("walk") || leg.getMode().equals("bike")){
-								walkBikeTimeTotal += leg.getTravelTime();
+							else if (leg.getMode().equals("walk")){
+								walkBikeTimeTotal += (23.29*(0.141/0.67)/33.20)*leg.getTravelTime();
+								// TRC: walkDisUtil (0.141/0.67) times higher than car(23.29)
+								// describe walkDisUtil in terms of generalized term 33.20CHF/h, therefore make ratio to express as equivalent to generalized cost
+							}
+							else if (leg.getMode().equals("bike")){
+								walkBikeTimeTotal += (23.29*(0.095/0.67)/33.20)*leg.getTravelTime();
 							}
 							personTravelTime += leg.getTravelTime();	// totalPersonTravelTime
 						}

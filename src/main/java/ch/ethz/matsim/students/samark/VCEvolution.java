@@ -23,56 +23,15 @@ import org.matsim.core.scenario.ScenarioUtils;
 
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
 
+// java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 9 4000 300 50 25 50 1pm 0.35
+// java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 12 4000 300 50 25 50 1pct 0.2 
 
-/* java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT nLinesInit rad depSapcing popCensus globalCostFactor
- * java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 9 4000 300 50 25 50 1pm 0.35
- * java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 12 4000 300 50 25 50 1pct 0.2 
- * cp -avr /nas/samark/Simulations/25_CostStudy/samark-0.0.1-SNAPSHOT.jar /nas/samark/Simulations/25_CostStudy/100percent
- * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerIterFluctuations Network1 1 200 1 1000 false false individual
- * java -Xmx20G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 1000 1 100 individual
- *
- *
- * TODO Tuning of EvoAlgo's
- * TODO Combining routes procedures when they come close etc...
- * TODO ABC Algo. as a reference !
- * TODO introduce test on Mendl's network!
- * TODO OD-Route improvements
- *
- * DIVERSE
- *  - What happens if I delete very short links (are they really worth using as feasible links or are they just a product of a crossing bottleneck?)
- *  - Compare metro KM to SBahn KMs
- *  - Make proper IDs to get objects
- * 
- * OD-OPTIONS
- *  - TODO Make outer loop to connect existing routes that suddenly touch!
- *  - Pick best N routes at the end (make more routes at the beginning instead)
- *  - Freeze long enough routes when it comes to making them longer or even increasing their score in order for the other ones to gain more length as well
- *  - Delete routes, which are not long enough
- *  - Decrease internal parameter for trying to add to new routes to existing ones gradually
- * 
- */
+// CHANGE SIMULATION_OUTPUT_FOLDER
+// CHANGE ZH_FILES
 
-
-public class NetworkEvolution {
+public class VCEvolution {
 	
 
-/* CAUTION & NOTES
- * CAUTION: Put back in applyMutations jump over eliteNetwork
- * Run RunScenario First to have simulation output that can be analyzed [up to iterationToReadOriginalNetwork]
- * Parameters: Tune well, may use default
- * For OD: minTerminalRadiusFromCenter = 0.00*metroCityRadius
- * Do not use "noModificationInLastEvolution" if lastIteration changes over evolutions, because this would give another result from the simulations
- * minCrossingDistanceFactorFromRouteEnd must have a MINIMUM = 0.25
- * POM INCLUDE:
- * 		<dependency>
-			<groupId>org.apache.directory.studio</groupId>
-			<artifactId>org.apache.commons.io</artifactId>
-			<version>2.4</version>
-		</dependency>
- *
- */
-
-	
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws ConfigurationException, IOException, InterruptedException {
 		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	// Prepare empty defaultLog file for run
@@ -86,11 +45,11 @@ public class NetworkEvolution {
 		Integer populationSize = Integer.parseInt(args[4]);						// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		Integer initialRoutesPerNetwork = Integer.parseInt(args[5]);			// DEFAULT = 5;
-		Boolean mergeMetroWithRailway = true;
+		Boolean mergeMetroWithRailway = false;
 		String ptRemoveScenario = args[12];										// "tram", "bus", "rail", "subway", "funicular"
 		Boolean useFastSBahnModule = false;
-		Boolean varyInitRouteSize = true;
-		Boolean enableThreading = true;
+		Boolean varyInitRouteSize = false;
+		Boolean enableThreading = false;
 		Integer nThreads = 3;
 		Boolean recallSimulation = false;
 		int generationToRecall = 8;											// it is recommended to use the Generation before the one that failed in order
@@ -99,25 +58,27 @@ public class NetworkEvolution {
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
 		Boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
-		Integer iterationToReadOriginalNetwork = 100;								// This is the iteration for the simulation output of the original network
+		Integer iterationToReadOriginalNetwork = 35;								// This is the iteration for the simulation output of the original network
 		Double lifeTime = 40.0;
 		
 		// %% Parameters for NetworkRoutes %%
-		Coord zurich_NetworkCenterCoord = new Coord(2683360.00, 1248100.00);		// default Coord(2683360.00, 1248100.00);  old:(2683000.00, 1247700.00)
-		Double xOffset = 1733436.0; 												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- X_QGis=950040; 	X_MATSim= 2683476;
-		Double yOffset = -4748525.0;												// add this to QGis to get MATSim		// Right upper corner of Zürisee -- Y_QGis=5995336; Y_MATSim= 1246811;
-		Double metroCityRadius = Double.parseDouble(args[6]);						// DEFAULT = 3000 (OLD=3600) ... (800 for no rail tests)
+		Coord zurich_NetworkCenterCoord = new Coord(Double.parseDouble(args[6])/2, Double.parseDouble(args[6])/2);
+		Double xOffset = 0.0;
+		Double yOffset = 0.0;
+		Double metroCityRadius = Double.parseDouble(args[6])/Math.sqrt(2.0);		// DEFAULT = 3000 (OLD=3600) ... (800 for no rail tests)
 		Double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
-		Double maxMetroRadiusFactor = 1.70;											// DEFAULT = 1.70; (OLD=1.40: give some flexibility by increasing from 1.00 to 1.40)
+		Double maxMetroRadiusFactor = 1.00;											// DEFAULT = 1.70; (OLD=1.40: give some flexibility by increasing from 1.00 to 1.40)
 		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
-		Double maxExtendedMetroRadiusFromCenter = 2.3*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (2.1 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
-		Integer nMostFrequentLinks = (int) (metroCityRadius/20.0);					// DEFAULT = (int) (metroCityRadius/20.0) (or 70; will further be reduced during merging procedure for close facilities)
-		Double maxNewMetroLinkDistance = Math.min(2100.0,Math.max(0.33*metroCityRadius, 1400));		// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
+		Double maxExtendedMetroRadiusFromCenter = 1.0*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (2.1 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
+		Integer nMostFrequentLinks = (int) (metroCityRadius/250.0);					// DEFAULT = (int) (metroCityRadius/20.0) (or 70; will further be reduced during merging procedure for close facilities)
+//		Double maxNewMetroLinkDistance = 1000.0;									// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
+		Double maxNewMetroLinkDistance = 4000.0;									// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
+
 		Double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
 		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
-		Double minInitialTerminalRadiusFromCenter = 0.30*metroCityRadius; 			// DEFAULT = 0.30*metroCityRadius | put in parameter file and in routes creation file! alt: 0.20*maxExtendedMetroRadiusFromCenter
-		Double maxInitialTerminalRadiusFromCenter = 1.80*metroCityRadius;			// DEFAULT = 1.20*metroCityRadius | put in parameter file and in routes creation file! alt: 0.80*maxExtendedMetroRadiusFromCenter
+		Double minInitialTerminalRadiusFromCenter = 0.40*metroCityRadius; 			// DEFAULT = 0.30*metroCityRadius | put in parameter file and in routes creation file! alt: 0.20*maxExtendedMetroRadiusFromCenter
+		Double maxInitialTerminalRadiusFromCenter = 1.00*metroCityRadius;			// DEFAULT = 1.20*metroCityRadius | put in parameter file and in routes creation file! alt: 0.80*maxExtendedMetroRadiusFromCenter
 		Double minInitialTerminalDistance = 
 		   (minInitialTerminalRadiusFromCenter+maxInitialTerminalRadiusFromCenter); // DEFAULT = minInitialTerminalRadiusFromCenter+maxInitialTerminalRadiusFromCenter (OLD=0.80*maxMetroRadiusFromCenter)
 		Double railway2metroCatchmentArea = 150.0;									// DEFAULT = 150 or metroProximityRadius/3
@@ -132,7 +93,7 @@ public class NetworkEvolution {
 		
 		// %% Parameters Simulation, Events & Plans Processing %%
 		Integer firstGeneration = 1;
-		Integer lastGeneration = Integer.parseInt(args[8]);	//
+		Integer lastGeneration = Integer.parseInt(args[8]);
 		Integer lastIterationOriginal = Integer.parseInt(args[10]);	// 45/50
 		Integer lastIteration = lastIterationOriginal;
 		Integer iterationsToAverage = Integer.parseInt(args[9]);	// 25
@@ -146,11 +107,10 @@ public class NetworkEvolution {
 		String censusSize = args[11]; // "1pct","1pm"
 		Integer populationFactor;	// default 1000 for 1pm scenario 
 		if (censusSize.equals("1pct")) { populationFactor = 100; }
-		else if (censusSize.equals("0.4pm")) {populationFactor = 2500;}
-		else if (censusSize.equals("0.6pm")) {populationFactor = 1667;}
 		else if (censusSize.equals("1pm")) {populationFactor = 1000;}
 		else if (censusSize.equals("3pm")) {populationFactor = 333;}
 		else if (censusSize.equals("6pm")) {populationFactor = 167;}
+		else if (censusSize.equals("0.6pm")) {populationFactor = 1667;}
 		else {populationFactor = 100; Log.writeAndDisplay(" CensusSize invalid. Aborting!"); System.exit(0);}
 		// TODO hand over to methods censusSize for to pick correct files folder for initial config, network, people's plans
 

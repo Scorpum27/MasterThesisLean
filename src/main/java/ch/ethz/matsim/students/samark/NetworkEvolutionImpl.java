@@ -69,7 +69,7 @@ import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRo
 
 public class NetworkEvolutionImpl {
 
-	public static MNetworkPop createMNetworkRoutes(String populationName, int populationSize, int initialRoutesPerNetwork, String initialRouteType, 
+	public static MNetworkPop createMNetworks(String populationName, int populationSize, int initialRoutesPerNetwork, String initialRouteType, 
 			String shortestPathStrategy, int iterationToReadOriginalNetwork, int lastIterationOriginal, Integer iterationsToAverage, double minMetroRadiusFromCenter,
 			double maxMetroRadiusFromCenter, double maxExtendedMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
 			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter, double minInitialTerminalDistance, 
@@ -621,7 +621,7 @@ public class NetworkEvolutionImpl {
 		
 		public static Map<Id<Link>, CustomLinkAttributes> mergeLinksWithinBounds( Map<Id<Link>, CustomLinkAttributes> links_withinRadius, 
 				double railway2metroCatchmentArea,
-				double metro2metroCatchmentArea, Map<String, CustomStop> railwayStations, Network originalNetwork, String fileName) throws FileNotFoundException{
+				double metro2metroCatchmentArea, Map<String, CustomStop> railwayStations, Network originalNetwork, String fileName) throws IOException{
 			
 			
 			// SECTION 1: Merge links with railwayStopFacility if their dominant facilities is in vicinity of existing railwayStop & set reference railwayStation (= closest railwayStation)
@@ -662,6 +662,16 @@ public class NetworkEvolutionImpl {
 				for (Id<Link> otherLink : metroRailwayMergedLinks.keySet()) {
 					if(thisLink.equals(otherLink)) {
 						continue;
+					}
+					// XXX this if loop is new!
+					if (metroRailwayMergedLinks.get(thisLink).getDominantStopFacility() == null
+							|| metroRailwayMergedLinks.get(otherLink).getDominantStopFacility() == null) {
+						// will receive NullPointer if CoordThis/CoordOther cannot be found by .getDominantStopFacility() in next line
+						Log.write("We have a dom. stop facility null pointer issue - ;-))");
+						continue;
+					}
+					else {
+//						Log.write("This one is ok...");
 					}
 					Coord CoordThis = metroRailwayMergedLinks.get(thisLink).getDominantStopFacility().getCoord();    //originalNetwork.getLinks().get(thisLink).getFromNode().getCoord();
 					Coord CoordOther = metroRailwayMergedLinks.get(otherLink).getDominantStopFacility().getCoord();  //originalNetwork.getLinks().get(otherLink).getFromNode().getCoord();
@@ -772,8 +782,9 @@ public class NetworkEvolutionImpl {
 			// - if yes, assess that transportMode e.g. "rail" in transitRoute.transitMode
 			// and return the mode for the selected link!
 
-			LinkLoop: for (Id<Link> selectedLinkID : selectedLinks.keySet()) {
-				boolean facilityFound = false;
+			LinkLoop:
+			for (Id<Link> selectedLinkID : selectedLinks.keySet()) {
+			boolean facilityFound = false;
 				for (TransitLine transitLine : transitSchedule.getTransitLines().values()) {
 					for (TransitRoute transitRoute : transitLine.getRoutes().values()) {
 						for (TransitRouteStop transitRouteStop : transitRoute.getStops()) {
@@ -889,6 +900,7 @@ public class NetworkEvolutionImpl {
 							TransitStopFacility dominantFacility = cla.dominantStopFacility;
 							if (dominantFacility == null) {
 								Log.write("CAUTION: NoDomFacility for this selected Link!!");
+								continue;	// XXX this line is new
 							}
 							// - Create and add to network a new node for each domFacility at exactly the Coordinates of domFacility --> Naming: "zhLinkRef"+LinkId"
 								// THIS AND THE FOLLOWING ELSE LOOP HAVE BEEN DELETED: if (cla.getDominantStopFacility() != null) {
@@ -933,7 +945,7 @@ public class NetworkEvolutionImpl {
 					// increase maxLinkDistance if two hotspot nodes are connected i.e. nodes with traffic above a threshold, here 15.0
 					if (Math.min(customLinkMap.get(metroNode2originalLinkRefMap.get(thisNode.getId())).getTotalTraffic(),
 							customLinkMap.get(metroNode2originalLinkRefMap.get(otherNode.getId())).getTotalTraffic()) > 15.0) {
-						thisMaxMetroLinkDistance = Math.max(1.3*maxNewMetroLinkDistance, 2100.0);
+						thisMaxMetroLinkDistance = 1.3*maxNewMetroLinkDistance;
 						//Log.write("traffic.txt", "Found a very frequent link between coords: "+thisNode.getCoord()+" / "+otherNode.getCoord());
 					}
 					if (thisNode.equals(otherNode)) {
@@ -1740,13 +1752,13 @@ public class NetworkEvolutionImpl {
 //		if (currentGEN > 25) {
 //			pCrossOver = 0.20;
 //		}
-		newPopulation = EvoOpsCrossover.applyCrossovers(globalNetwork,  networkScoreMap,  newPopulation,  populationName,
+		newPopulation = EvoOpsCrossover.applyCrossovers(currentGEN, globalNetwork,  networkScoreMap,  newPopulation,  populationName,
 				 eliteMNetwork, alpha, pCrossOver, crossoverRouletteStrategy, useOdPairsForInitialRoutes, 
 				 vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane,
 				 logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
 		
 		// MUTATIONS (set nDepartures=0, keep nVehicles, keep first/lastDep, --> RouteLength, RoundTripTravelTime, DepSpacing will be changed accordingly in applyPT)
-		newPopulation = EvoOpsMutator.applyMutations(newPopulation, globalNetwork, zurich_NetworkCenterCoord, lastIterationOriginal,
+		newPopulation = EvoOpsMutator.applyMutations(currentGEN, newPopulation, globalNetwork, zurich_NetworkCenterCoord, lastIterationOriginal,
 				pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
 				maxCrossingAngle, eliteMNetwork.networkID, metroLinkAttributes);
 		
@@ -2019,32 +2031,48 @@ public class NetworkEvolutionImpl {
 
 	
 	
-	public static String selectMNetworkByRoulette(double alpha, Map<String, NetworkScoreLog> networkScoreMap, String strategy) throws IOException {
-		// Map<String, Double> rouletteMap = new HashMap<String, Double>(newPopulation.getNetworks().size());
+	public static String selectMNetworkByRoulette(MNetworkPop networkPop, double alpha, Map<String, NetworkScoreLog> networkScoreMap,
+			String strategy) throws IOException {
+		
+		// for plausibility use add only those networks that have a positive benefit value (this is only the benefits and not the costs)
+		// make separate score map to select from for this purpose
+		Map<String, NetworkScoreLog> networkScoreMapPositiveBenefits = new HashMap<String, NetworkScoreLog>();
+		for (String networkId : networkScoreMap.keySet()) {
+			Log.write(networkId + " has annual benefit = "+networkPop.networkMap.get(networkId).annualBenefit);
+			if (networkPop.networkMap.get(networkId).annualBenefit > 0.0) {
+				networkScoreMapPositiveBenefits.put(networkId, networkScoreMap.get(networkId));
+			}
+		}
+//		Log.write("networkScoreMap = "+networkScoreMap.toString());
+//		Log.write("networkScoreMapPositiveBenefits = "+networkScoreMapPositiveBenefits.toString());
+		if (networkScoreMapPositiveBenefits.size() == 0) {
+			Log.write("No network features any positive benefits. Using any network for cross-over.");
+			networkScoreMapPositiveBenefits = networkScoreMap;
+		}
 		
 		// Option 1 : All positive overallScoreProportional
 		if (strategy.equals("allPositiveProportional")) {
 			double totalRouletteScore = 0.0;
-			for (String networkName : networkScoreMap.keySet()) {
-				networkScoreMap.get(networkName).rouletteScore = networkScoreMap.get(networkName).overallScore/(1.0E8) + 1.5;
-				totalRouletteScore += networkScoreMap.get(networkName).rouletteScore;		
+			for (String networkName : networkScoreMapPositiveBenefits.keySet()) {
+				networkScoreMapPositiveBenefits.get(networkName).rouletteScore = networkScoreMapPositiveBenefits.get(networkName).overallScore/(1.0E8) + 1.5;
+				totalRouletteScore += networkScoreMapPositiveBenefits.get(networkName).rouletteScore;		
 			}
 			Random r = new Random();
 			double rD = r.nextDouble();
 			double attemptedProb = 0.0;
-			for (String networkName : networkScoreMap.keySet()) {
-				if (attemptedProb/totalRouletteScore <= rD   &&   rD < (attemptedProb+networkScoreMap.get(networkName).rouletteScore)/totalRouletteScore) {
+			for (String networkName : networkScoreMapPositiveBenefits.keySet()) {
+				if (attemptedProb/totalRouletteScore <= rD   &&   rD < (attemptedProb+networkScoreMapPositiveBenefits.get(networkName).rouletteScore)/totalRouletteScore) {
 					return networkName;
 				}
-				attemptedProb += networkScoreMap.get(networkName).rouletteScore;
+				attemptedProb += networkScoreMapPositiveBenefits.get(networkName).rouletteScore;
 			}
 			System.out.println("Roulette has not selected any network! Returning NULL...");
 			return null;
 		}
 		// Option 2 : overallScoreRank
 		else if (strategy.equals("rank")) {
-			List<String> rankedNetworks = sortNetworksByScore(networkScoreMap);
-			int N = networkScoreMap.size();
+			List<String> rankedNetworks = sortNetworksByScore(networkScoreMapPositiveBenefits);
+			int N = networkScoreMapPositiveBenefits.size();
 			Random r = new Random();
 			double rD = r.nextDouble();
 			double attemptedProb = 0.0;
@@ -2060,31 +2088,31 @@ public class NetworkEvolutionImpl {
 		// Option 3 : Tournament selection
 		else if (strategy.equals("tournamentSelection3")) {
 			int n=3;
-			if (n > networkScoreMap.size()) {
-				Log.write("Tournament has less than n="+n+" networks. Therefore, n is set to tournament size -> n="+n);
-				n = networkScoreMap.size();
+			if (n > networkScoreMapPositiveBenefits.size()) {
+				Log.write("Tournament has less than n="+n+" networks. Therefore, n is set to tournament size -> n="+networkScoreMapPositiveBenefits.size());
+				n = networkScoreMapPositiveBenefits.size();
 			}
-			List<String> tournamentNetworks = nRandomNetworks(networkScoreMap.keySet(), n);
-			String winnerNetwork = getTournamentWinner(tournamentNetworks, networkScoreMap);
+			List<String> tournamentNetworks = nRandomNetworks(networkScoreMapPositiveBenefits.keySet(), n);
+			String winnerNetwork = getTournamentWinner(tournamentNetworks, networkScoreMapPositiveBenefits);
 			return winnerNetwork;
 		}
 		// Option 4 : logarithmic
 		else if (strategy.equals("logarithmic")) {
-			int N = networkScoreMap.size();
+			int N = networkScoreMapPositiveBenefits.size();
 			double totalRouletteScore = 0.0;
-			for (String networkName : networkScoreMap.keySet()) {
-				double rouletteScore = Math.exp(alpha*(networkScoreMap.get(networkName).overallScore/(1.0E8)+1.5));
-				networkScoreMap.get(networkName).rouletteScore = rouletteScore;
+			for (String networkName : networkScoreMapPositiveBenefits.keySet()) {
+				double rouletteScore = Math.exp(alpha*(networkScoreMapPositiveBenefits.get(networkName).overallScore/(1.0E8)+1.5));
+				networkScoreMapPositiveBenefits.get(networkName).rouletteScore = rouletteScore;
 				totalRouletteScore += rouletteScore;
 			}
 			Random r = new Random();
 			double rD = r.nextDouble();
 			double attemptedProb = 0.0;
-			for (String networkName : networkScoreMap.keySet()) {
-				if (attemptedProb/totalRouletteScore <= rD   &&   rD < (attemptedProb+networkScoreMap.get(networkName).rouletteScore)/totalRouletteScore) {
+			for (String networkName : networkScoreMapPositiveBenefits.keySet()) {
+				if (attemptedProb/totalRouletteScore <= rD   &&   rD < (attemptedProb+networkScoreMapPositiveBenefits.get(networkName).rouletteScore)/totalRouletteScore) {
 					return networkName;
 				}
-				attemptedProb += networkScoreMap.get(networkName).rouletteScore;
+				attemptedProb += networkScoreMapPositiveBenefits.get(networkName).rouletteScore;
 			}
 			System.out.println("Roulette has not selected any network! Returning NULL...");
 			return null;
@@ -2470,9 +2498,13 @@ public class NetworkEvolutionImpl {
 	}
 	
  	public static String cutString(String stringToProcess, String subtringToCutOffFrom){
-		String cutString = stringToProcess.substring(0, stringToProcess.indexOf(subtringToCutOffFrom));
-		return cutString;
-	}	
+		if (stringToProcess.contains(subtringToCutOffFrom)) {
+			return stringToProcess.substring(0, stringToProcess.indexOf(subtringToCutOffFrom)); 			
+		}
+		else {
+			return stringToProcess;
+		}
+ 	}
  	
  	
  	public static Network createMetroNetworkFromRailwayNetwork2( Map<String, CustomStop> railStops,

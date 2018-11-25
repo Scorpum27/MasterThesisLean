@@ -358,7 +358,7 @@ public class Metro_TransitScheduleImpl {
 	
 	
 	
-	public static void TS_ModificationModule(String NetworkId) throws IOException {
+	public static void TS_ModificationModule(String NetworkId, String ptRemoveScenario) throws IOException {
 		// do this to modify original zurichSchedule e.g. compromizedZurichSchedule with only have of the tram routes
 		// CAUTION: make sure to use that new schedule in the MATSim run config!!
 //		Log.write("  >> Removing half of the tram lines on VBZ schedule for  "+NetworkId);
@@ -370,12 +370,126 @@ public class Metro_TransitScheduleImpl {
 	
 		// now make sure to insert conditions accordingly in Clone.transitSchedule to modify the new schedule
 		// change in the RUNSim config the transitSchedule to MergedScheduleModified.xml
-		TransitSchedule tsZHCompromized = Clone.transitSchedule(tsZH);
+		TransitSchedule tsZHCompromized = cloneTransitSchedule(tsZH, ptRemoveScenario);
 		TransitScheduleWriter tsw = new TransitScheduleWriter(tsZHCompromized);
 		tsw.writeFile("zurich_1pm/Evolution/Population/"+NetworkId+"/MergedScheduleModified.xml");
 	}
 	
+	public static TransitSchedule cloneTransitSchedule(TransitSchedule o, String ptRemoveScenario) {
+		TransitSchedule copy = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule();
+		for (TransitStopFacility tsf : o.getFacilities().values()) {
+			copy.addStopFacility(cloneTransitStopFacility(tsf, o.getFactory()));
+		}
+		for (TransitLine tl : o.getTransitLines().values()) {
+			copy.addTransitLine(cloneTransitLine(tl, o.getFactory(), ptRemoveScenario));
+		}
+		return copy;
+	}
 	
+	public static TransitStopFacility cloneTransitStopFacility(TransitStopFacility o, TransitScheduleFactory tsf) {
+		TransitStopFacility copy = tsf.createTransitStopFacility(o.getId(), o.getCoord(), o.getIsBlockingLane());
+		copy.setLinkId(o.getLinkId());
+		copy.setName(o.getName());
+		copy.setStopAreaId(o.getStopAreaId());
+		return copy;
+	}
+
+	public static TransitLine cloneTransitLine(TransitLine o, TransitScheduleFactory tsf, String ptRemoveScenario) {
+		TransitLine copy = tsf.createTransitLine(o.getId());
+		copy.setName(o.getName());
+		for (Id<TransitRoute> tr : o.getRoutes().keySet()) {
+			TransitRoute TR = o.getRoutes().get(tr);
+			TransitRoute TRR = tsf.createTransitRoute(tr, TR.getRoute().clone(), Clone.list(TR.getStops()), TR.getTransportMode());
+			if (ptRemoveScenario.equals("none")) {
+				// DEFAULT MODULE
+				for (Departure d : TR.getDepartures().values()){
+					TRR.addDeparture(d);
+				}
+				copy.addRoute(TRR);					
+			}
+			else if (Arrays.asList("tram", "bus", "rail", "subway", "funicular").contains(ptRemoveScenario)) {
+				// MODULE FOR MODIFYING TRANSIT ROUTE - REMOVE TRAM except first departure
+				if (TR.getTransportMode().equals(ptRemoveScenario)) {
+					Integer counter = 0;
+					for (Departure d : TR.getDepartures().values()){				
+						counter++;
+						if (counter%2 == 1) {
+							TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString(), Departure.class), 3.0*3600.0));
+							break;			// break if added min one departure of route
+						}
+						else {
+							continue;
+						}
+					}
+					copy.addRoute(TRR);
+				}
+				else {
+					for (Departure d : TR.getDepartures().values()){				
+						TRR.addDeparture(d);
+					}
+					copy.addRoute(TRR);				
+				}
+			}
+		// EXTEND RAIL SCHEDULE TO 15MIN FREQUENCY
+//			if (TR.getTransportMode().equals("rail")) {
+//				for (Departure d : TR.getDepartures().values()){				
+//					TRR.addDeparture(d);
+//					TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString()+"PLUS", Departure.class), d.getDepartureTime()+15*60.0));
+//				}
+//				copy.addRoute(TRR);
+//			}
+//			else {
+//				for (Departure d : TR.getDepartures().values()){				
+//					TRR.addDeparture(d);
+//				}
+//				copy.addRoute(TRR);				
+//			}
+			// ---
+		// REMOVE EVERY SECOND RAILS DEPARTURE
+//			if (TR.getTransportMode().equals("rail")) {
+//				Integer counter = 0;
+//				for (Departure d : TR.getDepartures().values()){				
+//					counter++;
+//					if (counter%2 == 1) {			// every 2nd: if (counter%2 == 1) {
+//						TRR.addDeparture(d);
+//					}
+//					else {
+//						continue;
+//					}
+//				}
+//				copy.addRoute(TRR);
+//			}
+//			else {
+//				for (Departure d : TR.getDepartures().values()){				
+//					TRR.addDeparture(d);
+//				}
+//				copy.addRoute(TRR);				
+//			}
+		// REMOVE ALL PT EXCEPT METRO (except first departure of each route)
+//			if ( ! TR.getTransportMode().equals("metro")) {
+//				Integer counter = 0;
+//				for (Departure d : TR.getDepartures().values()){				
+//					counter++;
+//					if (counter%2 == 1) {
+//						TRR.addDeparture(tsf.createDeparture(Id.create(d.getId().toString(), Departure.class), 3.0*3600.0));
+//						break;			// break if added min one departure of route
+//					}
+//					else {
+//						continue;
+//					}
+//				}
+//				copy.addRoute(TRR);
+//			}
+//			else {
+//				for (Departure d : TR.getDepartures().values()){				
+//					TRR.addDeparture(d);
+//				}
+//				copy.addRoute(TRR);				
+//			}
+		// ---
+		}
+		return copy;
+	}
 	
 	public static TransitSchedule SpeedSBahnModule(MNetwork mNetwork, String transitScheduleFileNameOld, String transitScheduleFileNameNew) throws IOException {
 		
@@ -440,7 +554,7 @@ public class Metro_TransitScheduleImpl {
 		TransitSchedule tsMod = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule();
 		
 		for (TransitLine tl : tsMerged.getTransitLines().values()) {
-			tsMod.addTransitLine(Metro_TransitScheduleImpl.cloneTransitLine(tl, tsMerged, odPairsX, keyStopsX, unservicedTSFs));
+			tsMod.addTransitLine(Metro_TransitScheduleImpl.cloneTransitLineSpeedSBahn(tl, tsMerged, odPairsX, keyStopsX, unservicedTSFs));
 		}
 		
 		for (TransitStopFacility tsf : tsMerged.getFacilities().values()) {
@@ -460,7 +574,7 @@ public class Metro_TransitScheduleImpl {
 					}
 				}
 				if (tsfFeaturedInTransitRoutes) {
-					tsMod.addStopFacility(Metro_TransitScheduleImpl.cloneTransitStopFacility(tsf, tsMerged.getFactory()));
+					tsMod.addStopFacility(Metro_TransitScheduleImpl.cloneTransitStopFacilitySpeedSBahn(tsf, tsMerged.getFactory()));
 					Log.write("Adding TSF anyways as it is featured in a new metro route "+tsf.getId()+" ("+tsf.getName()+"). ");
 				}
 				else {
@@ -472,7 +586,7 @@ public class Metro_TransitScheduleImpl {
 				}
 			}
 			else {
-				tsMod.addStopFacility(Metro_TransitScheduleImpl.cloneTransitStopFacility(tsf, tsMerged.getFactory()));
+				tsMod.addStopFacility(Metro_TransitScheduleImpl.cloneTransitStopFacilitySpeedSBahn(tsf, tsMerged.getFactory()));
 			}
 		}
 		
@@ -483,7 +597,7 @@ public class Metro_TransitScheduleImpl {
 	
 	
 	
-	public static TransitStopFacility cloneTransitStopFacility(TransitStopFacility o, TransitScheduleFactory tsf) {
+	public static TransitStopFacility cloneTransitStopFacilitySpeedSBahn(TransitStopFacility o, TransitScheduleFactory tsf) {
 		TransitStopFacility copy = tsf.createTransitStopFacility(o.getId(), o.getCoord(), o.getIsBlockingLane());
 		copy.setLinkId(o.getLinkId());
 		copy.setName(o.getName());
@@ -491,7 +605,7 @@ public class Metro_TransitScheduleImpl {
 		return copy;
 	}
 
-	public static TransitLine cloneTransitLine(TransitLine tlOrig, TransitSchedule tsMerged, List<ODRoutePairX> odPairsX, List<Coord> keyStopsX, 
+	public static TransitLine cloneTransitLineSpeedSBahn(TransitLine tlOrig, TransitSchedule tsMerged, List<ODRoutePairX> odPairsX, List<Coord> keyStopsX, 
 			List<Id<TransitStopFacility>> unservicedTSFs) throws IOException {
 		TransitLine tlNew = tsMerged.getFactory().createTransitLine(tlOrig.getId());
 		tlNew.setName(tlOrig.getName());
@@ -588,7 +702,7 @@ public class Metro_TransitScheduleImpl {
 									// (comp. S25 to S8 between HB->Wädenswil      | 9 clearedStops = 12*60s timeGains)
 								for (TransitRouteStop stopToUpdateTime : routeStopsCutTemp.subList(indexO+1, routeStopsCutTemp.size())) {
 									TransitRouteStop timeUpdatedStop = tsMerged.getFactory().createTransitRouteStop(
-											Metro_TransitScheduleImpl.cloneTransitStopFacility(stopToUpdateTime.getStopFacility(), tsMerged.getFactory()),
+											Metro_TransitScheduleImpl.cloneTransitStopFacilitySpeedSBahn(stopToUpdateTime.getStopFacility(), tsMerged.getFactory()),
 											stopToUpdateTime.getArrivalOffset()-nClearedStops*timeGainsPerClearedStop,
 											stopToUpdateTime.getDepartureOffset()-nClearedStops*timeGainsPerClearedStop);
 									timeUpdatedStop.setAwaitDepartureTime(true);

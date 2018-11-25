@@ -54,6 +54,8 @@ public class VisualizerIterFluctuations {
 		Range yRange = null;
 		Integer populationFactor = 0;
 		if (censusSize.equals("1pct")) { populationFactor = 100; yRange = null; }			// yRange = new Range(6400.0, 7000.0);
+		else if (censusSize.equals("0.4pm")) {populationFactor = 2500;}
+		else if (censusSize.equals("0.6pm")) {populationFactor = 1667;}
 		else if (censusSize.equals("1pm")) {populationFactor = 1000; yRange = null; } 	// yRange = new Range(7400.0, 8100.0);
 		else if (censusSize.equals("3pm")) {populationFactor = 333; yRange = null; }
 		else if (censusSize.equals("6pm")) {populationFactor = 167; yRange = null; }
@@ -254,8 +256,8 @@ public class VisualizerIterFluctuations {
 		Visualizer.plot2D(" Induced Benefits \r\n [Total Cost = "+cbpFinalBackupForCost.totalAnnualCost+"] ",
 				"MATSim Iteration", "Annual Benefit [CHF p.a.]",
 				Arrays.asList(totalBenefit, travelTimeGains, travelTimeGainsPt, travelTimeGainsCar, travelTimeGainsOther, otherBenefits),
-				Arrays.asList("totalBenefit", "travelTimeGains", "travelTimeGainsPt", "travelTimeGainsCar",
-						"travelTimeGainsWalk/Bike", "External/VehicleCostSavings"), 0.0, 0.0, null, // new Range(-1.0E8, 2.5E8)
+				Arrays.asList("totalBenefit", "travelUtilityGains", "travelTimeGainsPt", "travelTimeGainsCar",
+						"travelTimeGainsWalk/Bike", "External/VehicleCostSavings"), 0.0, 0.0, new Range(-2.0E8, 7.0E8), // new Range(-1.0E8, 2.5E8)
 				"BenefitsByIteration_"+censusSize + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
 		Visualizer.plot2DConfIntervals(" AverageTravelTime \r\n "
@@ -270,7 +272,7 @@ public class VisualizerIterFluctuations {
 									cbpOriginalGlobal.averageCartime + travelTimeAverageCarOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
 		Visualizer.plot2DConfIntervals(" AverageTravelTime \r\n "
-				+ "[Metro scenario average = " +meanPtTime+ " ],  [StdDev from ref. value = " +stdDevPtTime+" ]",
+				+ "[Metro scenario average = " +meanPtTime+ " ],  [Metro scenario StdDev from ref. value = " +stdDevPtTime+" ]",
 				"MATSim Iteration", "AverageTravelTime [s]",
 				Arrays.asList(travelTimeAveragePtByIteration, travelTimeAveragePtByIterationOriginal),
 				Arrays.asList("PT - Metro Case", "PT - Ref Case"), 0.0, 0.0, yRange,
