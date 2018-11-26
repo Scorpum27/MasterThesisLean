@@ -428,7 +428,7 @@ public class EvoOpsMutator {
 				servicedFacilities.addAll(facilitiesOnLink);
 			}
 		}
-		if (linkListMutateFacilityLinks.size() < 2) {
+		if (linkListMutateFacilityLinks.size() < 3) {
 			Log.write("CAUTION: Number of links with facilities = " + linkListMutateFacilityLinks.size() + " --> Removing"+mRoute.routeID);
 			mrouteIter.remove();
 			return true;

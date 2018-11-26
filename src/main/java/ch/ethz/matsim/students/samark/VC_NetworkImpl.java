@@ -48,46 +48,70 @@ import org.matsim.pt.transitSchedule.api.TransitScheduleFactory;
 import org.matsim.pt.transitSchedule.api.TransitScheduleWriter;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 import org.matsim.vehicles.VehicleType;
-
 import com.google.common.collect.Sets;
 
 
 public class VC_NetworkImpl {
 
+	// 1] Put populationAttributes + household(Attributes) in VC files folder
+	// 2] Set parameters here - especially percentage or if we want to load an existing pop
+	// 3] Copy resulting files from VC files folder to zurich_1pm folder
+	
 	public static void main(String[] args) throws IOException {
-		double popCutPercentage = 0.4;
+		double popCutPercentage = 1.0;
+		double unusedFacilitiesPercentage = 0.5;
 		int xmax = 100;
 		int ymax = 100;
-		double unitLinkLength = 100.0;		
+		double unitLinkLength = 200.0;		
 		double minStopDistance = 400.0; // original bus stop spacing
-		int nBusRoutes = 70;
+		double maxMetroLinkDist = 1000.0;
+		int nBusRoutes = 100;
 		double minTerminalDist = Math.sqrt(xmax*xmax+ymax*ymax)*unitLinkLength*0.5;
+		int maxRemovalsPerSide = 6;
+		int maxEatSize = 8;
 		
 	// create network
 		Config config = ConfigUtils.createConfig();
 		Scenario sceanrio = ScenarioUtils.loadScenario(config);
 		Network network = sceanrio.getNetwork();
 		network = fillNetwork(xmax, ymax, network, unitLinkLength);
-		Integer nrRectanglesToBeRemoved = 20;
-		Integer maxRemovalSizeFraction = 4;
+		Integer nrRectanglesToBeRemoved = 23;
+		Integer maxRemovalSizeFraction = 6;
 		List<RectX> rectanglesToBeRemoved = new ArrayList<RectX>();
 		rectanglesToBeRemoved.add(new RectX(10, 20, 10, 20));
-		rectanglesToBeRemoved.add(new RectX(36, 64, 36, 64));
+		rectanglesToBeRemoved.add(new RectX(32, 60, 32, 60));
 		rectanglesToBeRemoved.add(new RectX(58, 68, 58, 68));
 		rectanglesToBeRemoved.add(new RectX(70, 85, 20, 35));
 		rectanglesToBeRemoved.add(new RectX(12, 24, 60, 80));
+		network = removeRectangluarSection(rectanglesToBeRemoved, nrRectanglesToBeRemoved, maxRemovalSizeFraction, xmax, ymax, network,
+				unitLinkLength, maxMetroLinkDist, true);
+		
+		// make river + bridge
+		List<RectX> riversToBeRemoved = new ArrayList<RectX>();
+		riversToBeRemoved.add(new RectX(57, 59, 30, 100));
+			List<Integer> bridge1 = new ArrayList<Integer>(); bridge1.add(xy2NodeNr(57, 70, xmax)); bridge1.add(xy2NodeNr(59, 70, xmax));
+			addNodePairToNetwork(bridge1, network, maxMetroLinkDist);
+			List<Integer> bridge2 = new ArrayList<Integer>(); bridge2.add(xy2NodeNr(57, 90, xmax)); bridge2.add(xy2NodeNr(59, 90, xmax));
+			addNodePairToNetwork(bridge2, network, maxMetroLinkDist);
+			List<Integer> bridge3 = new ArrayList<Integer>(); bridge3.add(xy2NodeNr(57, 40, xmax)); bridge3.add(xy2NodeNr(59, 40, xmax));
+			addNodePairToNetwork(bridge3, network, maxMetroLinkDist);
+			List<Integer> bridge4 = new ArrayList<Integer>(); bridge4.add(xy2NodeNr(57, 50, xmax)); bridge4.add(xy2NodeNr(59, 50, xmax));
+			addNodePairToNetwork(bridge4, network, maxMetroLinkDist);
+		network = removeRectangluarSection(riversToBeRemoved, riversToBeRemoved.size(), maxRemovalSizeFraction, xmax, ymax, network,
+					unitLinkLength, maxMetroLinkDist, false);
 
-		network = removeRectangluarSection(rectanglesToBeRemoved, nrRectanglesToBeRemoved, maxRemovalSizeFraction, xmax, ymax, network, unitLinkLength);
+		network = removeRandomEdgeBlocks(maxRemovalsPerSide, maxEatSize, xmax, ymax, network, unitLinkLength);
+		
 		Integer nDiagonalsToBeBuilt = 50;
-		network = buildDiagonals(network, nDiagonalsToBeBuilt, xmax, ymax);
+		network = buildDiagonals(network, nDiagonalsToBeBuilt, xmax, ymax, maxMetroLinkDist);
 		NetworkWriter nw = new NetworkWriter(network); nw.write("zurich_1pm/VC_files/zurich_network.xml.gz");
 		
 	// create infrastructure + population
 		Population popVC = cutPopulation(popCutPercentage); // do this only once to get a cut population! Load it after that
 //		Config configZh1pm = ConfigUtils.createConfig();
-//		configZh1pm.getModules().get("plans").addParam("inputPlansFile", "zurich_1pm/VC_files/zurich_population_0."+((int)(10*popCutPercentage))+"pm.xml.gz");		
+//		configZh1pm.getModules().get("plans").addParam("inputPlansFile", "zurich_1pm/VC_files/zurich_population_cut.xml.gz");		
 //		Population popVC = ScenarioUtils.loadScenario(configZh1pm).getPopulation();
-		ActivityFacilities rebuiltFacilities = rebuildFacilities(network, popVC, popCutPercentage, xmax, ymax, unitLinkLength);
+		ActivityFacilities rebuiltFacilities = rebuildFacilities(network, popVC, popCutPercentage, xmax, ymax, unitLinkLength, unusedFacilitiesPercentage);
 		popVC = rebuildPlans(network, popVC, rebuiltFacilities, popCutPercentage);
 		
 	// create pt
@@ -179,11 +203,7 @@ public class VC_NetworkImpl {
 
 	public static Population rebuildPlans(Network network, Population popVC, ActivityFacilities rebuiltFacilities, double popCutPercentage) throws IOException {
 		
-//		Population updatedPopVC = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getPopulation();
-		
 		for (Person person : popVC.getPersons().values()) {
-//			Person clonePerson = updatedPopVC.getFactory().createPerson(Id.createPersonId(person.getId()));
-//			clonePerson.
 			List<Plan> originalPersonPlans = new ArrayList<Plan>();
 			List<Plan> rebuiltPersonPlans = new ArrayList<Plan>();
 			for (Plan originalPlan : person.getPlans()) {
@@ -198,7 +218,6 @@ public class VC_NetworkImpl {
 			for (Plan rebuiltPlan : rebuiltPersonPlans) {
 				person.addPlan(rebuiltPlan);
 			}
-			
 		}
 		PopulationWriter pw = new PopulationWriter(popVC);
 		pw.write("zurich_1pm/VC_files/zurich_population.xml.gz");
@@ -267,8 +286,10 @@ public class VC_NetworkImpl {
 
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%      SCENARIO      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
 	
-	public static ActivityFacilities rebuildFacilities(Network network, Population popVC, double popPercentage, int xmax, int ymax, double unitLinkLength) throws IOException {
-		Config configZh = ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml");
+	public static ActivityFacilities rebuildFacilities(Network network, Population popVC, double popPercentage, int xmax, int ymax,
+			double unitLinkLength, double unusedFacilitiesPercentage) throws IOException {
+		Config configZh = ConfigUtils.createConfig();
+		configZh.getModules().get("facilities").addParam("inputFacilitiesFile", "zurich_1pm/Zurich Files/1pmFiles/zurich_facilities.xml.gz");		
 		// load existing facilities in ZH
 		Collection<? extends ActivityFacility> activityFacilitiesZH = ScenarioUtils.loadScenario(configZh).getActivityFacilities().getFacilities().values();
 		// list facilities, which were actually used by agents
@@ -289,7 +310,7 @@ public class VC_NetworkImpl {
 		System.out.println("Number of activity facilities in ZH = "+activityFacilitiesZH.size());
 		ActivityFacilities activityFacilitiesCut = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
 		for (ActivityFacility origFacility : activityFacilitiesZH) {
-			if (activityFacilitiesInInitialPlans.contains(origFacility.getId()) || (new Random()).nextDouble() < popPercentage) {
+			if (activityFacilitiesInInitialPlans.contains(origFacility.getId()) || (new Random()).nextDouble() < unusedFacilitiesPercentage) {
 				ActivityFacility activityFacility = rebuildFacilityIntoVC(origFacility, activityFacilitiesCut.getFactory(), network, xmax, ymax, unitLinkLength);
 				if (activityFacility != null) {
 					activityFacilitiesCut.addActivityFacility(activityFacility);
@@ -402,8 +423,9 @@ public class VC_NetworkImpl {
 
 	public static Population cutPopulation(double popCutPercentage) throws IOException {
 		Config configZh1pm = ConfigUtils.createConfig();
-		configZh1pm.getModules().get("plans").addParam("inputPlansFile", "zurich_1pm/zurich_population.xml.gz");		
+		configZh1pm.getModules().get("plans").addParam("inputPlansFile", "zurich_1pm/Zurich Files/1pmFiles/zurich_population.xml.gz");		
 		Population pop = ScenarioUtils.loadScenario(configZh1pm).getPopulation();
+		new PopulationWriter(pop).write("zurich_1pm/VC_files/zurich_population_original.xml.gz");
 		Population popCut;
 		int popSize;
 		do {
@@ -421,7 +443,7 @@ public class VC_NetworkImpl {
 			}
 		} while(popSize < (int)(Math.floor(popCutPercentage*pop.getPersons().size())));
 		PopulationWriter pw = new PopulationWriter(popCut);
-		pw.write("zurich_1pm/VC_files/zurich_population_0."+((int) (10*popCutPercentage))+"pm.xml.gz");
+		pw.write("zurich_1pm/VC_files/zurich_population_cut.xml.gz");
 		Log.write("PopSize = "+popSize);
 		Log.write("TargetSize = "+popCutPercentage*pop.getPersons().size());
 		return popCut;
@@ -491,7 +513,7 @@ public class VC_NetworkImpl {
 			NetworkRoute busRoute = busRoutes.get(lineNr-1);
 			MRoute mRoute = new MRoute("myBus_Route"+lineNr);
 			mRoute.lifeTime = 40;
-			mRoute.departureSpacing = 300.0;
+			mRoute.departureSpacing = 450.0;
 			mRoute.isInitialDepartureSpacing = false;
 			mRoute.firstDeparture = 6.0*3600;
 			mRoute.lastDeparture = 22.0*3600;
@@ -661,6 +683,8 @@ public class VC_NetworkImpl {
 						Link rightLink = network.getFactory().createLink(Id.createLinkId(centerNode.getId()+"_"+rightNode.getId()), centerNode, rightNode);
 						if ( ! network.getLinks().containsKey(rightLink.getId())) {
 							 rightLink.setAllowedModes(Sets.newHashSet("pt", "car"));
+							 rightLink.setCapacity(200.0);
+							 rightLink.setFreespeed(50.0/3.6);
 							 network.addLink(rightLink);
 							 // not necessary to add reverse link as this is done inherently in the course of the grid roaming in x and y
 						}
@@ -671,6 +695,8 @@ public class VC_NetworkImpl {
 						Link leftLink = network.getFactory().createLink(Id.createLinkId(centerNode.getId()+"_"+leftNode.getId()), centerNode, leftNode);
 						if ( ! network.getLinks().containsKey(leftLink.getId())) {
 							 leftLink.setAllowedModes(Sets.newHashSet("pt", "car"));
+							 leftLink.setCapacity(200.0);
+							 leftLink.setFreespeed(50.0/3.6);
 							 network.addLink(leftLink);
 							 // not necessary to add reverse link as this is done inherently in the course of the grid roaming in x and y
 						}
@@ -681,6 +707,8 @@ public class VC_NetworkImpl {
 						Link topLink = network.getFactory().createLink(Id.createLinkId(centerNode.getId()+"_"+topNode.getId()), centerNode, topNode);
 						if ( ! network.getLinks().containsKey(topLink.getId())) {
 							topLink.setAllowedModes(Sets.newHashSet("pt", "car"));
+							 topLink.setCapacity(200.0);
+							 topLink.setFreespeed(50.0/3.6);
 							 network.addLink(topLink);
 							 // not necessary to add reverse link as this is done inherently in the course of the grid roaming in x and y
 						}
@@ -691,6 +719,8 @@ public class VC_NetworkImpl {
 						Link bottomLink = network.getFactory().createLink(Id.createLinkId(centerNode.getId()+"_"+bottomNode.getId()), centerNode, bottomNode);
 						if ( ! network.getLinks().containsKey(bottomLink.getId())) {
 							bottomLink.setAllowedModes(Sets.newHashSet("pt", "car"));
+							 bottomLink.setCapacity(200.0);
+							 bottomLink.setFreespeed(50.0/3.6);
 							 network.addLink(bottomLink);
 							 // not necessary to add reverse link as this is done inherently in the course of the grid roaming in x and y
 						}
@@ -701,8 +731,89 @@ public class VC_NetworkImpl {
 		 return network;
 	}
 	
-	public static Network removeRectangluarSection(List<RectX> rectanglesToBeRemoved, int nrRectanglesToBeRemoved, int maxRemovalSizeFraction,
+	public static Network removeRandomEdgeBlocks(int averageRemovalsPerSide, int maxEatSize,
 			int xmax, int ymax, Network network, double unitLinkLength) {
+		
+		Network positiveNetwork = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+		List<Id<Node>> nodesToDelete = new ArrayList<Id<Node>>();
+		List<Id<Link>> linksToDelete = new ArrayList<Id<Link>>();
+		List<RectX> rectanglesToBeRemoved = new ArrayList<RectX>();
+		
+		// left edge
+		int nLeftRemovals = new Random().nextInt(averageRemovalsPerSide)+1;
+		for (int r=1; r<=nLeftRemovals; r++) {
+			int removalSize = new Random().nextInt(maxEatSize)+1;
+			int nEat = new Random().nextInt(xmax-removalSize+1);
+			for (int n=nEat; n<nEat+removalSize; n++) {
+				if (n > nEat) { nodesToDelete.add(Id.createNodeId(xy2NodeNr(0,n,xmax))); }
+				// mark link to be removed. stop at second last node, because next link would be out of the cutting range
+				linksToDelete.add(Id.createLinkId(xy2NodeNr(0,n,xmax)+"_"+xy2NodeNr(0,n+1,xmax)));
+			}
+			rectanglesToBeRemoved.add(new RectX(0, removalSize, nEat, nEat+removalSize));
+		}
+		// right edge
+		int nRightRemovals = new Random().nextInt(averageRemovalsPerSide)+1;
+		for (int r=1; r<=nRightRemovals; r++) {
+			int removalSize = new Random().nextInt(maxEatSize)+1;
+			int nEat = new Random().nextInt(xmax-removalSize+1);
+			for (int n=nEat; n<nEat+removalSize; n++) {
+				if (n > nEat) { nodesToDelete.add(Id.createNodeId(xy2NodeNr(xmax,n,xmax))); }
+				linksToDelete.add(Id.createLinkId(xy2NodeNr(xmax,n,xmax)+"_"+xy2NodeNr(xmax,n+1,xmax)));					
+			}
+			rectanglesToBeRemoved.add(new RectX(xmax-removalSize, xmax, nEat, nEat+removalSize));
+		}
+		// bottom edge
+		int nBottomRemovals = new Random().nextInt(averageRemovalsPerSide)+1;
+		for (int r=1; r<=nBottomRemovals; r++) {
+			int removalSize = new Random().nextInt(maxEatSize)+1;
+			int nEat = new Random().nextInt(ymax-removalSize+1);
+			for (int n=nEat; n<nEat+removalSize; n++) {
+				if (n > nEat) { nodesToDelete.add(Id.createNodeId(xy2NodeNr(n,0,xmax))); }
+				linksToDelete.add(Id.createLinkId(xy2NodeNr(n,0,xmax)+"_"+xy2NodeNr(n+1,0,xmax)));					
+			}
+			rectanglesToBeRemoved.add(new RectX(nEat, nEat+removalSize, 0, removalSize));
+		}
+		// top edge
+		int nTopRemovals = new Random().nextInt(averageRemovalsPerSide)+1;
+		for (int r=1; r<=nTopRemovals; r++) {
+			int removalSize = new Random().nextInt(maxEatSize)+1;
+			int nEat = new Random().nextInt(ymax-removalSize+1);
+			for (int n=nEat; n<nEat+removalSize; n++) {
+				if (n > nEat) { nodesToDelete.add(Id.createNodeId(xy2NodeNr(n,ymax,xmax))); }
+				linksToDelete.add(Id.createLinkId(xy2NodeNr(n,ymax,xmax)+"_"+xy2NodeNr(n+1,ymax,xmax)));					
+			}
+			rectanglesToBeRemoved.add(new RectX(nEat, nEat+removalSize, ymax-removalSize, ymax));
+		}
+		
+		// build a copy of the original network and do not add links/nodes if they are featured in the negative network
+		for (Node node : network.getNodes().values()) {
+			if ( ! nodesToDelete.contains(node.getId())) {
+				Node copyNode = network.getFactory().createNode(node.getId(), node.getCoord());
+				positiveNetwork.addNode(copyNode);
+			}
+		}
+		for (Link link : network.getLinks().values()) {
+			if ( ! linksToDelete.contains(link.getId())) {
+				if ( ! positiveNetwork.getNodes().containsKey(link.getFromNode().getId()) ||
+						! positiveNetwork.getNodes().containsKey(link.getToNode().getId())) {
+					continue;
+				}
+				Link copyLink = network.getFactory().createLink(link.getId(), link.getFromNode(), link.getToNode());
+				copyLink.setAllowedModes(link.getAllowedModes());
+				copyLink.setFreespeed(link.getFreespeed());
+				copyLink.setCapacity(link.getCapacity());
+				positiveNetwork.addLink(copyLink);
+			}
+		}
+		
+		positiveNetwork = removeRectangluarSection(rectanglesToBeRemoved, rectanglesToBeRemoved.size(), xmax, xmax, ymax, positiveNetwork,
+				unitLinkLength, unitLinkLength, false);
+		
+		return positiveNetwork;
+	}
+	
+	public static Network removeRectangluarSection(List<RectX> rectanglesToBeRemoved, int nrRectanglesToBeRemoved, int maxRemovalSizeFraction,
+			int xmax, int ymax, Network network, double unitLinkLength, double maxMetroLinkDist, boolean buildDiagonals) {
 
 		Network positiveNetwork = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
 		
@@ -725,15 +836,13 @@ public class VC_NetworkImpl {
 			int y0 = rectangleToBeRemoved.y0;
 			int y1 = rectangleToBeRemoved.y1;
 			// each a third chance if one or other or both diagonals from rectangle
-			if ((new Random()).nextDouble() < 0.33) {
-				potentialNewDiagonals.add(Arrays.asList(xy2NodeNr(x0,y0,xmax), xy2NodeNr(x1,y1,xmax)));
-			}
-			else if ((new Random()).nextDouble() < 0.67) {
-				potentialNewDiagonals.add(Arrays.asList(xy2NodeNr(x0,y1,xmax), xy2NodeNr(x1,y0,xmax)));
-			}
-			else {
-				potentialNewDiagonals.add(Arrays.asList(xy2NodeNr(x0,y0,xmax), xy2NodeNr(x1,y1,xmax)));
-				potentialNewDiagonals.add(Arrays.asList(xy2NodeNr(x0,y1,xmax), xy2NodeNr(x1,y0,xmax)));
+			if (buildDiagonals) {
+				if ((new Random()).nextDouble() < 1.00) {
+					potentialNewDiagonals.add(Arrays.asList(xy2NodeNr(x0,y0,xmax), xy2NodeNr(x1,y1,xmax)));
+				}
+				if ((new Random()).nextDouble() < 1.00) {
+					potentialNewDiagonals.add(Arrays.asList(xy2NodeNr(x0,y1,xmax), xy2NodeNr(x1,y0,xmax)));
+				}
 			}
 			if (x1-x0>1 && y1-y0>1) {
 				for (int y=y0+1; y<=y1-1; y++) {
@@ -745,21 +854,32 @@ public class VC_NetworkImpl {
 			for (int y=y0; y<=y1; y++) {
 				for (int x=x0; x<=x1; x++) {
 					Node centerNode = network.getNodes().get(Id.createNodeId(xy2NodeNr(x,y,xmax)));
+					if (centerNode == null) {
+						continue;
+					}
 					if (x+1<=x1 && y!=y0 && y!=y1) {
 						Node rightNode = network.getNodes().get(Id.createNodeId(xy2NodeNr(x+1,y,xmax)));
-						linksToDelete.add(Id.createLinkId(centerNode.getId()+"_"+rightNode.getId()));
+						if (rightNode != null) {
+							linksToDelete.add(Id.createLinkId(centerNode.getId()+"_"+rightNode.getId()));
+						}
 					}
 					if (x-1>=x0 && y!=y0 && y!=y1) {
 						Node leftNode = network.getNodes().get(Id.createNodeId(xy2NodeNr(x-1,y,xmax)));
-						linksToDelete.add(Id.createLinkId(centerNode.getId()+"_"+leftNode.getId()));
+						if (leftNode != null) {
+							linksToDelete.add(Id.createLinkId(centerNode.getId()+"_"+leftNode.getId()));							
+						}
 					}
 					if (y+1<=y1 && x!=x0 && x!=x1) {
 						Node topNode = network.getNodes().get(Id.createNodeId(xy2NodeNr(x,y+1,xmax)));
-						linksToDelete.add(Id.createLinkId(centerNode.getId()+"_"+topNode.getId()));
+						if (topNode != null) {
+							linksToDelete.add(Id.createLinkId(centerNode.getId()+"_"+topNode.getId()));
+						}
 					}
 					if (y-1>=y0 && x!=x0 && x!=x1) {
 						Node bottomNode = network.getNodes().get(Id.createNodeId(xy2NodeNr(x,y-1,xmax)));
-						linksToDelete.add(Id.createLinkId(centerNode.getId()+"_"+bottomNode.getId()));
+						if (bottomNode != null) {
+							linksToDelete.add(Id.createLinkId(centerNode.getId()+"_"+bottomNode.getId()));
+						}
 					}
 				}			
 			}
@@ -773,6 +893,10 @@ public class VC_NetworkImpl {
 		}
 		for (Link link : network.getLinks().values()) {
 			if ( ! linksToDelete.contains(link.getId())) {
+				if ( ! positiveNetwork.getNodes().containsKey(link.getFromNode().getId()) ||
+						! positiveNetwork.getNodes().containsKey(link.getToNode().getId())) {
+					continue;
+				}
 				Link copyLink = network.getFactory().createLink(link.getId(), link.getFromNode(), link.getToNode());
 				copyLink.setAllowedModes(link.getAllowedModes());
 				copyLink.setFreespeed(link.getFreespeed());
@@ -782,22 +906,108 @@ public class VC_NetworkImpl {
 		}
 		// build some of the potential diagonals
 		for (List<Integer> diagonalPair : potentialNewDiagonals) {
-			if (new Random().nextDouble() < 0.33) {
+			if (new Random().nextDouble() < 0.80) {
 				continue;
 			}
-			addDiagonalToNetwork(diagonalPair, positiveNetwork);
+			addNodePairToNetwork(diagonalPair, positiveNetwork, maxMetroLinkDist);
 		}
 		return positiveNetwork;
 	}
 
+//	public static Boolean addDiagonalToNetwork(List<Integer> diagonalPair, Network network) {
+//		if (diagonalPair.get(0) == diagonalPair.get(1)) {
+//			return false;
+//		}
+//		if (network.getNodes().containsKey(Id.createNodeId(diagonalPair.get(0)))
+//				&& network.getNodes().containsKey(Id.createNodeId(diagonalPair.get(1)))) {
+//			Id<Link> diaLinkIdThere = Id.createLinkId(diagonalPair.get(0)+"_"+diagonalPair.get(1));
+//			Id<Link> diaLinkIdBack = Id.createLinkId(diagonalPair.get(1)+"_"+diagonalPair.get(0));
+//			if ( ! network.getLinks().containsKey(diaLinkIdThere) && ! network.getLinks().containsKey(diaLinkIdBack)) {
+//				Link dialLinkThere = network.getFactory().createLink(diaLinkIdThere,
+//						network.getNodes().get(Id.createNodeId(diagonalPair.get(0))),
+//						network.getNodes().get(Id.createNodeId(diagonalPair.get(1))));
+//				Link dialLinkBack = network.getFactory().createLink(diaLinkIdBack,
+//						network.getNodes().get(Id.createNodeId(diagonalPair.get(1))),
+//						network.getNodes().get(Id.createNodeId(diagonalPair.get(0))));
+//				Link randomLinkForDefaultAttributes = network.getLinks().values().iterator().next();
+//				dialLinkThere.setAllowedModes(randomLinkForDefaultAttributes.getAllowedModes());
+//				dialLinkThere.setFreespeed(randomLinkForDefaultAttributes.getFreespeed());
+//				dialLinkThere.setCapacity(randomLinkForDefaultAttributes.getCapacity());
+//				network.addLink(dialLinkThere);
+//				dialLinkBack.setAllowedModes(randomLinkForDefaultAttributes.getAllowedModes());
+//				dialLinkBack.setFreespeed(randomLinkForDefaultAttributes.getFreespeed());
+//				dialLinkBack.setCapacity(randomLinkForDefaultAttributes.getCapacity());
+//				network.addLink(dialLinkBack);
+//				return true;
+//			}
+//			else {
+//				return false;
+//			}
+//		}
+//		else {
+//			return false;
+//		}
+//		
+//	}
 
-
-	public static Boolean addDiagonalToNetwork(List<Integer> diagonalPair, Network network) {
+	public static Boolean addNodePairToNetwork(List<Integer> diagonalPair, Network network, double maxMetroLinkDist) {
 		if (diagonalPair.get(0) == diagonalPair.get(1)) {
 			return false;
 		}
 		if (network.getNodes().containsKey(Id.createNodeId(diagonalPair.get(0)))
 				&& network.getNodes().containsKey(Id.createNodeId(diagonalPair.get(1)))) {
+			Node node0 = network.getNodes().get(Id.createNodeId(diagonalPair.get(0)));
+			Node node1 = network.getNodes().get(Id.createNodeId(diagonalPair.get(1)));
+			Coord coord0 = node0.getCoord();
+			Coord coord1 = node1.getCoord();
+			if (GeomDistance.calculate(coord0, coord1) <= maxMetroLinkDist) {
+				addRefinedDiagonalsToNetwork(IntegerList2StringList(diagonalPair), network, maxMetroLinkDist);
+				return true;
+			}
+			else {
+				double deltaX = coord1.getX() - coord0.getX();
+				double deltaY = coord1.getY() - coord0.getY();
+				int nNewLinksOnDiagonal = (int) (Math.ceil(GeomDistance.calculate(coord0, coord1)/maxMetroLinkDist));
+				int nNewNodesOnDiagonal = nNewLinksOnDiagonal - 1;
+				//double diagonalNodeDist = GeomDistance.calculate(coord0, coord1)/nNewLinksOnDiagonal;
+				List<Node> diagonalNodes = new ArrayList<Node>();
+				diagonalNodes.add(node0);
+				for (int n=1; n<=nNewNodesOnDiagonal; n++) {
+					Node newNode = network.getFactory().createNode(
+							Id.createNodeId(node0.getId().toString()+"d"+node0.getId().toString()+"x"+n),
+							new Coord(coord0.getX()+n*deltaX/nNewLinksOnDiagonal, coord0.getY()+n*deltaY/nNewLinksOnDiagonal));
+					network.addNode(newNode);
+					diagonalNodes.add(newNode);
+				}
+				diagonalNodes.add(node1);
+				
+				Node previousNode = diagonalNodes.get(0);
+				for (Node diaNode : diagonalNodes.subList(1, diagonalNodes.size())) {
+					addRefinedDiagonalsToNetwork(Arrays.asList(previousNode.getId().toString(), diaNode.getId().toString()), network, maxMetroLinkDist);
+					previousNode = diaNode;
+				}
+				return true;
+			}
+		}
+		else {
+			return false;
+		}
+	}
+	
+	public static List<String> IntegerList2StringList(List<Integer> integerList) {
+		List<String> stringList = new ArrayList<String>();
+		for (int i : integerList) {
+			stringList.add(Integer.toString(i));
+		}
+		return stringList;
+	}
+
+
+
+	public static Boolean addRefinedDiagonalsToNetwork(List<String> diagonalPair, Network network, double maxMetroLinkDist) {
+		if (network.getNodes().containsKey(Id.createNodeId(diagonalPair.get(0)))
+				&& network.getNodes().containsKey(Id.createNodeId(diagonalPair.get(1)))) {
+				
 			Id<Link> diaLinkIdThere = Id.createLinkId(diagonalPair.get(0)+"_"+diagonalPair.get(1));
 			Id<Link> diaLinkIdBack = Id.createLinkId(diagonalPair.get(1)+"_"+diagonalPair.get(0));
 			if ( ! network.getLinks().containsKey(diaLinkIdThere) && ! network.getLinks().containsKey(diaLinkIdBack)) {
@@ -809,12 +1019,12 @@ public class VC_NetworkImpl {
 						network.getNodes().get(Id.createNodeId(diagonalPair.get(0))));
 				Link randomLinkForDefaultAttributes = network.getLinks().values().iterator().next();
 				dialLinkThere.setAllowedModes(randomLinkForDefaultAttributes.getAllowedModes());
-				dialLinkThere.setFreespeed(randomLinkForDefaultAttributes.getFreespeed());
-				dialLinkThere.setCapacity(randomLinkForDefaultAttributes.getCapacity());
+				dialLinkThere.setFreespeed(200.0);
+				dialLinkThere.setCapacity(50.0/3.6);
 				network.addLink(dialLinkThere);
 				dialLinkBack.setAllowedModes(randomLinkForDefaultAttributes.getAllowedModes());
-				dialLinkBack.setFreespeed(randomLinkForDefaultAttributes.getFreespeed());
-				dialLinkBack.setCapacity(randomLinkForDefaultAttributes.getCapacity());
+				dialLinkBack.setFreespeed(200.0);
+				dialLinkBack.setCapacity(50.0/3.6);
 				network.addLink(dialLinkBack);
 				return true;
 			}
@@ -825,10 +1035,10 @@ public class VC_NetworkImpl {
 		else {
 			return false;
 		}
-		
 	}
+
 	
-	public static Network buildDiagonals(Network network, Integer nDiagonalsToBeBuilt, Integer xmax, Integer ymax) {
+	public static Network buildDiagonals(Network network, Integer nDiagonalsToBeBuilt, Integer xmax, Integer ymax, double maxMetroLinkDist) {
 		List<List<Integer>> diagonalsToBeBuilt = new ArrayList<List<Integer>>();
 		while (diagonalsToBeBuilt.size() < nDiagonalsToBeBuilt) {
 			int span = new Random().nextInt(Math.floorDiv(xmax, 5))+1;
@@ -849,7 +1059,7 @@ public class VC_NetworkImpl {
 			
 		}
 		for (List<Integer> diagonalPair : diagonalsToBeBuilt) {
-			addDiagonalToNetwork(diagonalPair, network);		
+			addNodePairToNetwork(diagonalPair, network, maxMetroLinkDist);		
 		}
 		
 		return network;

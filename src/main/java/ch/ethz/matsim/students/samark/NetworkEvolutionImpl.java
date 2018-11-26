@@ -72,7 +72,7 @@ public class NetworkEvolutionImpl {
 	public static MNetworkPop createMNetworks(String populationName, int populationSize, int initialRoutesPerNetwork, String initialRouteType, 
 			String shortestPathStrategy, int iterationToReadOriginalNetwork, int lastIterationOriginal, Integer iterationsToAverage, double minMetroRadiusFromCenter,
 			double maxMetroRadiusFromCenter, double maxExtendedMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
-			int nMostFrequentLinks, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter, double minInitialTerminalDistance, 
+			int nMostFrequentLinks, boolean extendMetroGrid, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter, double minInitialTerminalDistance, 
 			double minInitialTerminalRadiusFromCenter, double maxInitialTerminalRadiusFromCenter, boolean varyInitRouteSize,
 			boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea,
 			double odConsiderationThreshold, boolean useOdPairsForInitialRoutes, double xOffset, double yOffset, double populationFactor,
@@ -121,7 +121,8 @@ public class NetworkEvolutionImpl {
 
 		// Find most frequent links from input links
 		Map<Id<Link>, CustomLinkAttributes> links_mostFrequentInRadius = 
-				NetworkEvolutionImpl.findMostFrequentLinks(nMostFrequentLinks, links_withinRadius, originalNetwork, null);
+				NetworkEvolutionImpl.findMostFrequentLinks(nMostFrequentLinks, extendMetroGrid, 
+						maxNewMetroLinkDistance, metroCityRadius, zurich_NetworkCenterCoord, links_withinRadius, originalNetwork, null);
 	
 		// Set dominant transit stop facility in given network (from custom link list)
 		// On these highly frequented links find for each the most dominant stop facility (by mode e.g. rail) attached to them
@@ -203,6 +204,8 @@ public class NetworkEvolutionImpl {
 		else {
 			metroNetwork = innerCityMetroNetwork;
 			allMetroStops.putAll(innerCityMetroStops);
+			// do this that there is an empty rail stops file, so that calculateScores routines can load it
+			XMLOps.writeToFile(railStops, "zurich_1pm/Evolution/Population/BaseInfrastructure/railStopAttributes.xml");
 		}
 		
 		
@@ -667,7 +670,7 @@ public class NetworkEvolutionImpl {
 					if (metroRailwayMergedLinks.get(thisLink).getDominantStopFacility() == null
 							|| metroRailwayMergedLinks.get(otherLink).getDominantStopFacility() == null) {
 						// will receive NullPointer if CoordThis/CoordOther cannot be found by .getDominantStopFacility() in next line
-						Log.write("EvolutionImpl. ~line670  -- We have a dom. stop facility null pointer issue - ;-)).");
+						Log.write("EvolutionImpl. ~line673  -- We have a dom. stop facility null pointer issue - ;-)).");
 						continue;
 					}
 					else {
@@ -697,7 +700,8 @@ public class NetworkEvolutionImpl {
 		
 		
 
-		public static Map<Id<Link>, CustomLinkAttributes> findMostFrequentLinks(int nMostFrequentLinks,
+		public static Map<Id<Link>, CustomLinkAttributes> findMostFrequentLinks(int nMostFrequentLinks, boolean extendMetroGrid,
+				double maxNewMetroLinkDistance, double metroCityRadius, Coord centerCoord,
 				Map<Id<Link>, CustomLinkAttributes> customLinkMap, Network network, String fileName) throws IOException {
 			// output is a map with all links above threshold and their traffic (number of link enter events)
 
@@ -727,6 +731,83 @@ public class NetworkEvolutionImpl {
 					mostFrequentLinks.remove(minTrafficLinkID);
 				}
 			}
+			
+			
+			if (extendMetroGrid) {
+				Network newNodesNetwork = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+				System.out.println("It's starting!");
+				// find all inks, which definitely have a stop facility, that can be found as dominant stop facility later on
+				List<Id<Link>> linksWithFacility = new ArrayList<Id<Link>>();
+				for (TransitStopFacility tsf : ScenarioUtils.loadScenario(ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml")).getTransitSchedule().getFacilities().values()) {
+					if ( ! linksWithFacility.contains(tsf.getLinkId())){
+						linksWithFacility.add(tsf.getLinkId());
+					}
+				}
+				System.out.println("Links with facilities list complete!");				
+				int nGridUnits = (int) (Math.ceil(metroCityRadius/(maxNewMetroLinkDistance/Math.sqrt(2.0))));
+				double unit = metroCityRadius/nGridUnits;
+				for (int x=-nGridUnits; x<=nGridUnits; x++) {
+					for (int y=-nGridUnits; y<=nGridUnits; y++) {
+						double X = centerCoord.getX() + x*unit;
+						double Y = centerCoord.getY() + y*unit;
+						double xHigh = X+unit/2;
+						double xLow = X-unit/2;
+						double yHigh = Y+unit/2;
+						double yLow = Y-unit/2;
+						boolean hasMetroLinkInBlock = false;
+						for (Id<Link> linkId : mostFrequentLinks.keySet()) {
+							Link link = network.getLinks().get(linkId);
+							Coord stopCoord = GeomDistance.coordBetweenNodes(link.getFromNode(), link.getToNode());
+							if (stopCoord.getX() <= xHigh && stopCoord.getX() >= xLow
+									&& stopCoord.getY() <= yHigh && stopCoord.getY() >= yLow) {
+								hasMetroLinkInBlock = true;
+//								System.out.println("already has featured link in block. Check next block...");
+								break;
+							}
+						}
+						if ( ! hasMetroLinkInBlock) {
+//							System.out.println("Checking all other facilities...");
+							Id<Link> linkInBlock = null;
+							CustomLinkAttributes claInBlock = null;
+							double closestLinkToBlockCenterDist = Double.MAX_VALUE;
+							for (Id<Link> linkId : customLinkMap.keySet()) {
+								if (linksWithFacility.contains(linkId)) {
+									Link link = network.getLinks().get(linkId);
+									Coord stopCoord = GeomDistance.coordBetweenNodes(link.getFromNode(), link.getToNode());
+//									System.out.println();
+//									System.out.println("Coord Y = "+stopCoord.getY());
+//									Log.write("Coord X = "+stopCoord.getX() + "("+xLow+" / "+xHigh+")");
+//									Log.write("Coord Y = "+stopCoord.getY() + "("+yLow+" / "+yHigh+")");
+									if (stopCoord.getX() <= xHigh && stopCoord.getX() >= xLow
+											&& stopCoord.getY() <= yHigh && stopCoord.getY() >= yLow) {
+										hasMetroLinkInBlock = true;
+//										System.out.println("Found one in block!");
+										if (GeomDistance.calculate(stopCoord, new Coord(X,Y)) < closestLinkToBlockCenterDist) {
+											linkInBlock = linkId;
+											claInBlock = customLinkMap.get(linkId);
+											closestLinkToBlockCenterDist = GeomDistance.calculate(stopCoord, new Coord(X,Y));
+										}
+									}
+									else {
+										continue;
+									}
+								}
+								else {
+									continue;
+								}
+							}
+							if (hasMetroLinkInBlock && ! mostFrequentLinks.containsKey(linkInBlock)) {
+								mostFrequentLinks.put(linkInBlock, claInBlock);
+								newNodesNetwork.addNode(newNodesNetwork.getFactory().createNode(Id.createNodeId(linkInBlock.toString()),
+										network.getLinks().get(linkInBlock).getFromNode().getCoord()));
+//								System.out.println("Added new link!");
+							}
+						}
+					}	
+				}
+				new NetworkWriter(newNodesNetwork).write("zurich_1pm/newNodesNetwork");
+			}
+			
 			// calculate and display average
 			// double average = getAverageTrafficOnLinks(mostFrequentLinks);
 //			System.out.println("Average pt traffic on most frequent n=" + nMostFrequentLinks

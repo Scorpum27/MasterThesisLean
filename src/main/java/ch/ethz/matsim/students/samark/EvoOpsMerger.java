@@ -317,6 +317,9 @@ public class EvoOpsMerger {
 					// no merger modification required, but unblock any blocked facilityLinks so that detected intersection has functionality
 					for (Id<Link> linkId : r1.linkList) {
 						Link link = globalNetwork.getLinks().get(linkId);
+						if (link == null) {
+							continue;
+						}
 						if (link.getFromNode().getId().equals(crossingTSFNode.getId()) || link.getToNode().getId().equals(crossingTSFNode.getId())) {
 							if (r1.facilityBlockedLinks.contains(link.getId())) {
 								r1.facilityBlockedLinks.remove(link.getId());
@@ -325,6 +328,9 @@ public class EvoOpsMerger {
 					}
 					for (Id<Link> linkId : r2.linkList) {
 						Link link = globalNetwork.getLinks().get(linkId);
+						if (link == null) {
+							continue;
+						}
 						if (link.getFromNode().getId().equals(crossingTSFNode.getId()) || link.getToNode().getId().equals(crossingTSFNode.getId())) {
 							if (r2.facilityBlockedLinks.contains(link.getId())) {
 								r2.facilityBlockedLinks.remove(link.getId());

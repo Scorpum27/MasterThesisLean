@@ -30,6 +30,7 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
  * cp -avr /nas/samark/Simulations/25_CostStudy/samark-0.0.1-SNAPSHOT.jar /nas/samark/Simulations/25_CostStudy/100percent
  * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerIterFluctuations Network1 1 200 1 1000 false false individual
  * java -Xmx20G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 1000 1 100 individual
+ * java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.Run_VC --model-type tour --fallback-behaviour IGNORE_AGENT
  *
  *
  * TODO Tuning of EvoAlgo's
@@ -93,8 +94,9 @@ public class NetworkEvolution {
 		Boolean enableThreading = true;
 		Integer nThreads = 3;
 		Boolean recallSimulation = false;
-		int generationToRecall = 8;											// it is recommended to use the Generation before the one that failed in order
+		int generationToRecall = 22;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
+		Boolean extendMetroGrid = false;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
 		Boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
@@ -210,7 +212,8 @@ public class NetworkEvolution {
 			latestPopulation = NetworkEvolutionImpl.createMNetworks(			// XXX				// Make a list of routes that will be added to this network
 				populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork, lastIterationOriginal,
 				iterationsToAverage, 
-				minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
+				minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius,
+				nMostFrequentLinks, extendMetroGrid,
 				maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalDistance, 
 				minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, varyInitRouteSize, mergeMetroWithRailway, railway2metroCatchmentArea,
 				metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, 1.0*populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 

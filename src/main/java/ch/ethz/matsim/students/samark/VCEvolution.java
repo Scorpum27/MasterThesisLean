@@ -24,8 +24,16 @@ import org.matsim.core.scenario.ScenarioUtils;
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
 
 // java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 9 4000 300 50 25 50 1pm none 0.35
-// java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 12 4000 300 50 25 50 1pct none 0.2 
-// java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 12 12 10000 300 50 20 50 0.4pm none 0.3
+// java -Xmx90G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 9 4000 300 50 25 50 3pm tram 0.25 
+// java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 12 6 10000 300 50 20 50 1pm none 1.0
+
+//java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 100 1 1000 individual
+//java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 100 70 1000 individual2global
+//java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerStdDev 1pm
+//cp -avr /nas/samark/Simulations/36_VC/1Baseline/zurich_1pm /nas/samark/Simulations/36_VC/2Metro1
+//cp -avr /nas/samark/Simulations/36_VC/1Baseline/zurich_1pm /nas/samark/Simulations/zurich_1pmBaseFolder/VC1pm
+//java -Xmx60G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 12 6 20000 300 50 20 50 1pm none 1.0
+
 // CHANGE SIMULATION_OUTPUT_FOLDER
 // CHANGE ZH_FILES
 
@@ -54,6 +62,7 @@ public class VCEvolution {
 		Boolean recallSimulation = false;
 		int generationToRecall = 8;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
+		Boolean extendMetroGrid = true;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
 		Boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
@@ -72,7 +81,7 @@ public class VCEvolution {
 		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
 		Double maxExtendedMetroRadiusFromCenter = 1.0*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (2.1 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
 		Integer nMostFrequentLinks = (int) (metroCityRadius/40.0);					// DEFAULT = (int) (metroCityRadius/20.0) (or 70; will further be reduced during merging procedure for close facilities)
-		Double maxNewMetroLinkDistance = 1200.0;									// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
+		Double maxNewMetroLinkDistance = 1800.0;									// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
 
 		Double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
 		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
@@ -170,7 +179,8 @@ public class VCEvolution {
 			latestPopulation = NetworkEvolutionImpl.createMNetworks(			// XXX				// Make a list of routes that will be added to this network
 				populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork, lastIterationOriginal,
 				iterationsToAverage, 
-				minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius, nMostFrequentLinks,
+				minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius,
+				nMostFrequentLinks, extendMetroGrid,
 				maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalDistance, 
 				minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, varyInitRouteSize, mergeMetroWithRailway, railway2metroCatchmentArea,
 				metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, 1.0*populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 
