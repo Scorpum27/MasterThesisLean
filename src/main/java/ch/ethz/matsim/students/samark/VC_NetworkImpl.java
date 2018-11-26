@@ -60,15 +60,15 @@ public class VC_NetworkImpl {
 		int ymax = 100;
 		double unitLinkLength = 100.0;		
 		double minStopDistance = 400.0; // original bus stop spacing
-		int nBusRoutes = 13;
-		double minTerminalDist = Math.sqrt(xmax*xmax+ymax*ymax)*unitLinkLength*0.7;
+		int nBusRoutes = 70;
+		double minTerminalDist = Math.sqrt(xmax*xmax+ymax*ymax)*unitLinkLength*0.5;
 		
 	// create network
 		Config config = ConfigUtils.createConfig();
 		Scenario sceanrio = ScenarioUtils.loadScenario(config);
 		Network network = sceanrio.getNetwork();
 		network = fillNetwork(xmax, ymax, network, unitLinkLength);
-		Integer nrRectanglesToBeRemoved = 15;
+		Integer nrRectanglesToBeRemoved = 20;
 		Integer maxRemovalSizeFraction = 4;
 		List<RectX> rectanglesToBeRemoved = new ArrayList<RectX>();
 		rectanglesToBeRemoved.add(new RectX(10, 20, 10, 20));
@@ -80,7 +80,6 @@ public class VC_NetworkImpl {
 		network = removeRectangluarSection(rectanglesToBeRemoved, nrRectanglesToBeRemoved, maxRemovalSizeFraction, xmax, ymax, network, unitLinkLength);
 		Integer nDiagonalsToBeBuilt = 50;
 		network = buildDiagonals(network, nDiagonalsToBeBuilt, xmax, ymax);
-//		NetworkWriter nw = new NetworkWriter(network); nw.write("zurich_1pm/VC_files/virtualCityNetwork.xml");
 		NetworkWriter nw = new NetworkWriter(network); nw.write("zurich_1pm/VC_files/zurich_network.xml.gz");
 		
 	// create infrastructure + population
@@ -92,22 +91,9 @@ public class VC_NetworkImpl {
 		popVC = rebuildPlans(network, popVC, rebuiltFacilities, popCutPercentage);
 		
 	// create pt
-//		// List<TransitStopFacility> busStopFacilities = createStopFacilities(network);
-//		Node keyNode1a = network.getNodes().get(Id.createNodeId(Integer.toString(xmax/2)));
-//		Node keyNode1b = network.getNodes().get(Id.createNodeId(Integer.toString((xmax+1)*(ymax/2)+6)));
-//		Node keyNode1c = network.getNodes().get(Id.createNodeId(Integer.toString((xmax+1)*(ymax-4)-4)));
-//		Node keyNode2a = network.getNodes().get(Id.createNodeId(Integer.toString((xmax+1)*(ymax-3)+2)));
-//		Node keyNode2b = network.getNodes().get(Id.createNodeId(Integer.toString((xmax+1)*(3)-5)));
-//		Node keyNode3a = network.getNodes().get(Id.createNodeId(Integer.toString((xmax+1)*(ymax-4)-9)));
-//		Node keyNode3b = network.getNodes().get(Id.createNodeId(Integer.toString(xmax+2)));
-//		Node keyNode3c = network.getNodes().get(Id.createNodeId(Integer.toString((xmax+1)*(ymax-4)-4)));
-//		// TODO make coord2NodeMapper where one can give keyCoord instead of keyNodes (searches closest node to coord and does not select a removed node)
-//		List<List<Node>> keyRouteNodeSequences = Arrays.asList(
-//				Arrays.asList(keyNode1a, keyNode1b, keyNode1c), Arrays.asList(keyNode2a, keyNode2b), Arrays.asList(keyNode3a, keyNode3b, keyNode3c));
-////		System.out.println(keyRouteNodeSequences);
 		List<List<Coord>> manualKeyRoutingPoints = Arrays.asList(
-				Arrays.asList(new Coord(0.0, 0.0), new Coord(unitLinkLength*xmax, unitLinkLength*ymax)),
-				Arrays.asList(new Coord(unitLinkLength*xmax, 0.0), new Coord(0.0, unitLinkLength*ymax))
+				// Arrays.asList(new Coord(0.0, 0.0), new Coord(unitLinkLength*xmax, unitLinkLength*ymax)),
+				// Arrays.asList(new Coord(unitLinkLength*xmax, 0.0), new Coord(0.0, unitLinkLength*ymax))
 				);
 		List<List<Node>> keyRouteNodeSequences = createKeyNodeSequences(nBusRoutes, manualKeyRoutingPoints, network, minTerminalDist, xmax, unitLinkLength);
 		ArrayList<NetworkRoute> busRoutes = createInitialRoutes(network, keyRouteNodeSequences);
@@ -414,27 +400,30 @@ public class VC_NetworkImpl {
 
 
 
-	public static Population cutPopulation(double popCutPercentage) {
+	public static Population cutPopulation(double popCutPercentage) throws IOException {
 		Config configZh1pm = ConfigUtils.createConfig();
 		configZh1pm.getModules().get("plans").addParam("inputPlansFile", "zurich_1pm/zurich_population.xml.gz");		
 		Population pop = ScenarioUtils.loadScenario(configZh1pm).getPopulation();
-		Population popCut = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getPopulation();
-		int popSize = 0;
-		for (Person person : pop.getPersons().values()) {
-			// from 10 agents pick pmSize random agents to be featured in cut population: 
-			if ((new Random()).nextDouble() < popCutPercentage) {
-				popCut.addPerson(person);
-				popSize++;
+		Population popCut;
+		int popSize;
+		do {
+			popCut = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getPopulation();
+			popSize = 0;
+			for (Person person : pop.getPersons().values()) {
+				// from 10 agents pick pmSize random agents to be featured in cut population: 
+				if ((new Random()).nextDouble() < popCutPercentage) {
+					popCut.addPerson(person);
+					popSize++;
+				}
+				if (popSize > popCutPercentage*pop.getPersons().size()) {
+					break;
+				}
 			}
-			if (popSize > popCutPercentage*pop.getPersons().size()) {
-				break;
-			}
-		}
+		} while(popSize < (int)(Math.floor(popCutPercentage*pop.getPersons().size())));
 		PopulationWriter pw = new PopulationWriter(popCut);
-//		int popFullNr = 
 		pw.write("zurich_1pm/VC_files/zurich_population_0."+((int) (10*popCutPercentage))+"pm.xml.gz");
-		System.out.println("PopSize = "+popSize);
-		System.out.println("PopSizeMax = "+popCutPercentage*pop.getPersons().size());
+		Log.write("PopSize = "+popSize);
+		Log.write("TargetSize = "+popCutPercentage*pop.getPersons().size());
 		return popCut;
 	}
 
@@ -491,7 +480,7 @@ public class VC_NetworkImpl {
 		TransitScheduleFactory busScheduleFactory = busSchedule.getFactory();
 			
 		// Create a New Metro Vehicle
-		VehicleType metroVehicleType = Metro_TransitScheduleImpl.createNewVehicleType("myBus", 30.0, 50.0/3.6, 40, 80);
+		VehicleType metroVehicleType = Metro_TransitScheduleImpl.createNewVehicleType("myBus", 30.0, 33.0/3.6, 40, 80);
 		busScenario.getTransitVehicles().addVehicleType(metroVehicleType);
 			
 		// Generate TransitLines and Schedules on NetworkRoutes --> Add to Transit Schedule
@@ -522,7 +511,7 @@ public class VC_NetworkImpl {
 			
 			List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
 			routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(mRoute.networkRoute));
-			double maxVehicleSpeed = 30.0/3.6;
+			double maxVehicleSpeed = 33.0/3.6;
 			double acceleration = 0.1*9.81;
 			double vMaxAccDistance = maxVehicleSpeed*maxVehicleSpeed/(2*acceleration);
 			double tAccVMax = maxVehicleSpeed/acceleration;

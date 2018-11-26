@@ -23,9 +23,9 @@ import org.matsim.core.scenario.ScenarioUtils;
 
 import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationException;
 
-// java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 9 4000 300 50 25 50 1pm 0.35
-// java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 12 4000 300 50 25 50 1pct 0.2 
-
+// java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 9 4000 300 50 25 50 1pm none 0.35
+// java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 12 4000 300 50 25 50 1pct none 0.2 
+// java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 12 12 10000 300 50 20 50 0.4pm none 0.3
 // CHANGE SIMULATION_OUTPUT_FOLDER
 // CHANGE ZH_FILES
 
@@ -49,8 +49,8 @@ public class VCEvolution {
 		String ptRemoveScenario = args[12];										// "tram", "bus", "rail", "subway", "funicular"
 		Boolean useFastSBahnModule = false;
 		Boolean varyInitRouteSize = false;
-		Boolean enableThreading = false;
-		Integer nThreads = 3;
+		Boolean enableThreading = true;
+		Integer nThreads = 6;
 		Boolean recallSimulation = false;
 		int generationToRecall = 8;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
@@ -58,7 +58,7 @@ public class VCEvolution {
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
 		Boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
-		Integer iterationToReadOriginalNetwork = 35;								// This is the iteration for the simulation output of the original network
+		Integer iterationToReadOriginalNetwork = 100;								// This is the iteration for the simulation output of the original network
 		Double lifeTime = 40.0;
 		
 		// %% Parameters for NetworkRoutes %%
@@ -71,9 +71,8 @@ public class VCEvolution {
 		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
 		Double maxExtendedMetroRadiusFromCenter = 1.0*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (2.1 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
-		Integer nMostFrequentLinks = (int) (metroCityRadius/50.0);					// DEFAULT = (int) (metroCityRadius/20.0) (or 70; will further be reduced during merging procedure for close facilities)
-//		Double maxNewMetroLinkDistance = 1000.0;									// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
-		Double maxNewMetroLinkDistance = 4000.0;									// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
+		Integer nMostFrequentLinks = (int) (metroCityRadius/40.0);					// DEFAULT = (int) (metroCityRadius/20.0) (or 70; will further be reduced during merging procedure for close facilities)
+		Double maxNewMetroLinkDistance = 1200.0;									// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
 
 		Double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
 		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
@@ -107,10 +106,11 @@ public class VCEvolution {
 		String censusSize = args[11]; // "1pct","1pm"
 		Integer populationFactor;	// default 1000 for 1pm scenario 
 		if (censusSize.equals("1pct")) { populationFactor = 100; }
+		else if (censusSize.equals("0.4pm")) {populationFactor = 2500;}
+		else if (censusSize.equals("0.6pm")) {populationFactor = 1667;}
 		else if (censusSize.equals("1pm")) {populationFactor = 1000;}
 		else if (censusSize.equals("3pm")) {populationFactor = 333;}
 		else if (censusSize.equals("6pm")) {populationFactor = 167;}
-		else if (censusSize.equals("0.6pm")) {populationFactor = 1667;}
 		else {populationFactor = 100; Log.writeAndDisplay(" CensusSize invalid. Aborting!"); System.exit(0);}
 		// TODO hand over to methods censusSize for to pick correct files folder for initial config, network, people's plans
 

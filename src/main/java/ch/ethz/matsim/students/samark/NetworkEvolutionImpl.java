@@ -736,7 +736,6 @@ public class NetworkEvolutionImpl {
 			if (fileName != null) {
 				createNetworkFromCustomLinks(mostFrequentLinks, network, fileName);
 			}
-
 			return mostFrequentLinks;
 		}
 
