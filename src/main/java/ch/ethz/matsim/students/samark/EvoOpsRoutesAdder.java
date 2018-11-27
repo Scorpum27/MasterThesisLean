@@ -23,7 +23,7 @@ public class EvoOpsRoutesAdder {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public static void topUpNetworkRouteMaps(Integer initialRoutesPerNetwork, Integer currentGEN, Integer stopUnprofitableRoutesReplacementGEN, MNetworkPop newPopulation,
+	public static void topUpNetworkRouteMaps(Integer initialRoutesPerNetwork, Integer maxRouteNumber, Integer currentGEN, Integer stopUnprofitableRoutesReplacementGEN, MNetworkPop newPopulation,
 			Boolean useOdPairsForInitialRoutes, String shortestPathStrategy,
 			Double minInitialTerminalDistance, Double minTerminalRadiusFromCenter, Double maxTerminalRadiusFromCenter, 
 			Double minInitialTerminalRadiusFromCenter, Double maxInitialTerminalRadiusFromCenter, Double metroCityRadius, Boolean varyInitRouteSize, 
@@ -58,7 +58,8 @@ public class EvoOpsRoutesAdder {
 					nRoutesToBeToppedUp = initialRoutesPerNetwork - mNetwork.routeMap.size();					
 				}
 			}
-			else if (percentageOfProfitableRoute(mNetwork) >= 2.0/3.0) {	// if past replacement generation but enough profitable routes, then add one more route!
+			else if (percentageOfProfitableRoute(mNetwork) >= 2.0/3.0
+					&& mNetwork.routeMap.size() < maxRouteNumber ) {	// if past replacement generation but enough profitable routes, then add one more route!
 				nRoutesToBeToppedUp = 1;
 			}
 			else {	// if past replacement generation and not enough profitable routes, then do not top up

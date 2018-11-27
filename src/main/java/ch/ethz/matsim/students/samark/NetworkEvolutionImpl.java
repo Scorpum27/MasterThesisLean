@@ -1810,7 +1810,7 @@ public class NetworkEvolutionImpl {
 	public static MNetworkPop developGeneration(Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
 			Map<String, NetworkScoreLog> networkScoreMap, MNetworkPop evoNetworksToProcessPlans, String populationName,
 			Double alpha, Double pCrossOver, String crossoverRouletteStrategy, Double initialDepSpacing,
-			boolean useOdPairsForInitialRoutes, int initialRoutesPerNetwork, String vehicleTypeName, double vehicleLength, double maxVelocity, 
+			boolean useOdPairsForInitialRoutes, int initialRoutesPerNetwork, Integer maxRouteNumber, String vehicleTypeName, double vehicleLength, double maxVelocity, 
 			int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, Coord zurich_NetworkCenterCoord, int lastIterationOriginal,
 			double pMutation, double pBigChange, double pSmallChange, double routeDisutilityLimit,
@@ -1850,7 +1850,7 @@ public class NetworkEvolutionImpl {
 //		newPopulation.getNetworks().get("Network1").getRouteMap().remove("Network1_Route4");
 		
 		// TOP UP NETWORK with routes if individuals have died out 
-		EvoOpsRoutesAdder.topUpNetworkRouteMaps(initialRoutesPerNetwork, currentGEN, stopUnprofitableRoutesReplacementGEN, newPopulation, useOdPairsForInitialRoutes, shortestPathStrategy,
+		EvoOpsRoutesAdder.topUpNetworkRouteMaps(initialRoutesPerNetwork, maxRouteNumber, currentGEN, stopUnprofitableRoutesReplacementGEN, newPopulation, useOdPairsForInitialRoutes, shortestPathStrategy,
 				minTerminalDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter,
 				metroCityRadius, varyInitRouteSize, tFirstDep, tLastDep, eliteMNetwork,
 				odConsiderationThreshold, zurich_NetworkCenterCoord, xOffset, yOffset);
@@ -2376,7 +2376,8 @@ public class NetworkEvolutionImpl {
 	public static boolean logResults(List<Map<String, NetworkScoreLog>> networkScoreMaps, String historyFileLocation,
 			String networkScoreMapGeneralLocation, MNetworkPop latestPopulation, double averageTravelTimePerformanceGoal,
 			int finalGeneration, int lastIteration, double populationFactor,
-			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Double lifeTime) throws IOException {
+			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Double lifeTime,
+			Coord UGcenterCoord, double UGradius, double OGdevelopRadius) throws IOException {
 		
 		Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
 		boolean performanceGoalAccomplished = false;
@@ -2391,7 +2392,8 @@ public class NetworkEvolutionImpl {
 				
 				mnetwork.lifeTime = lifeTime;
 				mnetwork.calculateRoutesAndNetworkScore(lastIteration, populationFactor, globalNetwork, metroLinkAttributes,
-						"zurich_1pm/cbpParametersOriginal/", "zurich_1pm/Evolution/Population/", "1"); // include here also part of routesHandling
+						"zurich_1pm/cbpParametersOriginal/", "zurich_1pm/Evolution/Population/", "1",
+						UGcenterCoord, UGradius, OGdevelopRadius); // include here also part of routesHandling
 				XMLOps.writeToFile(mnetwork, "zurich_1pm/Evolution/Population/"+mnetwork.networkID+"/M"+mnetwork.networkID+".xml");
 				if (performanceGoalAccomplished == false) {		// checking whether performance goal achieved
 					if (mnetwork.averageTravelTime < averageTravelTimePerformanceGoal) {

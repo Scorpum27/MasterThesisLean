@@ -55,6 +55,7 @@ public class VisualizerIterFluctuations {
 		Integer populationFactor = 0;
 		if (censusSize.equals("1pct")) { populationFactor = 100; yRange = null; }			// yRange = new Range(6400.0, 7000.0);
 		else if (censusSize.equals("0.4pm")) {populationFactor = 2500;}
+		else if (censusSize.equals("0.5pm")) {populationFactor = 2000;}
 		else if (censusSize.equals("0.6pm")) {populationFactor = 1667;}
 		else if (censusSize.equals("1pm")) {populationFactor = 1000; yRange = null; } 	// yRange = new Range(7400.0, 8100.0);
 		else if (censusSize.equals("3pm")) {populationFactor = 333; yRange = null; }

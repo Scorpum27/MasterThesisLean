@@ -62,7 +62,7 @@ public class Demo {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException, URISyntaxException {
 		
-		System.out.println(new Random().nextInt(1));
+		System.out.println((int) (1.5*3));
 		
 //		Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String,Double>();
 //		List<String> rankedRoutes = Arrays.asList("1","2","3","4","5","6","7","8","9","10");

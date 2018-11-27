@@ -10,6 +10,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Network;
@@ -137,7 +138,8 @@ public class MNetwork implements Serializable{
 	
 	public void calculateRoutesAndNetworkScore(int lastIteration, double populationFactor,
 			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
-			String cbpOriginalPath, String networkPath, String utilityFunctionSelection) throws IOException {
+			String cbpOriginalPath, String networkPath, String utilityFunctionSelection,
+			Coord UGcenterCoord, double UGradius, double OGdevelopRadius) throws IOException {
 		CBPII cbpOriginal =	XMLOps.readFromFile((new CBPII()).getClass(), cbpOriginalPath+"cbpParametersOriginalGlobal.xml");
 //				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), cbpOriginalPath+"cbpParametersOriginal"+lastIterationOriginal+".xml");
 		CBPII cbpNew = XMLOps.readFromFile((new CBPII()).getClass(), networkPath+this.networkID+"/cbpParametersAveraged"+lastIteration+".xml");		
@@ -151,7 +153,7 @@ public class MNetwork implements Serializable{
 			Log.write("Processing MRoute = " + mr.routeID);
 			mr.lifeTime = this.lifeTime;
 			mr.sumStations(); // both, nStationsNew/Extended
-			mr.calculatePercentages(globalNetwork, metroLinkAttributes);
+			mr.calculatePercentages(globalNetwork, metroLinkAttributes, UGcenterCoord, UGradius, OGdevelopRadius);
 			this.totalRouteLength += mr.routeLength;
 			this.totalDrivenDist += mr.totalDrivenDist;
 		}

@@ -27,12 +27,14 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 // java -Xmx90G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 9 4000 300 50 25 50 3pm tram 0.25 
 // java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 12 6 10000 300 50 20 50 1pm none 1.0
 
-//java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 100 1 1000 individual
-//java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 100 70 1000 individual2global
-//java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerStdDev 1pm
+//java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.Run_VC --model-type tour --fallback-behaviour IGNORE_AGENT
+//java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 100 1 2000 individual
+//java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 100 70 2000 individual2global
+//java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerStdDev 0.5pm
 //cp -avr /nas/samark/Simulations/36_VC/1Baseline/zurich_1pm /nas/samark/Simulations/36_VC/2Metro1
-//cp -avr /nas/samark/Simulations/36_VC/1Baseline/zurich_1pm /nas/samark/Simulations/zurich_1pmBaseFolder/VC1pm
-//java -Xmx60G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 12 6 20000 300 50 20 50 1pm none 1.0
+//cp -avr /nas/samark/Simulations/36_VC/1Baseline/zurich_1pm /nas/samark/Simulations/zurich_1pmBaseFolder/VC0.5pm
+// new screen ...
+//java -Xmx70G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 6 20000 300 50 20 50 0.5pm none 0.7
 
 // CHANGE SIMULATION_OUTPUT_FOLDER
 // CHANGE ZH_FILES
@@ -53,12 +55,13 @@ public class VCEvolution {
 		Integer populationSize = Integer.parseInt(args[4]);						// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		Integer initialRoutesPerNetwork = Integer.parseInt(args[5]);			// DEFAULT = 5;
+		Integer maxRouteNumber = (int) (2*initialRoutesPerNetwork);
 		Boolean mergeMetroWithRailway = false;
 		String ptRemoveScenario = args[12];										// "tram", "bus", "rail", "subway", "funicular"
 		Boolean useFastSBahnModule = false;
 		Boolean varyInitRouteSize = false;
 		Boolean enableThreading = true;
-		Integer nThreads = 6;
+		Integer nThreads = 3;
 		Boolean recallSimulation = false;
 		int generationToRecall = 8;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
@@ -116,6 +119,7 @@ public class VCEvolution {
 		Integer populationFactor;	// default 1000 for 1pm scenario 
 		if (censusSize.equals("1pct")) { populationFactor = 100; }
 		else if (censusSize.equals("0.4pm")) {populationFactor = 2500;}
+		else if (censusSize.equals("0.5pm")) {populationFactor = 2000;}
 		else if (censusSize.equals("0.6pm")) {populationFactor = 1667;}
 		else if (censusSize.equals("1pm")) {populationFactor = 1000;}
 		else if (censusSize.equals("3pm")) {populationFactor = 333;}
@@ -141,7 +145,10 @@ public class VCEvolution {
 		Integer stopUnprofitableRoutesReplacementGEN = 20;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
 		
 		// %% Infrastructure Parameters %%
-		Double globalCostFactor = Double.parseDouble(args[13]);
+		Coord UGcenterCoord = zurich_NetworkCenterCoord;
+		final double UGradius = 5000.0;
+		final double OGdevelopRadius = 5000.0;
+		final double globalCostFactor = Double.parseDouble(args[13]);
 		final double ConstrCostUGnew = globalCostFactor*1.5E5;								// within UG radius, new rails
 		final double ConstrCostUGdevelop = globalCostFactor*2.25E4;							// DEFAULT: 0.25E5 = within UG radius, but existing train rails
 		final double ConstrCostOGnew = globalCostFactor*4.0E4;
@@ -261,7 +268,7 @@ public class VCEvolution {
 //			Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
 			boolean performanceGoalAccomplished = NetworkEvolutionImpl.logResults(networkScoreMaps, historyFileLocation, networkScoreMapGeneralLocation, 
 					latestPopulation, averageTravelTimePerformanceGoal, generationNr, lastIterationOriginal, 1.0*populationFactor, 
-					globalNetwork, metroLinkAttributes, lifeTime);
+					globalNetwork, metroLinkAttributes, lifeTime, UGcenterCoord, UGradius, OGdevelopRadius);
 			if(performanceGoalAccomplished == true) {		// 
 				break;
 			}
@@ -277,7 +284,7 @@ public class VCEvolution {
 			if (generationNr != lastGeneration) {
 				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMaps.get(generationNr-1),
 						latestPopulation, populationName, alphaXover, pCrossOver, crossoverRouletteStrategy, initialDepSpacing,
-						useOdPairsForInitialRoutes, initialRoutesPerNetwork, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
+						useOdPairsForInitialRoutes, initialRoutesPerNetwork, maxRouteNumber, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
 						defaultPtMode, stopTime, blocksLane, logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
 						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
 						shortestPathStrategy, minInitialTerminalRadiusFromCenter, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter,

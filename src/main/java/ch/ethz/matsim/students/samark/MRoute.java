@@ -118,10 +118,8 @@ public class MRoute implements Serializable{
 		this.routeID = name;
 	}
 	
-	public void calculatePercentages(Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
-		final Coord UGcenterCoord = new Coord(2683466.0, 1249967.0);
-		final double UGradius = 5000.0;
-		final double OGdevelopRadius = UGradius*1.5;
+	public void calculatePercentages(Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
+			Coord UGcenterCoord, double UGradius, double OGdevelopRadius) throws IOException {
 		double totalLength = 0.0;
 		double ugLength = 0.0;
 		double ugNewLength = 0.0;

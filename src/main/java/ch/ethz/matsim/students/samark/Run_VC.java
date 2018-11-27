@@ -38,7 +38,7 @@ import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
 					.allowOptions("model-type", "fallback-behaviour")
 					.build();
 			
-			int lastIteration = 100;
+			int lastIteration = Integer.parseInt(args[4]);
 			String simulationPath = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched";
 //			String simulationPath = "zurich_1pm/VC_files/Zurich_1pm_SimulationOutputEnriched";
 			new File(simulationPath).mkdirs();

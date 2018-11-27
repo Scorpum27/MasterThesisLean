@@ -58,45 +58,51 @@ public class VC_NetworkImpl {
 	// 3] Copy resulting files from VC files folder to zurich_1pm folder
 	
 	public static void main(String[] args) throws IOException {
-		double popCutPercentage = 1.0;
-		double unusedFacilitiesPercentage = 0.5;
+		double popCutPercentage = 0.5;
+		double unusedFacilitiesPercentage = 0.0;
 		int xmax = 100;
 		int ymax = 100;
 		double unitLinkLength = 200.0;		
 		double minStopDistance = 400.0; // original bus stop spacing
 		double maxMetroLinkDist = 1000.0;
-		int nBusRoutes = 100;
+		int nBusRoutes = 75;
 		double minTerminalDist = Math.sqrt(xmax*xmax+ymax*ymax)*unitLinkLength*0.5;
-		int maxRemovalsPerSide = 6;
-		int maxEatSize = 8;
+		int maxRemovalsPerSide = 10;
+		int maxEatSize = 6;
 		
 	// create network
 		Config config = ConfigUtils.createConfig();
 		Scenario sceanrio = ScenarioUtils.loadScenario(config);
 		Network network = sceanrio.getNetwork();
 		network = fillNetwork(xmax, ymax, network, unitLinkLength);
-		Integer nrRectanglesToBeRemoved = 23;
-		Integer maxRemovalSizeFraction = 6;
+		Integer nrRectanglesToBeRemoved = 12;
+		Integer maxRemovalSizeFraction = 8;
 		List<RectX> rectanglesToBeRemoved = new ArrayList<RectX>();
-		rectanglesToBeRemoved.add(new RectX(10, 20, 10, 20));
-		rectanglesToBeRemoved.add(new RectX(32, 60, 32, 60));
-		rectanglesToBeRemoved.add(new RectX(58, 68, 58, 68));
-		rectanglesToBeRemoved.add(new RectX(70, 85, 20, 35));
-		rectanglesToBeRemoved.add(new RectX(12, 24, 60, 80));
+		rectanglesToBeRemoved.add(new RectX(20, 40, 25, 40));
+		rectanglesToBeRemoved.add(new RectX(50, 70, 20, 25));
+		rectanglesToBeRemoved.add(new RectX(50, 85, 40, 50));
+		rectanglesToBeRemoved.add(new RectX(20, 50, 65, 80));
 		network = removeRectangluarSection(rectanglesToBeRemoved, nrRectanglesToBeRemoved, maxRemovalSizeFraction, xmax, ymax, network,
 				unitLinkLength, maxMetroLinkDist, true);
 		
 		// make river + bridge
 		List<RectX> riversToBeRemoved = new ArrayList<RectX>();
-		riversToBeRemoved.add(new RectX(57, 59, 30, 100));
-			List<Integer> bridge1 = new ArrayList<Integer>(); bridge1.add(xy2NodeNr(57, 70, xmax)); bridge1.add(xy2NodeNr(59, 70, xmax));
+		riversToBeRemoved.add(new RectX(51, 53, 20, 100));
+		riversToBeRemoved.add(new RectX(0, 52, 37, 39));
+			List<Integer> bridge1 = new ArrayList<Integer>(); bridge1.add(xy2NodeNr(51, 27, xmax)); bridge1.add(xy2NodeNr(53, 27, xmax));
 			addNodePairToNetwork(bridge1, network, maxMetroLinkDist);
-			List<Integer> bridge2 = new ArrayList<Integer>(); bridge2.add(xy2NodeNr(57, 90, xmax)); bridge2.add(xy2NodeNr(59, 90, xmax));
+			List<Integer> bridge2 = new ArrayList<Integer>(); bridge2.add(xy2NodeNr(51, 55, xmax)); bridge2.add(xy2NodeNr(53, 55, xmax));
 			addNodePairToNetwork(bridge2, network, maxMetroLinkDist);
-			List<Integer> bridge3 = new ArrayList<Integer>(); bridge3.add(xy2NodeNr(57, 40, xmax)); bridge3.add(xy2NodeNr(59, 40, xmax));
+			List<Integer> bridge3 = new ArrayList<Integer>(); bridge3.add(xy2NodeNr(51, 81, xmax)); bridge3.add(xy2NodeNr(53, 81, xmax));
 			addNodePairToNetwork(bridge3, network, maxMetroLinkDist);
-			List<Integer> bridge4 = new ArrayList<Integer>(); bridge4.add(xy2NodeNr(57, 50, xmax)); bridge4.add(xy2NodeNr(59, 50, xmax));
+			List<Integer> bridge4 = new ArrayList<Integer>(); bridge4.add(xy2NodeNr(51, 90, xmax)); bridge4.add(xy2NodeNr(53, 90, xmax));
 			addNodePairToNetwork(bridge4, network, maxMetroLinkDist);
+			List<Integer> bridge5 = new ArrayList<Integer>(); bridge5.add(xy2NodeNr(8, 37, xmax)); bridge5.add(xy2NodeNr(8, 39, xmax));
+			addNodePairToNetwork(bridge5, network, maxMetroLinkDist);
+			List<Integer> bridge6 = new ArrayList<Integer>(); bridge6.add(xy2NodeNr(16, 37, xmax)); bridge6.add(xy2NodeNr(16, 39, xmax));
+			addNodePairToNetwork(bridge6, network, maxMetroLinkDist);
+			List<Integer> bridge7 = new ArrayList<Integer>(); bridge7.add(xy2NodeNr(45, 37, xmax)); bridge7.add(xy2NodeNr(45, 39, xmax));
+			addNodePairToNetwork(bridge7, network, maxMetroLinkDist);
 		network = removeRectangluarSection(riversToBeRemoved, riversToBeRemoved.size(), maxRemovalSizeFraction, xmax, ymax, network,
 					unitLinkLength, maxMetroLinkDist, false);
 
@@ -368,14 +374,26 @@ public class VC_NetworkImpl {
 		}
 		if (facilityType.equals("work")) {
 			Double rD = (new Random()).nextDouble();
-			if (rD < 0.27) {
-				facilityLink = getRandomLink(Math.floorDiv(xmax, 4), Math.floorDiv(xmax, 2), (int) (Math.round(ymax*0.67)), ymax, network, xmax);
+//			if (rD < 0.25) {
+//				facilityLink = getRandomLink(Math.floorDiv(xmax, 4), Math.floorDiv(xmax, 2), (int) (Math.round(ymax*0.67)), ymax, network, xmax);
+//			}
+//			else if (rD < 0.54) {
+//				facilityLink = getRandomLink(Math.floorDiv(xmax, 2), xmax, (int) (Math.round(ymax*0.67)), ymax, network, xmax);
+//			}
+//			else if (rD < 0.81) {
+//				facilityLink = getRandomLink((int) (Math.round(xmax*0.33)), (int) (Math.round(xmax*0.67)), 0, (int) (Math.round(ymax*0.67)), network, xmax);
+//			}
+//			else {
+//				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
+//			}
+			if (rD < 0.25) {
+				facilityLink = getRandomLink((int) (Math.round(xmax*0.80)), xmax, (int) (Math.round(ymax*0.80)), ymax, network, xmax);
 			}
-			else if (rD < 0.54) {
-				facilityLink = getRandomLink(Math.floorDiv(xmax, 2), xmax, (int) (Math.round(ymax*0.67)), ymax, network, xmax);
+			else if (rD < 0.50) {
+				facilityLink = getRandomLink((int) (Math.round(xmax*0.60)), (int) (Math.round(xmax*0.80)), (int) (Math.round(ymax*0.60)), (int) (Math.round(ymax*0.80)), network, xmax);
 			}
-			else if (rD < 0.81) {
-				facilityLink = getRandomLink((int) (Math.round(xmax*0.33)), (int) (Math.round(xmax*0.67)), 0, (int) (Math.round(ymax*0.67)), network, xmax);
+			else if (rD < 1.00) {
+				facilityLink = getRandomLink((int) (Math.round(xmax*0.30)), (int) (Math.round(xmax*0.60)), (int) (Math.round(ymax*0.40)), (int) (Math.round(ymax*0.70)), network, xmax);
 			}
 			else {
 				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
@@ -383,11 +401,26 @@ public class VC_NetworkImpl {
 		}
 		else if(facilityType.equals("home")) {
 			Double rD = (new Random()).nextDouble();
+//			if (rD < 0.33) {
+//				facilityLink = getRandomLink(0, (int) (Math.round(xmax*0.33)), (int) (Math.round(ymax*0.33)), (int) (Math.round(ymax*0.67)), network, xmax);
+//			}
+//			else if (rD < 0.67) {
+//				facilityLink = getRandomLink((int) (Math.round(xmax*0.67)), xmax, 0, (int) (Math.round(ymax*0.67)), network, xmax);
+//			}
+//			else {
+//				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
+//			}
 			if (rD < 0.33) {
-				facilityLink = getRandomLink(0, (int) (Math.round(xmax*0.33)), (int) (Math.round(ymax*0.33)), (int) (Math.round(ymax*0.67)), network, xmax);
+				facilityLink = getRandomLink(0, (int) (Math.round(xmax*0.50)), (int) (Math.round(ymax*0.85)), ymax, network, xmax);
 			}
-			else if (rD < 0.67) {
-				facilityLink = getRandomLink((int) (Math.round(xmax*0.67)), xmax, 0, (int) (Math.round(ymax*0.67)), network, xmax);
+			else if (rD < 0.66) {
+				facilityLink = getRandomLink(0, (int) (Math.round(xmax*0.50)), 0, (int) (Math.round(ymax*0.15)), network, xmax);
+			}
+			else if (rD < 0.77) {
+				facilityLink = getRandomLink((int) (Math.round(xmax*0.50)), (int) (Math.round(xmax*0.70)), (int) (Math.round(ymax*0.30)), (int) (Math.round(ymax*0.40)), network, xmax);
+			}
+			else if (rD < 1.00) {
+				facilityLink = getRandomLink((int) (Math.round(xmax*0.70)), (int) (Math.round(xmax*1.00)), 0, (int) (Math.round(ymax*0.15)), network, xmax);
 			}
 			else {
 				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
@@ -976,8 +1009,10 @@ public class VC_NetworkImpl {
 					Node newNode = network.getFactory().createNode(
 							Id.createNodeId(node0.getId().toString()+"d"+node0.getId().toString()+"x"+n),
 							new Coord(coord0.getX()+n*deltaX/nNewLinksOnDiagonal, coord0.getY()+n*deltaY/nNewLinksOnDiagonal));
-					network.addNode(newNode);
-					diagonalNodes.add(newNode);
+					if (!network.getNodes().containsKey(newNode.getId())) {
+						network.addNode(newNode);
+						diagonalNodes.add(newNode);						
+					}
 				}
 				diagonalNodes.add(node1);
 				

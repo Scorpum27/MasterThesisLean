@@ -87,6 +87,7 @@ public class NetworkEvolution {
 		Integer populationSize = Integer.parseInt(args[4]);						// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		Integer initialRoutesPerNetwork = Integer.parseInt(args[5]);			// DEFAULT = 5;
+		Integer maxRouteNumber = (int) (1.5*initialRoutesPerNetwork);
 		Boolean mergeMetroWithRailway = true;
 		String ptRemoveScenario = args[12];										// "tram", "bus", "rail", "subway", "funicular"
 		Boolean useFastSBahnModule = false;
@@ -149,6 +150,7 @@ public class NetworkEvolution {
 		Integer populationFactor;	// default 1000 for 1pm scenario 
 		if (censusSize.equals("1pct")) { populationFactor = 100; }
 		else if (censusSize.equals("0.4pm")) {populationFactor = 2500;}
+		else if (censusSize.equals("0.5pm")) {populationFactor = 2000;}
 		else if (censusSize.equals("0.6pm")) {populationFactor = 1667;}
 		else if (censusSize.equals("1pm")) {populationFactor = 1000;}
 		else if (censusSize.equals("3pm")) {populationFactor = 333;}
@@ -174,7 +176,10 @@ public class NetworkEvolution {
 		Integer stopUnprofitableRoutesReplacementGEN = 20;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
 		
 		// %% Infrastructure Parameters %%
-		Double globalCostFactor = Double.parseDouble(args[13]);
+		final Coord UGcenterCoord = new Coord(2683466.0, 1249967.0);
+		final double UGradius = 5000.0;
+		final double OGdevelopRadius = UGradius*1.5;
+		final double globalCostFactor = Double.parseDouble(args[13]);
 		final double ConstrCostUGnew = globalCostFactor*1.5E5;								// within UG radius, new rails
 		final double ConstrCostUGdevelop = globalCostFactor*2.25E4;							// DEFAULT: 0.25E5 = within UG radius, but existing train rails
 		final double ConstrCostOGnew = globalCostFactor*4.0E4;
@@ -294,7 +299,8 @@ public class NetworkEvolution {
 //			Map<String, NetworkScoreLog> networkScoreMap = new HashMap<String, NetworkScoreLog>();
 			boolean performanceGoalAccomplished = NetworkEvolutionImpl.logResults(networkScoreMaps, historyFileLocation, networkScoreMapGeneralLocation, 
 					latestPopulation, averageTravelTimePerformanceGoal, generationNr, lastIterationOriginal, 1.0*populationFactor, 
-					globalNetwork, metroLinkAttributes, lifeTime);
+					globalNetwork, metroLinkAttributes, lifeTime,
+					UGcenterCoord, UGradius, OGdevelopRadius);
 			if(performanceGoalAccomplished == true) {		// 
 				break;
 			}
@@ -310,7 +316,7 @@ public class NetworkEvolution {
 			if (generationNr != lastGeneration) {
 				latestPopulation = NetworkEvolutionImpl.developGeneration(globalNetwork, metroLinkAttributes, networkScoreMaps.get(generationNr-1),
 						latestPopulation, populationName, alphaXover, pCrossOver, crossoverRouletteStrategy, initialDepSpacing,
-						useOdPairsForInitialRoutes, initialRoutesPerNetwork, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
+						useOdPairsForInitialRoutes, initialRoutesPerNetwork, maxRouteNumber, vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom,
 						defaultPtMode, stopTime, blocksLane, logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
 						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
 						shortestPathStrategy, minInitialTerminalRadiusFromCenter, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter,
