@@ -13,6 +13,7 @@ import java.io.PrintWriter;
 import java.net.URISyntaxException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -38,6 +39,10 @@ import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.events.EventsUtils;
 import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.facilities.ActivityFacilities;
+import org.matsim.facilities.ActivityFacility;
+import org.matsim.facilities.ActivityOption;
+import org.matsim.facilities.FacilitiesWriter;
 
 import com.google.common.collect.Sets;
 
@@ -62,7 +67,34 @@ public class Demo {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException, URISyntaxException {
 		
-		System.out.println((int) (1.5*3));
+		Config configZh = ConfigUtils.createConfig();
+		configZh.getModules().get("facilities").addParam("inputFacilitiesFile", "zurich_1pm/VC_files/zurich_facilities.xml.gz");		
+		Collection<? extends ActivityFacility> activityFacilitiesZH = ScenarioUtils.loadScenario(configZh).getActivityFacilities().getFacilities().values();
+		
+		ActivityFacilities activityFacilitiesWork = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
+		ActivityFacilities activityFacilitiesHome = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
+		ActivityFacilities activityFacilitiesOther = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
+
+		for (ActivityFacility origFacility : activityFacilitiesZH) {
+			for (String actType : origFacility.getActivityOptions().keySet()) {
+				if (actType.contains("home")) {
+					activityFacilitiesHome.addActivityFacility(origFacility);
+					break;
+				}
+				else if (actType.contains("work")) {
+					activityFacilitiesWork.addActivityFacility(origFacility);
+					break;
+				}
+				else {
+					activityFacilitiesOther.addActivityFacility(origFacility);
+					break;
+				}
+			}
+		}
+		
+		new FacilitiesWriter(activityFacilitiesWork).write("zurich_1pm/VC_files/zurich_facilities_work.xml.gz");
+		new FacilitiesWriter(activityFacilitiesHome).write("zurich_1pm/VC_files/zurich_facilities_home.xml.gz");
+		new FacilitiesWriter(activityFacilitiesOther).write("zurich_1pm/VC_files/zurich_facilities_other.xml.gz");
 		
 //		Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String,Double>();
 //		List<String> rankedRoutes = Arrays.asList("1","2","3","4","5","6","7","8","9","10");

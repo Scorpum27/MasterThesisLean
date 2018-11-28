@@ -2,23 +2,23 @@ package ch.ethz.matsim.students.samark;
 
 public class NetworkScoreLog {
 
-	double averageTravelTime;
-	double stdDeviationTravelTime;
-	double totalTravelTime;
-	double personMetroDist;
-	int nMetroUsers;
-	double totalDrivenDist;
-	double annualCost;
-	double annualBenefit;
-	double overallScore;
-	double totalRouteLength;
-	double rouletteScore;
-	int evolutionGeneration;
+	public double averageTravelTime;
+	public double stdDeviationTravelTime;
+	public double totalTravelTime;
+	public double personMetroDist;
+	public int nMetroUsers;
+	public double totalDrivenDist;
+	public double annualCost;
+	public double annualBenefit;
+	public double overallScore;
+	public double totalRouteLength;
+	public double rouletteScore;
+	public int evolutionGeneration;
 
 	// depreceated
-	double personKMdirect;
-	double opsCost;
-	double constrCost;
+	public double personKMdirect;
+	public double opsCost;
+	public double constrCost;
 
 
 	public NetworkScoreLog() {

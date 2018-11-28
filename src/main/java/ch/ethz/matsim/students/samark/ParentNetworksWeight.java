@@ -13,8 +13,8 @@ public class ParentNetworksWeight {
 		child2.put(2, 0.0);
 	}
 	
-	Map<Integer, Double> child1 = new HashMap<Integer, Double>();
-	Map<Integer, Double> child2 = new HashMap<Integer, Double>();
+	public Map<Integer, Double> child1 = new HashMap<Integer, Double>();
+	public Map<Integer, Double> child2 = new HashMap<Integer, Double>();
 
 	public String getDominantParentOfChild1(String parent1, String parent2) throws IOException {
 		if (!child1.containsKey(1) && !child1.containsKey(2)) {

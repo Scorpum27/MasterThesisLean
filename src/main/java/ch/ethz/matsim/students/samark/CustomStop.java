@@ -6,17 +6,17 @@ import org.matsim.api.core.v01.network.Link;
 import org.matsim.api.core.v01.network.Node;
 import org.matsim.pt.transitSchedule.api.TransitStopFacility;
  public class CustomStop {
- 	String mode;
-	TransitStopFacility transitStopFacility;
-	List<TransitStopFacility> originalTransitStopFacilities;
-	TransitStopFacility originalMainTransitStopFacility;
+	 public String mode;
+	 public TransitStopFacility transitStopFacility;
+	 public List<TransitStopFacility> originalTransitStopFacilities;
+	 public TransitStopFacility originalMainTransitStopFacility;
 	// stopFacility has id="8500562.link:920757". First part is unique to the stop, but it can have several refLinks (second part)
 	// The linkList collects all these linkIDs which refer to one stopFacility
-	List<Id<Link>> linkRefIds;
-	List<String> nextOriginalTransitStopNames;
-	Id<Node> newNetworkNode;
-	boolean addedToNewSchedule;
-	boolean used;
+	 public List<Id<Link>> linkRefIds;
+	 public List<String> nextOriginalTransitStopNames;
+	 public Id<Node> newNetworkNode;
+	 public boolean addedToNewSchedule;
+	 public boolean used;
 	
 	public CustomStop(){
 		this.mode = "";

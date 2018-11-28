@@ -2,10 +2,10 @@ package ch.ethz.matsim.students.samark;
 
 public class RectX {
 
-	int x0;
-	int x1;
-	int y0;
-	int y1;
+	public int x0;
+	public int x1;
+	public int y0;
+	public int y1;
 	
 	public RectX() {
 	}

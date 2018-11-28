@@ -25,40 +25,40 @@ public class MNetwork implements Serializable{
 	private static final long serialVersionUID = 1L;
 
 	// CAUTION: When adding to MNetwork, also add in Clone.mNetwork!
-		Network network;
-		String networkFileLocation;
-		String networkID;
-		Map<String, MRoute> routeMap;
-		double totalRouteLength;			// calculate from individual route lengths (one-way only) 
-		TransitSchedule transitSchedule;
-		Vehicles vehicles;
-		double lifeTime;
+	public Network network;
+	public String networkFileLocation;
+	public String networkID;
+	public Map<String, MRoute> routeMap;
+	public double totalRouteLength;			// calculate from individual route lengths (one-way only) 
+	public TransitSchedule transitSchedule;
+	public Vehicles vehicles;
+	public double lifeTime;
 		
 		// from events
-		double personMetroDist;		// NetworkEvolutionRunSim.runEventsProcessing
-		double personKMdirect;			// to be implemented in: NetworkEvolutionRunSim.runEventsProcessing
-		int nMetroUsers;				// NetworkEvolutionRunSim.runEventsProcessing
-		double totalPtPersonDist;
+	public double personMetroDist;		// NetworkEvolutionRunSim.runEventsProcessing
+	public double personKMdirect;			// to be implemented in: NetworkEvolutionRunSim.runEventsProcessing
+	public int nMetroUsers;				// NetworkEvolutionRunSim.runEventsProcessing
+	public double totalPtPersonDist;
 		// from transitSchedule
-		double totalDrivenDist;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
-		double annualCost;					// to be implemented in NetworkEvolution
-		double annualBenefit;				// to be implemented in NetworkEvolution
-		int totalVehiclesNr;
+	public double totalDrivenDist;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
+	public double annualCost;					// to be implemented in NetworkEvolution
+	public double annualBenefit;				// to be implemented in NetworkEvolution
+	public int totalVehiclesNr;
 		// from evolution loop
-		int evolutionGeneration;		// NetworkEvolution --> Evolutionary loop
-		double averageTravelTime;		// NetworkEvolutionRunSim.peoplePlansProcessingM
-		double stdDeviationTravelTime;	// NetworkEvolutionRunSim.peoplePlansProcessingM
-		double totalTravelTime; 		// NetworkEvolutionRunSim.peoplePlansProcessingM
-		List<String> parents;
-		String dominantParent;
-		String evoLog;
+	public int evolutionGeneration;		// NetworkEvolution --> Evolutionary loop
+	public double averageTravelTime;		// NetworkEvolutionRunSim.peoplePlansProcessingM
+	public double stdDeviationTravelTime;	// NetworkEvolutionRunSim.peoplePlansProcessingM
+	public double totalTravelTime; 		// NetworkEvolutionRunSim.peoplePlansProcessingM
+	public List<String> parents;
+	public String dominantParent;
+	public String evoLog;
 		// Calculate
-		double travelTimeGainsPT;
-		double travelTimeGainsCar;
-		double otherGains;
-		double constructionCost;
-		double operationalCost;
-		double overallScore;			// NetworkEvolution main separate line
+	public double travelTimeGainsPT;
+	public double travelTimeGainsCar;
+	public double otherGains;
+	public double constructionCost;
+	public double operationalCost;
+	public double overallScore;			// NetworkEvolution main separate line
 	
 	
 	public MNetwork() {

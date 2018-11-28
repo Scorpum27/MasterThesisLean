@@ -31,50 +31,50 @@ public class MRoute implements Serializable{
 	private static final long serialVersionUID = 1L;
 
 	// CAUTION: When adding to MRoute, also add in Clone.mRoute!
-	String routeID;
-	NetworkRoute networkRoute;
-	List<Id<Node>> nodeList;
-	List<Id<Link>> linkList;
-	TransitLine transitLine;
-	double routeLength;
+	public String routeID;
+	public NetworkRoute networkRoute;
+	public List<Id<Node>> nodeList;
+	public List<Id<Link>> linkList;
+	public TransitLine transitLine;
+	public double routeLength;
 	// from eventsFile
-	String eventsFile;
-	int nBoardings;
-	double personMetroDist;
+	public String eventsFile;
+	public int nBoardings;
+	public double personMetroDist;
 	// from transitScheduleFile
-	double lifeTime;
-	int nDepartures;
-	double departureSpacing;
-	Boolean isInitialDepartureSpacing;
-	double firstDeparture;
-	double lastDeparture;
-	double roundtripTravelTime;
-	String transitScheduleFile;
-	double totalDrivenDist;		// [m] = old:drivenKM total distance traveled by pt vehicles of this mroute
-	double opsCost;
-	double constrCost;
-	double utilityBalance;
+	public double lifeTime;
+	public int nDepartures;
+	public double departureSpacing;
+	public Boolean isInitialDepartureSpacing;
+	public double firstDeparture;
+	public double lastDeparture;
+	public double roundtripTravelTime;
+	public String transitScheduleFile;
+	public double totalDrivenDist;		// [m] = old:drivenKM total distance traveled by pt vehicles of this mroute
+	public double opsCost;
+	public double constrCost;
+	public double utilityBalance;
 	
-	Double lastUtilityBalance;
-	Boolean freqModOccured;
-	Boolean significantRouteModOccured;
-	List<String> attemptedFrequencyModifications;
-	Integer blockedFreqModGenerations;
-	String lastFreqMod;
-	Double probNextFreqModPositive;
-	Boolean hasBeenShortened;
+	public Double lastUtilityBalance;
+	public Boolean freqModOccured;
+	public Boolean significantRouteModOccured;
+	public List<String> attemptedFrequencyModifications;
+	public Integer blockedFreqModGenerations;
+	public String lastFreqMod;
+	public Double probNextFreqModPositive;
+	public Boolean hasBeenShortened;
 	
-	double undergroundPercentage;
-	double NewUGpercentage;
-	double DevelopUGPercentage;
-	double NewOGpercentage;
-	double EquipOGPercentage;
-	double DevelopOGPercentage;
-	int vehiclesNr;
-	int nStationsNew;
-	int nStationsExtend;
+	public double undergroundPercentage;
+	public double NewUGpercentage;
+	public double DevelopUGPercentage;
+	public double NewOGpercentage;
+	public double EquipOGPercentage;
+	public double DevelopOGPercentage;
+	public int vehiclesNr;
+	public int nStationsNew;
+	public int nStationsExtend;
 	// from evolution
-	List<Id<Link>> facilityBlockedLinks;
+	public List<Id<Link>> facilityBlockedLinks;
 	
 	public MRoute() {
 		this.lifeTime = 40.0;

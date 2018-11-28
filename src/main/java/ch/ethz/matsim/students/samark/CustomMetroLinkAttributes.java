@@ -6,12 +6,12 @@ import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 
 public class CustomMetroLinkAttributes {
 
-	TransitStopFacility fromNodeStopFacility;
-	TransitStopFacility toNodeStopFacility;
-	TransitStopFacility singleRefStopFacility;
-	Id<Link> originalLinkId;
-	double cost;
-	String type;
+	public TransitStopFacility fromNodeStopFacility;
+	public TransitStopFacility toNodeStopFacility;
+	public TransitStopFacility singleRefStopFacility;
+	public Id<Link> originalLinkId;
+	public double cost;
+	public String type;
 	
 	public CustomMetroLinkAttributes() {
 		this.fromNodeStopFacility = null;

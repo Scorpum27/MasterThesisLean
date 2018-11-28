@@ -8,47 +8,47 @@ public class CBPII{
 
 	
 	// from CostBenefitParameters
-	double ptUsers = 0.0;
-	double carUsers = 0.0;
-	double otherUsers = 0.0;
-	double carTimeTotal = 0.0;
-	double carPersonDist = 0.0;			// [m]
-	double ptTimeTotal = 0.0;
-	double ptPersonDist = 0.0;			// [m]
-	double averagePtTime = 0.0;
-	double averageCartime = 0.0;
-	double metroPersonDist = 0.0;		// [m]
-	double totalTravelTime = 0.0;
+	public double ptUsers = 0.0;
+	public double carUsers = 0.0;
+	public double otherUsers = 0.0;
+	public double carTimeTotal = 0.0;
+	public double carPersonDist = 0.0;			// [m]
+	public double ptTimeTotal = 0.0;
+	public double ptPersonDist = 0.0;			// [m]
+	public double averagePtTime = 0.0;
+	public double averageCartime = 0.0;
+	public double metroPersonDist = 0.0;		// [m]
+	public double totalTravelTime = 0.0;
 	
 	// new ones 
-	double constCost = 0.0;				// CHF/a
-	double opsCost = 0.0; 				// CHF/a
-	double mrCost = 0.0;				// CHF/a
-	double travelUtil = 0.0;			// CHF/a
-	double extCostSavings = 0.0;		// CHF/a
-	double totalAnnualCost = 0.0;		// CHF/a
-	double totalAnnualBenefit = 0.0;	// CHF/a
+	public double constCost = 0.0;				// CHF/a
+	public double opsCost = 0.0; 				// CHF/a
+	public double mrCost = 0.0;				// CHF/a
+	public double travelUtil = 0.0;			// CHF/a
+	public double extCostSavings = 0.0;		// CHF/a
+	public double totalAnnualCost = 0.0;		// CHF/a
+	public double totalAnnualBenefit = 0.0;	// CHF/a
 	
 	// if needed in future:
-	double rollingStockCost = 0.0;		// CHF/a
-	double landCost = 0.0;
-	double externalCost = 0.0;
-	double ptPassengerCost = 0.0;
-	double travelTimeGainsCar = 0.0;
-	double travelTimeGainsPt = 0.0;
-	double travelTotalUtilGainsPt = 0.0;
-	double travelTimeGains = 0.0;
-	double ptVatIncrease = 0.0;
-	double customVariable1 = 0.0;	// other travel TIME 		= WALK/BIKE (not car/pt)
-	double customVariable2 = 0.0;	// other travel TIME GAINS  = WALK/BIKE (not car/pt)
-	double customVariable3 = 0.0;	// ptDisutilityEquivalentTimeTotal
-	double customVariable4 = 0.0;	// vehicleSavings
-	double customVariable5 = 0.0;
-	double customVariable6 = 0.0;
-	double customVariable7 = 0.0;
-	double customVariable8 = 0.0;
-	double customVariable9 = 0.0;
-	double customVariable10 = 0.0;
+	public double rollingStockCost = 0.0;		// CHF/a
+	public double landCost = 0.0;
+	public double externalCost = 0.0;
+	public double ptPassengerCost = 0.0;
+	public double travelTimeGainsCar = 0.0;
+	public double travelTimeGainsPt = 0.0;
+	public double travelTotalUtilGainsPt = 0.0;
+	public double travelTimeGains = 0.0;
+	public double ptVatIncrease = 0.0;
+	public double customVariable1 = 0.0;	// other travel TIME 		= WALK/BIKE (not car/pt)
+	public double customVariable2 = 0.0;	// other travel TIME GAINS  = WALK/BIKE (not car/pt)
+	public double customVariable3 = 0.0;	// ptDisutilityEquivalentTimeTotal
+	public double customVariable4 = 0.0;	// vehicleSavings
+	public double customVariable5 = 0.0;
+	public double customVariable6 = 0.0;
+	public double customVariable7 = 0.0;
+	public double customVariable8 = 0.0;
+	public double customVariable9 = 0.0;
+	public double customVariable10 = 0.0;
 	
 	public CBPII() {
 	}

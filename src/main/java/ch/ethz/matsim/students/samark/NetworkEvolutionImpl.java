@@ -66,6 +66,12 @@ import com.google.common.collect.Sets;
 
 import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRoute;
 import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRouteFactory;
+import ch.ethz.matsim.students.samark.evo.EvoOpsCrossover;
+import ch.ethz.matsim.students.samark.evo.EvoOpsFreqModifier;
+import ch.ethz.matsim.students.samark.evo.EvoOpsMerger;
+import ch.ethz.matsim.students.samark.evo.EvoOpsMutator;
+import ch.ethz.matsim.students.samark.evo.EvoOpsPTEngine;
+import ch.ethz.matsim.students.samark.evo.EvoOpsRoutesAdder;
 
 public class NetworkEvolutionImpl {
 
