@@ -67,34 +67,35 @@ public class Demo {
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException, URISyntaxException {
 		
-		Config configZh = ConfigUtils.createConfig();
-		configZh.getModules().get("facilities").addParam("inputFacilitiesFile", "zurich_1pm/VC_files/zurich_facilities.xml.gz");		
-		Collection<? extends ActivityFacility> activityFacilitiesZH = ScenarioUtils.loadScenario(configZh).getActivityFacilities().getFacilities().values();
+		MNetworkPop latestPopulation = new MNetworkPop("evoNetworks");
+		int initialRoutesPerNetwork = 80;
+		int generationToRecall= 1;
 		
-		ActivityFacilities activityFacilitiesWork = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
-		ActivityFacilities activityFacilitiesHome = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
-		ActivityFacilities activityFacilitiesOther = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
-
-		for (ActivityFacility origFacility : activityFacilitiesZH) {
-			for (String actType : origFacility.getActivityOptions().keySet()) {
-				if (actType.contains("home")) {
-					activityFacilitiesHome.addActivityFacility(origFacility);
-					break;
-				}
-				else if (actType.contains("work")) {
-					activityFacilitiesWork.addActivityFacility(origFacility);
-					break;
-				}
-				else {
-					activityFacilitiesOther.addActivityFacility(origFacility);
-					break;
-				}
+		int n=1;
+		MNetwork loadedNetwork = new MNetwork("Network"+n);
+		latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
+		Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
+		for (int r=1; r<= 10*initialRoutesPerNetwork; r++) {
+			String routeFilePath =
+					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationToRecall+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
+			File f = new File(routeFilePath);
+			if (f.exists()) {
+				MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+				loadedNetwork.addNetworkRoute(loadedRoute);
+				Log.write("Adding network route "+loadedRoute.routeID);
 			}
 		}
+		latestPopulation.addNetwork(loadedNetwork);
 		
-		new FacilitiesWriter(activityFacilitiesWork).write("zurich_1pm/VC_files/zurich_facilities_work.xml.gz");
-		new FacilitiesWriter(activityFacilitiesHome).write("zurich_1pm/VC_files/zurich_facilities_home.xml.gz");
-		new FacilitiesWriter(activityFacilitiesOther).write("zurich_1pm/VC_files/zurich_facilities_other.xml.gz");
+		Config config = ConfigUtils.createConfig();
+		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
+		Scenario scenario = ScenarioUtils.loadScenario(config);
+		Network globalNetwork = scenario.getNetwork();
+		int lastIteration = 50;
+		String networkPath = "zurich_1pm/Evolution/Population/";
+		int populationFactor = 333;
+		NetworkEvolutionRunSim.runEventsProcessingMetroOnly(latestPopulation, lastIteration, globalNetwork, networkPath, populationFactor);
+		
 		
 //		Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String,Double>();
 //		List<String> rankedRoutes = Arrays.asList("1","2","3","4","5","6","7","8","9","10");

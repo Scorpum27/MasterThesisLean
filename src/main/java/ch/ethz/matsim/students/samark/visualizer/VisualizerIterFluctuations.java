@@ -244,7 +244,7 @@ public class VisualizerIterFluctuations {
 		
 	// ---------- GRAPHS ----------		
 		Visualizer.plot2D(" Change in Modal Split \r\n ",		// [#maxMATSimIter=" + maxIterations + "] 
-				"MATSim Iteration", "Delta #ModeUsers (MetroCase-RefCase)",
+				"MATSim Iteration", "Delta Users (Metro - Ref. Case)",
 				Arrays.asList(deltaCarUsersByIteration, deltaPtUsersByIteration, deltaOtherUsersByIteration),
 				Arrays.asList("Car", "PT", "Walk/Bike"), 0.0, 0.0, null,
 				"DeltaModeUsersByIteration_" +censusSize + networkName + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
@@ -256,29 +256,35 @@ public class VisualizerIterFluctuations {
 				Arrays.asList("Car - Metro Case", "Car - Ref Case", "PT - Metro Case", "PT - Ref Case", "Other - Metro Case", "Other - Ref Case"),
 				0.0, 0.0, null, "ModeShareByIteration_"+censusSize + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 
+//		Visualizer.plot2D(" Induced Benefits \r\n [Total Cost = "+cbpFinalBackupForCost.totalAnnualCost+"] ",
+//				"MATSim Iteration", "Annual Benefit [CHF p.a.]",
+//				Arrays.asList(totalBenefit, travelTimeGains, travelTimeGainsPt, travelTimeGainsCar, travelTimeGainsOther, otherBenefits),
+//				Arrays.asList("Total Benefit", "Travel Gains (Time & Comfort)", "travelTimeGainsPt", "travelTimeGainsCar",
+//						"travelTimeGainsWalk/Bike", "External/VehicleCostSavings"), 0.0, 0.0, null, // new Range(-2.0E8, 7.0E8), // new Range(-1.0E8, 2.5E8)
+//				"BenefitsByIteration_"+censusSize + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+		
 		Visualizer.plot2D(" Induced Benefits \r\n [Total Cost = "+cbpFinalBackupForCost.totalAnnualCost+"] ",
 				"MATSim Iteration", "Annual Benefit [CHF p.a.]",
-				Arrays.asList(totalBenefit, travelTimeGains, travelTimeGainsPt, travelTimeGainsCar, travelTimeGainsOther, otherBenefits),
-				Arrays.asList("totalBenefit", "travelUtilityGains", "travelTimeGainsPt", "travelTimeGainsCar",
-						"travelTimeGainsWalk/Bike", "External/VehicleCostSavings"), 0.0, 0.0, new Range(-2.0E8, 7.0E8), // new Range(-1.0E8, 2.5E8)
+				Arrays.asList(totalBenefit, travelTimeGains, otherBenefits),
+				Arrays.asList("Total Benefit", "Travel Gains (Time & Comfort)", "External Cost & Vehicle Savings"), 0.0, 0.0, null, // new Range(0.0E8, 4.5E8), // new Range(-1.0E8, 2.5E8)
 				"BenefitsByIteration_"+censusSize + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2DConfIntervals(" AverageTravelTime \r\n "
+		Visualizer.plot2DConfIntervals(" Car Average Person Travel Time \r\n "
 				+ "[Metro scenario average = " +meanCarTime+ " ],  [StdDev from ref. value = " +stdDevCarTime+" ]",
-				"MATSim Iteration", "AverageTravelTime [s]",
+				"MATSim Iteration", "Average Travel Time Car [s]",
 				Arrays.asList(travelTimeAverageCarByIteration, travelTimeAverageCarByIterationOriginal),
-				Arrays.asList("Car - Metro Case", "Car - Ref Case"), 0.0, 0.0, new Range(2000.0, 3000.0),
+				Arrays.asList("Metro Case", "Reference Case"), 0.0, 0.0, new Range(2000.0, 3000.0),
 				"AverageCarTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + ".png",
 				Arrays.asList(
 					Arrays.asList(meanCarTime-stdDevCarTime, meanCarTime+stdDevCarTime),
 					Arrays.asList(cbpOriginalGlobal.averageCartime - travelTimeAverageCarOrigConfInterval,
 									cbpOriginalGlobal.averageCartime + travelTimeAverageCarOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2DConfIntervals(" AverageTravelTime \r\n "
+		Visualizer.plot2DConfIntervals(" PT Average Travel Time \r\n "
 				+ "[Metro scenario average = " +meanPtTime+ " ],  [Metro scenario StdDev from ref. value = " +stdDevPtTime+" ]",
-				"MATSim Iteration", "AverageTravelTime [s]",
+				"MATSim Iteration", "Average Travel Time PT [s]",
 				Arrays.asList(travelTimeAveragePtByIteration, travelTimeAveragePtByIterationOriginal),
-				Arrays.asList("PT - Metro Case", "PT - Ref Case"), 0.0, 0.0, yRange,
+				Arrays.asList("Metro Case", "Ref Case"), 0.0, 0.0, yRange,
 				"AveragePtTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + ".png",
 				Arrays.asList(
 					Arrays.asList(meanPtTime-stdDevPtTime, meanPtTime+stdDevPtTime),
@@ -296,11 +302,11 @@ public class VisualizerIterFluctuations {
 //					Arrays.asList(cbpOriginalGlobal.customVariable1/cbpOriginalGlobal.otherUsers - travelTimeAverageOtherOrigConfInterval,
 //									cbpOriginalGlobal.customVariable1/cbpOriginalGlobal.otherUsers + travelTimeAverageOtherOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2D(" AverageTravelTime \r\n "
+		Visualizer.plot2D(" Walk/Bike Average Travel Time \r\n "
 				+ "[Metro scenario average = " +meanOtherTime+ " ],  [StdDev from ref. value = " +stdDevOtherTime+" ]",
-				"MATSim Iteration", "AverageTravelTime [s]",
+				"MATSim Iteration", "Average Travel Time Walk/Bike [s]",
 				Arrays.asList(travelTimeAverageOtherByIteration, travelTimeAverageOtherByIterationOriginal),
-				Arrays.asList("Walk/Bike - Metro Case", "Walk/Bike - Ref Case"), 0.0, 0.0, yRange,
+				Arrays.asList("Metro Case", "Walk/Bike - Ref Case"), 0.0, 0.0, yRange,
 				"AverageOtherTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
 	// Visualize developments

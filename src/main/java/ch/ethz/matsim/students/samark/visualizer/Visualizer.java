@@ -26,6 +26,7 @@ import org.jfree.chart.plot.IntervalMarker;
 import org.jfree.chart.plot.XYPlot;
 import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
 import org.jfree.chart.title.LegendTitle;
+import org.jfree.chart.title.TextTitle;
 import org.jfree.data.Range;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
@@ -615,7 +616,9 @@ public class Visualizer {
 		JFreeChart lineChart = ChartFactory.createXYLineChart(title, xAxisName, yAxisName, null);
 		LegendTitle legend = lineChart.getLegend();
 		legend.setPosition(RectangleEdge.TOP); // RectangleEdge.RIGHT
-		legend.setItemFont(new Font("Arial", Font.PLAIN, 40));
+		legend.setItemFont(new Font("Arial", Font.PLAIN, 30));
+		TextTitle plotTitle = lineChart.getTitle();
+		plotTitle.setFont(new Font("Arial Bold", Font.BOLD, 35));
 
 		XYPlot plot = (XYPlot) lineChart.getPlot();
 		List<XYDataset> dataSets = new ArrayList<XYDataset>();
@@ -689,7 +692,9 @@ public class Visualizer {
 		JFreeChart lineChart = ChartFactory.createXYLineChart(title, xAxisName, yAxisName, null);
 		LegendTitle legend = lineChart.getLegend();
 		legend.setPosition(RectangleEdge.TOP); // RectangleEdge.RIGHT
-		legend.setItemFont(new Font("Arial", Font.PLAIN, 40));
+		legend.setItemFont(new Font("Arial", Font.PLAIN, 30));
+		TextTitle plotTitle = lineChart.getTitle();
+		plotTitle.setFont(new Font("Arial Bold", Font.BOLD, 35));
 
 		XYPlot plot = (XYPlot) lineChart.getPlot();
 		List<XYDataset> dataSets = new ArrayList<XYDataset>();

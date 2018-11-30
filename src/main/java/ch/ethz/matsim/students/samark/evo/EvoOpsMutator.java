@@ -33,16 +33,47 @@ public class EvoOpsMutator {
 		Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
 		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
 
-		if (currentGEN >= 27) {
-			pMutation = 0.30;
-			pBigChange = 0.30;
+		if (currentGEN >= 35) {
+			pMutation = 0.35;
+			pBigChange = 0.25;
 			pSmallChange = 1-pBigChange;
 		}
-		if (currentGEN >= 39) {
-			pMutation = 0.25;
-			pBigChange = 0.20;
+		if (currentGEN >= 55) {
+			pMutation = 0.32;
+			pBigChange = 0.17;
 			pSmallChange = 1-pBigChange;
 		}
+		if (currentGEN >= 75) {
+			pMutation = 0.20;
+			pBigChange = 0.08;
+			pSmallChange = 1-pBigChange;
+		}
+		if (currentGEN >= 90) {
+			pMutation = 0.20;
+			pBigChange = 0.00;
+			pSmallChange = 1-pBigChange;
+		}
+		
+//		if (currentGEN >= 35) {
+//			pMutation = 0.33;
+//			pBigChange = 0.30;
+//			pSmallChange = 1-pBigChange;
+//		}
+//		if (currentGEN >= 55) {
+//			pMutation = 0.25;
+//			pBigChange = 0.25;
+//			pSmallChange = 1-pBigChange;
+//		}
+//		if (currentGEN >= 75) {
+//			pMutation = 0.25;
+//			pBigChange = 0.15;
+//			pSmallChange = 1-pBigChange;
+//		}
+//		if (currentGEN >= 90) {
+//			pMutation = 0.20;
+//			pBigChange = 0.0;
+//			pSmallChange = 1-pBigChange;
+//		}
 		
 		List<String> mutatedNetworks = new ArrayList<String>();
 		List<Id<Link>> linkListMutate;
@@ -232,26 +263,30 @@ public class EvoOpsMutator {
 			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Double routeDisutilityLimit) throws IOException {
 
 		if (mRoute.utilityBalance > routeDisutilityLimit) { // extend route
+			
 			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
+			
 			// with 50% chance try another extension
 			if (linkListMutate.size() < 2) {
 				Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);
 				mrouteIter.remove();
 				return false;
 			}
-			else if ((new Random()).nextDouble()<0.5) {
+			else if ((new Random()).nextDouble()<0.6) {
 				extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);				
 			}
 		}
 		else { // shorten route
+			
 			shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
+			
 			// with 100% chance try another shortening
 			if (linkListMutate.size() < 2) {
 				Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);
 				mrouteIter.remove();
 				return false;
 			}
-			else if ((new Random()).nextDouble()<0.5) {
+			else if ((new Random()).nextDouble()<0.2) {
 				shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 			}
 		}
@@ -449,7 +484,7 @@ public class EvoOpsMutator {
 			Log.writeAndDisplay("  > Delete a stop for = "+mRoute.getId());
 		}
 		else { /// PERFORM OTHER BIG MODIFICATION
-			if ((new Random()).nextDouble() < 0.5) {	// CUT OPEN AND SWITCH ONE TERMINAL to another stopfacility within constraints				
+			if ((new Random()).nextDouble() < 0.35) {	// CUT OPEN AND SWITCH ONE TERMINAL to another stopfacility within constraints				
 				Log.writeAndDisplay("  > Attempting terminal switch for "+mRoute.getId());
 //				Log.write("extraLog.txt", "X, it's happening...");
 

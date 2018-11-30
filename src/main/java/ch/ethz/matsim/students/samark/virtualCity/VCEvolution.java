@@ -3,6 +3,7 @@ package ch.ethz.matsim.students.samark.virtualCity;
 import ch.ethz.matsim.students.samark.*;
 import ch.ethz.matsim.students.samark.visualizer.*;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
@@ -15,6 +16,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -66,7 +68,7 @@ public class VCEvolution {
 		Boolean enableThreading = true;
 		Integer nThreads = 3;
 		Boolean recallSimulation = false;
-		int generationToRecall = 8;											// it is recommended to use the Generation before the one that failed in order
+		int generationToRecall = 1;												// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
 		Boolean extendMetroGrid = true;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
@@ -133,12 +135,12 @@ public class VCEvolution {
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.14; 									// DEFAULT = 0.14
+		Double pCrossOver = 0.11; 									// DEFAULT = 0.14
 		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
 		Double maxConnectingDistance = 2000.0;
 		Boolean logEntireRoutes = false;
 		Double maxCrossingAngle = 110.0; 							// DEFAULT = 110
-		Double pMutation = 0.4;										// pMutation <= (N+1)/(2*N) !!!
+		Double pMutation = 0.5;										// pMutation <= (N+1)/(2*N) !!!
 		if (pMutation>1.0*(initialRoutesPerNetwork+1)/(2*initialRoutesPerNetwork)) {System.out.println("pMutation too high. Choose lower. Aborting."); System.exit(0);}
 		Double pBigChange = 0.30;									// DEFAULT = 0.25
 		Double pSmallChange = 1.0-pBigChange;
@@ -185,6 +187,7 @@ public class VCEvolution {
 		if (!recallSimulation) {
 			pwDefault.close();
 			pwEvo.close();
+			FileUtils.cleanDirectory(new File("zurich_1pm/Evolution/Population/HistoryLog")); 
 			Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    " + "NETWORK CREATION - START" + "    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 			latestPopulation = NetworkEvolutionImpl.createMNetworks(			// XXX				// Make a list of routes that will be added to this network
 				populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork, lastIterationOriginal,
@@ -209,7 +212,11 @@ public class VCEvolution {
 					"evoNetworks", populationSize, initialRoutesPerNetwork);			
 		}
 		
-				
+//		for (MNetwork mn : latestPopulation.networkMap.values()) {
+//			for (MRoute mr : mn.routeMap.values()) {
+//				System.out.println(mr.linkList.toString());
+//			}
+//		}
 		
 	// EVOLUTIONARY PROCESS
 		Config config = ConfigUtils.createConfig();
@@ -256,9 +263,13 @@ public class VCEvolution {
 			Log.write("EVENTS PROCESSING of GEN"+generationNr+"");
 			int lastEventIteration = lastIteration; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
 			MNetworkPop evoNetworksToProcess = latestPopulation;
+
+			NetworkEvolutionRunSim.runEventsProcessingMetroOnly(evoNetworksToProcess, lastEventIteration,
+					globalNetwork, "zurich_1pm/Evolution/Population/", populationFactor);	
+			
 			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration, iterationsToAverage,
 					globalNetwork, "zurich_1pm/Evolution/Population/", populationFactor);
-
+			
 		// - PLANS PROCESSING:
 			Log.write("PLANS PROCESSING of GEN"+generationNr+"");
 			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInSec,

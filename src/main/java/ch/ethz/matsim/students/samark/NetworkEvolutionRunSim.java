@@ -4,6 +4,7 @@ import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -51,6 +52,7 @@ import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRo
 import ch.ethz.matsim.baseline_scenario.zurich.ZurichModule;
 import ch.ethz.matsim.papers.mode_choice_paper.CustomModeChoiceModule;
 import ch.ethz.matsim.papers.mode_choice_paper.utils.LongPlanFilter;
+import ch.ethz.matsim.students.samark.visualizer.Visualizer;
 import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
 
 public class NetworkEvolutionRunSim {
@@ -68,6 +70,11 @@ public class NetworkEvolutionRunSim {
 		Config modConfig = ConfigUtils.loadConfig(initialConfig);
 		String simulationPath = "zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/Simulation_Output";
 		new File(simulationPath).mkdirs();
+		
+//		modConfig.getModules().get("plans").addParam("inputPlansFile", "Evolution/Population/"+this.mNetwork.networkID+"/Simulation_Output/output_plans.xml.gz");		
+		modConfig.getModules().get("plans").addParam("inputPlansFile", "Zurich_1pm_SimulationOutputEnriched/output_plans.xml.gz");		
+//      leave blank if want to use initial plans
+
 		modConfig.getModules().get("controler").addParam("outputDirectory", simulationPath);
 		modConfig.getModules().get("controler").addParam("overwriteFiles", "overwriteExistingFiles");
 		modConfig.getModules().get("controler").addParam("lastIteration", Integer.toString(lastIteration));
@@ -208,6 +215,94 @@ public class NetworkEvolutionRunSim {
 		}	// END of NETWORK Loop
 		return networkPopulation;
 	}
+	
+	
+	// this method evaluates every single iteration to see the occupancy of every metro line over all iterations
+	public static void runEventsProcessingMetroOnly(MNetworkPop networkPopulation, Integer lastIteration,
+			Network globalNetwork, String networkPath, Integer populationFactor) throws IOException {
+		
+		for (MNetwork mNetwork : networkPopulation.networkMap.values()) {
+			
+			List<Map<String,MRoute>> routeMaps = new ArrayList<Map<String,MRoute>>();
+			Map<Integer, Double> totalMetroUsers = new HashMap<Integer, Double>();
+			Map<Integer, Double> totalMetroPersonDist = new HashMap<Integer, Double>();
+			
+			for (Integer thisIteration=1 ; thisIteration<=lastIteration ; thisIteration++) {
+				
+				// empty all routes for every iteration, because we want to see metro usage for every individual iteration - THIS IS SUPER IMPORTANT
+				for (MRoute mRoute : mNetwork.routeMap.values()) {
+					mRoute.personMetroDist = 0.0;
+				}
+				Integer nMetroUsersTotal = 0;
+				Double personMetroDistTotal = 0.0;
+				
+				// read and handle events
+				String eventsFile = networkPath+mNetwork.networkID+"/Simulation_Output/ITERS/it."+thisIteration+"/"+thisIteration+".events.xml.gz";			
+				MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
+				EventsManager eventsManager = EventsUtils.createEventsManager();
+				eventsManager.addHandler(mPassengerHandler);
+				MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
+				eventsReader.readFile(eventsFile);
+				nMetroUsersTotal += mPassengerHandler.metroPassengers.size();
+				
+				for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
+					personMetroDistTotal += routeEntry.getValue();
+//					Log.write("Route Entry = "+routeEntry.toString());
+					if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
+						mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist += populationFactor*routeEntry.getValue();
+//						Log.write("Adding to "+routeEntry.getKey().toString()+"  dist="+routeEntry.getValue() + "  (Iter="+thisIteration+")");
+					}
+				}
+				
+				nMetroUsersTotal *= populationFactor;
+				personMetroDistTotal *= populationFactor;
+				totalMetroUsers.put(thisIteration, 1.0*nMetroUsersTotal);
+				totalMetroPersonDist.put(thisIteration, personMetroDistTotal/1000.0);
+				routeMaps.add(Clone.mRouteMap(mNetwork.routeMap));
+			}
+			
+//			int it = 0;
+//			for (Map<String, MRoute> map : routeMaps) {
+//				it++;
+//				Log.write("--------- Iter = "+it+" ---------");
+//				for (MRoute mr : map.values()) {
+//					Log.write(mr.routeID+" = "+mr.personMetroDist);					
+//				}
+//			}
+			
+			Map<String, Map<Integer,Double>> metroOccup = new HashMap<String, Map<Integer,Double>>();
+			for (String routeName : mNetwork.routeMap.keySet()) {
+				metroOccup.put(routeName, new HashMap<Integer,Double>());
+			}
+			
+			for (int iter=1; iter<=lastIteration; iter++) {
+				for (String routeName : mNetwork.routeMap.keySet()) {
+					metroOccup.get(routeName).put(iter, routeMaps.get(iter-1).get(routeName).personMetroDist/1000);
+				}
+			}
+
+			List<Map<Integer,Double>> linesOccup = new ArrayList<Map<Integer,Double>>();
+			List<String> linesNames = new ArrayList<String>();
+//			for (Entry<String, Map<Integer,Double>> entry : metroOccup.entrySet()) {
+//				linesOccup.add(entry.getValue());
+//				linesNames.add(entry.getKey());
+//			}
+			linesOccup.add(totalMetroPersonDist);
+			linesNames.add("Total");
+			
+			Visualizer.plot2D(" Metro Person Travel Distance \r\n ",
+					"MATSim Iteration", "Annual Metro Person Travel Distance [km/a]",
+					linesOccup, linesNames, 0.0, 0.0, null, // new Range(-2.0E8, 7.0E8), // new Range(-1.0E8, 2.5E8)
+					"MetroOccupancies.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+			Visualizer.plot2D(" Metro Users \r\n ",
+					"MATSim Iteration", "Metro Users",
+					Arrays.asList(totalMetroUsers), Arrays.asList("Total"), 0.0, 0.0, null, // new Range(-2.0E8, 7.0E8), // new Range(-1.0E8, 2.5E8)
+					"MetroUsers.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+			
+		}	// END of NETWORK Loop
+		return;
+	}
+	
 	
 	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInSec,
 			int lastIteration, int iterationsToAverage, int populationFactor, String networkPath) throws IOException {
@@ -476,7 +571,7 @@ public class NetworkEvolutionRunSim {
 			MNetwork loadedNetwork = new MNetwork("Network"+n);
 			latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
 			Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
-			for (int r=1; r<= (int)Math.max(15.0,1.0*initialRoutesPerNetwork); r++) {
+			for (int r=1; r<= 10*initialRoutesPerNetwork; r++) {
 				String routeFilePath =
 						"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationToRecall+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
 				File f = new File(routeFilePath);

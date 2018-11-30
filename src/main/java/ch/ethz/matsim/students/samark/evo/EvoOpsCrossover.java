@@ -25,11 +25,11 @@ public class EvoOpsCrossover {
 			int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
 
-		if (currentGEN >= 34) {
-			pCrossOver = 0.11;
+		if (currentGEN >= 50) {
+			pCrossOver = 0.09;
 		}
-		if (currentGEN >= 42) {
-			pCrossOver = 0.08;
+		if (currentGEN >= 75) {
+			pCrossOver = 0.07;
 		}
 
 		int nOldPop = newPopulation.networkMap.size();

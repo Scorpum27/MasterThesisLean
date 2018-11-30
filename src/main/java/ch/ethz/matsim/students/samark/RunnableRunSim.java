@@ -8,6 +8,7 @@ import org.matsim.api.core.v01.population.Leg;
 import org.matsim.api.core.v01.population.Person;
 import org.matsim.api.core.v01.population.Plan;
 import org.matsim.api.core.v01.population.PlanElement;
+import org.matsim.api.core.v01.population.PopulationWriter;
 import org.matsim.core.config.Config;
 import org.matsim.core.config.ConfigUtils;
 import org.matsim.core.config.groups.StrategyConfigGroup.StrategySettings;
@@ -71,6 +72,11 @@ public class RunnableRunSim implements Runnable {
 		Config modConfig = ConfigUtils.loadConfig(this.initialConfig);
 		String simulationPath = "zurich_1pm/Evolution/Population/"+this.mNetwork.networkID+"/Simulation_Output";
 		new File(simulationPath).mkdirs();
+		
+//		modConfig.getModules().get("plans").addParam("inputPlansFile", "Evolution/Population/"+this.mNetwork.networkID+"/Simulation_Output/output_plans.xml.gz");		
+		modConfig.getModules().get("plans").addParam("inputPlansFile", "Zurich_1pm_SimulationOutputEnriched/output_plans.xml.gz");		
+//      leave blank if want to use initial plans
+		
 		modConfig.getModules().get("controler").addParam("outputDirectory", simulationPath);
 		modConfig.getModules().get("controler").addParam("overwriteFiles", "overwriteExistingFiles");
 		modConfig.getModules().get("controler").addParam("lastIteration", Integer.toString(this.lastIteration));
@@ -105,6 +111,8 @@ public class RunnableRunSim implements Runnable {
 		modScenario.getPopulation().getFactory().getRouteFactories().setRouteFactory(DefaultEnrichedTransitRoute.class,
 					new DefaultEnrichedTransitRouteFactory());
 		ScenarioUtils.loadScenario(modScenario);
+		PopulationWriter popWriter = new PopulationWriter(modScenario.getPopulation());
+		popWriter.write(simulationPath+"/output_plans_backup.xml.gz");
 			
 		// Do this to delete initial plans in order to have same chances of success for metro as other traffic!
 		TripsToLegsAlgorithm t2l = new TripsToLegsAlgorithm(new StageActivityTypesImpl(PtConstants.TRANSIT_ACTIVITY_TYPE), new MainModeIdentifierImpl());
@@ -142,12 +150,13 @@ public class RunnableRunSim implements Runnable {
 
 	    strategy = new StrategySettings();
 	    strategy.setStrategyName("ReRoute");
-	    strategy.setWeight(0.05);
+	    strategy.setDisableAfter(10);
+	    strategy.setWeight(0.05);	// 0.05
 	    modConfig.strategy().addStrategySettings(strategy);
 
 	    strategy = new StrategySettings();
 	    strategy.setStrategyName("KeepLastSelected");
-	    strategy.setWeight(0.85);
+	    strategy.setWeight(0.85);	// 0.80
 	    modConfig.strategy().addStrategySettings(strategy);
 	    
 	    boolean bestResponse = true;

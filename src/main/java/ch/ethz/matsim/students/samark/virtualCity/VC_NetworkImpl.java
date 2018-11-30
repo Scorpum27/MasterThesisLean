@@ -331,6 +331,37 @@ public class VC_NetworkImpl {
 		}
 		
 		new FacilitiesWriter(activityFacilitiesCut).write("zurich_1pm/VC_files/zurich_facilities.xml.gz");
+		
+		// split facilities into type and store separately for visualization
+//		Config configZh = ConfigUtils.createConfig();
+//		configZh.getModules().get("facilities").addParam("inputFacilitiesFile", "zurich_1pm/VC_files/zurich_facilities.xml.gz");		
+//		Collection<? extends ActivityFacility> activityFacilitiesZH = ScenarioUtils.loadScenario(configZh).getActivityFacilities().getFacilities().values();
+		
+		ActivityFacilities activityFacilitiesWork = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
+		ActivityFacilities activityFacilitiesHome = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
+		ActivityFacilities activityFacilitiesOther = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
+
+		for (ActivityFacility origFacility : activityFacilitiesCut.getFacilities().values()) {
+			for (String actType : origFacility.getActivityOptions().keySet()) {
+				if (actType.contains("home")) {
+					activityFacilitiesHome.addActivityFacility(origFacility);
+					break;
+				}
+				else if (actType.contains("work")) {
+					activityFacilitiesWork.addActivityFacility(origFacility);
+					break;
+				}
+				else {
+					activityFacilitiesOther.addActivityFacility(origFacility);
+					break;
+				}
+			}
+		}
+		
+		new FacilitiesWriter(activityFacilitiesWork).write("zurich_1pm/VC_files/zurich_facilities_work.xml.gz");
+		new FacilitiesWriter(activityFacilitiesHome).write("zurich_1pm/VC_files/zurich_facilities_home.xml.gz");
+		new FacilitiesWriter(activityFacilitiesOther).write("zurich_1pm/VC_files/zurich_facilities_other.xml.gz");
+		
 		return activityFacilitiesCut;
 	}
 	
@@ -719,8 +750,8 @@ public class VC_NetworkImpl {
 						Link rightLink = network.getFactory().createLink(Id.createLinkId(centerNode.getId()+"_"+rightNode.getId()), centerNode, rightNode);
 						if ( ! network.getLinks().containsKey(rightLink.getId())) {
 							 rightLink.setAllowedModes(Sets.newHashSet("pt", "car"));
-							 rightLink.setCapacity(200.0);
 							 rightLink.setFreespeed(50.0/3.6);
+							 rightLink.setCapacity(200.0);
 							 network.addLink(rightLink);
 							 // not necessary to add reverse link as this is done inherently in the course of the grid roaming in x and y
 						}
@@ -731,8 +762,8 @@ public class VC_NetworkImpl {
 						Link leftLink = network.getFactory().createLink(Id.createLinkId(centerNode.getId()+"_"+leftNode.getId()), centerNode, leftNode);
 						if ( ! network.getLinks().containsKey(leftLink.getId())) {
 							 leftLink.setAllowedModes(Sets.newHashSet("pt", "car"));
-							 leftLink.setCapacity(200.0);
 							 leftLink.setFreespeed(50.0/3.6);
+							 leftLink.setCapacity(200.0);
 							 network.addLink(leftLink);
 							 // not necessary to add reverse link as this is done inherently in the course of the grid roaming in x and y
 						}
@@ -743,8 +774,8 @@ public class VC_NetworkImpl {
 						Link topLink = network.getFactory().createLink(Id.createLinkId(centerNode.getId()+"_"+topNode.getId()), centerNode, topNode);
 						if ( ! network.getLinks().containsKey(topLink.getId())) {
 							topLink.setAllowedModes(Sets.newHashSet("pt", "car"));
+							topLink.setFreespeed(50.0/3.6);
 							 topLink.setCapacity(200.0);
-							 topLink.setFreespeed(50.0/3.6);
 							 network.addLink(topLink);
 							 // not necessary to add reverse link as this is done inherently in the course of the grid roaming in x and y
 						}
@@ -755,8 +786,8 @@ public class VC_NetworkImpl {
 						Link bottomLink = network.getFactory().createLink(Id.createLinkId(centerNode.getId()+"_"+bottomNode.getId()), centerNode, bottomNode);
 						if ( ! network.getLinks().containsKey(bottomLink.getId())) {
 							bottomLink.setAllowedModes(Sets.newHashSet("pt", "car"));
+							bottomLink.setFreespeed(50.0/3.6);
 							 bottomLink.setCapacity(200.0);
-							 bottomLink.setFreespeed(50.0/3.6);
 							 network.addLink(bottomLink);
 							 // not necessary to add reverse link as this is done inherently in the course of the grid roaming in x and y
 						}
@@ -1057,12 +1088,12 @@ public class VC_NetworkImpl {
 						network.getNodes().get(Id.createNodeId(diagonalPair.get(0))));
 				Link randomLinkForDefaultAttributes = network.getLinks().values().iterator().next();
 				dialLinkThere.setAllowedModes(randomLinkForDefaultAttributes.getAllowedModes());
-				dialLinkThere.setFreespeed(200.0);
-				dialLinkThere.setCapacity(50.0/3.6);
+				dialLinkThere.setFreespeed(50.0/3.6);
+				dialLinkThere.setCapacity(200.0);
 				network.addLink(dialLinkThere);
 				dialLinkBack.setAllowedModes(randomLinkForDefaultAttributes.getAllowedModes());
-				dialLinkBack.setFreespeed(200.0);
-				dialLinkBack.setCapacity(50.0/3.6);
+				dialLinkBack.setFreespeed(50.0/3.6);
+				dialLinkBack.setCapacity(200.0);
 				network.addLink(dialLinkBack);
 				return true;
 			}

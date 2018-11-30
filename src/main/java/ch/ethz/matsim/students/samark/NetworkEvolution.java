@@ -1,5 +1,6 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
@@ -12,6 +13,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.commons.io.FileUtils;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -92,11 +94,11 @@ public class NetworkEvolution {
 		Boolean mergeMetroWithRailway = true;
 		String ptRemoveScenario = args[12];										// "tram", "bus", "rail", "subway", "funicular"
 		Boolean useFastSBahnModule = false;
-		Boolean varyInitRouteSize = true;
+		Boolean varyInitRouteSize = false;
 		Boolean enableThreading = true;
 		Integer nThreads = 3;
-		Boolean recallSimulation = false;
-		int generationToRecall = 22;											// it is recommended to use the Generation before the one that failed in order
+		Boolean recallSimulation = true;
+		int generationToRecall = 1;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
 		Boolean extendMetroGrid = false;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
@@ -162,7 +164,7 @@ public class NetworkEvolution {
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.14; 									// DEFAULT = 0.14
+		Double pCrossOver = 0.11; 									// DEFAULT = 0.14
 		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
 		Double maxConnectingDistance = 2000.0;
 		Boolean logEntireRoutes = false;
@@ -214,6 +216,7 @@ public class NetworkEvolution {
 		if (!recallSimulation) {
 			pwDefault.close();
 			pwEvo.close();
+			FileUtils.cleanDirectory(new File("zurich_1pm/Evolution/Population/HistoryLog")); 
 			Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    " + "NETWORK CREATION - START" + "    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
 			latestPopulation = NetworkEvolutionImpl.createMNetworks(			// XXX				// Make a list of routes that will be added to this network
 				populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork, lastIterationOriginal,
