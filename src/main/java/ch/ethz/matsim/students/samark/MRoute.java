@@ -445,7 +445,7 @@ public class MRoute implements Serializable{
 	
 	public boolean modifyFrequency(Double probPositiveFreqMod) throws IOException {
 		if (probPositiveFreqMod < 0.0) {
-			Log.write("CAUTION: ProbPositiveFreqMod < 0. Applying no frequency modification to "+this.routeID);
+			Log.write("CAUTION: BLOCKED! Applying no frequency modification to "+this.routeID); // Caution: ProbPositiveFreqMod < 0
 			return false;
 		}
 		if ((new Random()).nextDouble() < probPositiveFreqMod) {
@@ -457,7 +457,7 @@ public class MRoute implements Serializable{
 			this.vehiclesNr--;
 			this.lastFreqMod = "negative";
 			this.attemptedFrequencyModifications.add("negative");
-			this.blockedFreqModGenerations = 1;
+			this.blockedFreqModGenerations = 3;
 		}
 		this.lastUtilityBalance = this.utilityBalance;
 		this.freqModOccured = true;

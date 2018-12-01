@@ -91,9 +91,10 @@ public class VisualizerPedigreeVC {
 				BufferedImage blankImg = null;
 				blankImg = ImageIO.read(new File(simName + "/zurich_1pm/bgImgVCfacilities2crop.png"));
 				Graphics2D g = (Graphics2D) blankImg.createGraphics();
+				g.setColor(Color.RED);
 //				g.setColor(Color.CYAN);
-				g.setColor(new Color(187, 0, 0));
-				g.setStroke(new BasicStroke(3));
+//				g.setColor(new Color(187, 0, 0));				
+				g.setStroke(new BasicStroke(5));
 	
 				String routesFolder = historyLogFolder + "Generation" + gen + "/MRoutes/";
 	

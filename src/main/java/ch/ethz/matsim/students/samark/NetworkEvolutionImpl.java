@@ -1,14 +1,11 @@
 package ch.ethz.matsim.students.samark;
 
-import java.awt.BasicStroke;
-import java.awt.Color;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
-import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
@@ -17,19 +14,6 @@ import java.util.Random;
 import java.util.Set;
 
 import org.apache.commons.io.FileUtils;
-import org.jfree.chart.ChartFactory;
-import org.jfree.chart.ChartUtilities;
-import org.jfree.chart.JFreeChart;
-import org.jfree.chart.axis.NumberAxis;
-import org.jfree.chart.axis.NumberTickUnit;
-import org.jfree.chart.plot.PlotOrientation;
-import org.jfree.chart.plot.XYPlot;
-import org.jfree.chart.renderer.xy.XYLineAndShapeRenderer;
-import org.jfree.data.category.DefaultCategoryDataset;
-import org.jfree.data.general.SeriesDataset;
-import org.jfree.data.xy.XYDataset;
-import org.jfree.data.xy.XYSeries;
-import org.jfree.data.xy.XYSeriesCollection;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.api.core.v01.Id;
 import org.matsim.api.core.v01.Scenario;
@@ -51,8 +35,6 @@ import org.matsim.core.events.MatsimEventsReader;
 import org.matsim.core.population.routes.NetworkRoute;
 import org.matsim.core.population.routes.RouteUtils;
 import org.matsim.core.scenario.ScenarioUtils;
-import org.matsim.core.utils.charts.XYLineChart;
-import org.matsim.facilities.Facility;
 import org.matsim.pt.transitSchedule.api.TransitLine;
 import org.matsim.pt.transitSchedule.api.TransitRoute;
 import org.matsim.pt.transitSchedule.api.TransitRouteStop;
@@ -219,7 +201,7 @@ public class NetworkEvolutionImpl {
 		if (useOdPairsForInitialRoutes==false) {								
 			terminalFacilityCandidates = NetworkEvolutionImpl.findFacilitiesWithinBounds( networkPath + "/MetroStopFacilities.xml",
 					zurich_NetworkCenterCoord, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter,
-					(networkPath + "/4_MetroTerminalCandidateNodeLocations.xml"));
+					(networkPath + "/4_MetroTerminalCandidateFacilities.xml"));
 					// null); // FOR SAVING: replace (null) by (networkPath+"/4_MetroTerminalCandidate.xml"));
 		}
 		
@@ -1389,12 +1371,14 @@ public class NetworkEvolutionImpl {
 		
 		
 		public static List<TransitStopFacility> findFacilitiesWithinBounds(String transitScheduleFileName, 
-				Coord networkCenterCoord, double minRadiusFromCenter, double maxRadiusFromCenter, String terminalCandidateNetworkFileName) {
+				Coord networkCenterCoord, double minRadiusFromCenter, double maxRadiusFromCenter, String terminalCandidatesFileName) {
  			Config conf = ConfigUtils.createConfig();
 			conf.getModules().get("transit").addParam("transitScheduleFile",transitScheduleFileName);
 			Scenario sc = ScenarioUtils.loadScenario(conf);
 			TransitSchedule ts = sc.getTransitSchedule();
-			Network nw = sc.getNetwork();
+//			Network nw = sc.getNetwork();
+			
+			TransitSchedule terminalCandidatesSchedule = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getTransitSchedule();
 					
 			List<TransitStopFacility> terminalCandidateFacilities = new ArrayList<TransitStopFacility>();
 			double distanceFromCenter = 0.0;
@@ -1402,13 +1386,16 @@ public class NetworkEvolutionImpl {
 				distanceFromCenter = GeomDistance.calculate(tsf.getCoord(),	networkCenterCoord);
 				if (distanceFromCenter > minRadiusFromCenter && distanceFromCenter < maxRadiusFromCenter) {
 					terminalCandidateFacilities.add(tsf);
-					nw.addNode(nw.getFactory().createNode(Id.createNodeId(tsf.getId().toString()), tsf.getCoord()));
+					terminalCandidatesSchedule.addStopFacility(tsf);
+//					nw.addNode(nw.getFactory().createNode(Id.createNodeId(tsf.getId().toString()), tsf.getCoord()));
 				}
 			}
 			
-			if (terminalCandidateNetworkFileName != null) {
-				NetworkWriter networkWriter = new NetworkWriter(nw);
-				networkWriter.write(terminalCandidateNetworkFileName);
+			if (terminalCandidatesFileName != null) {
+				TransitScheduleWriter tsw = new TransitScheduleWriter(terminalCandidatesSchedule);
+				tsw.writeFile(terminalCandidatesFileName);
+//				NetworkWriter networkWriter = new NetworkWriter(nw);
+//				networkWriter.write(terminalCandidateNetworkFileName);
 			}
  			return terminalCandidateFacilities;
 		}
@@ -1821,10 +1808,11 @@ public class NetworkEvolutionImpl {
 			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, Coord zurich_NetworkCenterCoord, int lastIterationOriginal,
 			double pMutation, double pBigChange, double pSmallChange, double routeDisutilityLimit,
 			String shortestPathStrategy, Double minTerminalDistance, Double minTerminalRadiusFromCenter, Double maxTerminalRadiusFromCenter,
-			Double minInitialTerminalRadiusFromCenter, Double maxInitialTerminalRadiusFromCenter, Double metroCityRadius, Boolean varyInitRouteSize, 
+			Double minInitialTerminalRadiusFromCenter, Double maxInitialTerminalRadiusFromCenter, Double minInitialTerminalDistance, 
+			Double metroCityRadius, Boolean varyInitRouteSize, 
 			Double tFirstDep, Double tLastDep, Double odConsiderationThreshold, Double xOffset, Double yOffset,
 			Integer stopUnprofitableRoutesReplacementGEN, Integer blockFreqModGENs, Integer currentGEN, Integer lastGeneration,
-			Double maxConnectingDistance) throws IOException {
+			Double maxConnectingDistance, String inputScenario) throws IOException {
 		
 		
 		MNetworkPop newPopulation = Clone.mNetworkPop(evoNetworksToProcessPlans);
@@ -1845,12 +1833,12 @@ public class NetworkEvolutionImpl {
 		newPopulation = EvoOpsCrossover.applyCrossovers(currentGEN, globalNetwork,  networkScoreMap,  newPopulation,  populationName,
 				 eliteMNetwork, alpha, pCrossOver, crossoverRouletteStrategy, useOdPairsForInitialRoutes, 
 				 vehicleTypeName, vehicleLength, maxVelocity, vehicleSeats, vehicleStandingRoom, defaultPtMode, stopTime, blocksLane,
-				 logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle);
+				 logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle, inputScenario);
 		
 		// MUTATIONS (set nDepartures=0, keep nVehicles, keep first/lastDep, --> RouteLength, RoundTripTravelTime, DepSpacing will be changed accordingly in applyPT)
 		newPopulation = EvoOpsMutator.applyMutations(currentGEN, newPopulation, globalNetwork, zurich_NetworkCenterCoord, lastIterationOriginal,
 				pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
-				maxCrossingAngle, eliteMNetwork.networkID, metroLinkAttributes);
+				maxCrossingAngle, eliteMNetwork.networkID, metroLinkAttributes, inputScenario);
 		
 //		newPopulation.getNetworks().get("Network1").getRouteMap().remove("Network1_Route3");
 //		newPopulation.getNetworks().get("Network1").getRouteMap().remove("Network1_Route4");
@@ -1861,6 +1849,13 @@ public class NetworkEvolutionImpl {
 				metroCityRadius, varyInitRouteSize, tFirstDep, tLastDep, eliteMNetwork,
 				odConsiderationThreshold, zurich_NetworkCenterCoord, xOffset, yOffset);
 		
+		EvoOpsRoutesAdder.topUpNetworkPopulation(initialRoutesPerNetwork, maxRouteNumber, currentGEN, stopUnprofitableRoutesReplacementGEN, newPopulation, useOdPairsForInitialRoutes, shortestPathStrategy,
+				minTerminalDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, minInitialTerminalDistance,
+				metroCityRadius, varyInitRouteSize, tFirstDep, tLastDep, eliteMNetwork,
+				odConsiderationThreshold, zurich_NetworkCenterCoord, xOffset, yOffset, vehicleTypeName, vehicleLength,
+				maxVelocity, vehicleSeats, vehicleStandingRoom, initialDepSpacing, defaultPtMode,
+				stopTime, blocksLane);
+				
 		// MERGE SINGLE ROUTES TO A NETWORK
 		// last merger is performed at the end of the second last GEN before last GEN is simulated, bc after last GEN sim no modifications are made to network
 //		if (currentGEN % 4 == 0 || currentGEN == lastGeneration-1) {
@@ -2381,7 +2376,7 @@ public class NetworkEvolutionImpl {
 
 	public static boolean logResults(List<Map<String, NetworkScoreLog>> networkScoreMaps, String historyFileLocation,
 			String networkScoreMapGeneralLocation, MNetworkPop latestPopulation, double averageTravelTimePerformanceGoal,
-			int finalGeneration, int lastIteration, double populationFactor,
+			int generationNr, int lastIteration, double populationFactor,
 			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Double lifeTime,
 			Coord UGcenterCoord, double UGradius, double OGdevelopRadius) throws IOException {
 		
@@ -2399,7 +2394,7 @@ public class NetworkEvolutionImpl {
 				mnetwork.lifeTime = lifeTime;
 				mnetwork.calculateRoutesAndNetworkScore(lastIteration, populationFactor, globalNetwork, metroLinkAttributes,
 						"zurich_1pm/cbpParametersOriginal/", "zurich_1pm/Evolution/Population/", "1",
-						UGcenterCoord, UGradius, OGdevelopRadius); // include here also part of routesHandling
+						UGcenterCoord, UGradius, OGdevelopRadius, generationNr); // include here also part of routesHandling
 				XMLOps.writeToFile(mnetwork, "zurich_1pm/Evolution/Population/"+mnetwork.networkID+"/M"+mnetwork.networkID+".xml");
 				if (performanceGoalAccomplished == false) {		// checking whether performance goal achieved
 					if (mnetwork.averageTravelTime < averageTravelTimePerformanceGoal) {
@@ -2434,8 +2429,8 @@ public class NetworkEvolutionImpl {
 		
 		
 		if (performanceGoalAccomplished == true) {
-			System.out.println("Performance Goal has been achieved in Generation " +finalGeneration+ " by Network "+successfulNetwork.networkID+" at averageTravelTime "+successfulAverageTravelTime);			// display most important analyzed data here			
-			Log.write("PERFORMANCE GOAL ACHIEVED: in Generation " +finalGeneration+ " by Network "+successfulNetwork.networkID+" at averageTravelTime "+successfulAverageTravelTime);
+			System.out.println("Performance Goal has been achieved in Generation " +generationNr+ " by Network "+successfulNetwork.networkID+" at averageTravelTime "+successfulAverageTravelTime);			// display most important analyzed data here			
+			Log.write("PERFORMANCE GOAL ACHIEVED: in Generation " +generationNr+ " by Network "+successfulNetwork.networkID+" at averageTravelTime "+successfulAverageTravelTime);
 			return true;
 		}
 		else {

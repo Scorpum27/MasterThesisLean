@@ -29,31 +29,54 @@ public class EvoOpsMutator {
 	@SuppressWarnings("unchecked")
 	public static MNetworkPop applyMutations(Integer currentGEN, MNetworkPop newPopulation, Network globalNetwork, Coord zurich_NetworkCenterCoord, int lastIterationOriginal,
 			double pMutation, double pBigChange, double pSmallChange, Double routeDisutilityLimit,
-			double maxCrossingAngle, String eliteNetworkName, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes) throws IOException {
+			double maxCrossingAngle, String eliteNetworkName, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, String inputScenario) throws IOException {
 		Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
 		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
 
-		if (currentGEN >= 35) {
-			pMutation = 0.35;
-			pBigChange = 0.25;
-			pSmallChange = 1-pBigChange;
+		if (inputScenario.equals("zurich")) {
+			// ZH scenario
+			if (currentGEN >= 25) {
+				pMutation = 0.33;
+				pBigChange = 0.20;
+				pSmallChange = 1-pBigChange;
+			}
+			if (currentGEN >= 37) {
+				pMutation = 0.26;
+				pBigChange = 0.14;
+				pSmallChange = 1-pBigChange;
+			}
+			if (currentGEN >= 45) {
+				pMutation = 0.18;
+				pBigChange = 0.10;
+				pSmallChange = 1-pBigChange;
+			}
 		}
-		if (currentGEN >= 55) {
-			pMutation = 0.32;
-			pBigChange = 0.17;
-			pSmallChange = 1-pBigChange;
-		}
-		if (currentGEN >= 75) {
-			pMutation = 0.20;
-			pBigChange = 0.08;
-			pSmallChange = 1-pBigChange;
-		}
-		if (currentGEN >= 90) {
-			pMutation = 0.20;
-			pBigChange = 0.00;
-			pSmallChange = 1-pBigChange;
+		else if(inputScenario.equals("VC")) {
+			// VC scenario
+			if (currentGEN >= 35) {
+				pMutation = 0.35;
+				pBigChange = 0.25;
+				pSmallChange = 1-pBigChange;
+			}
+			if (currentGEN >= 55) {
+				pMutation = 0.32;
+				pBigChange = 0.17;
+				pSmallChange = 1-pBigChange;
+			}
+			if (currentGEN >= 75) {
+				pMutation = 0.20;
+				pBigChange = 0.08;
+				pSmallChange = 1-pBigChange;
+			}
+			if (currentGEN >= 90) {
+				pMutation = 0.20;
+				pBigChange = 0.00;
+				pSmallChange = 1-pBigChange;
+			}
 		}
 		
+		
+		// old VC
 //		if (currentGEN >= 35) {
 //			pMutation = 0.33;
 //			pBigChange = 0.30;
@@ -262,7 +285,9 @@ public class EvoOpsMutator {
 			Iterator<Entry<String, MRoute>> mrouteIter, List<Id<Link>> linkListMutate, Network globalNetwork, Double maxCrossingAngle, MRoute mRoute,
 			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Double routeDisutilityLimit) throws IOException {
 
-		if (mRoute.utilityBalance > routeDisutilityLimit) { // extend route
+		// if profitable higher chance of extending route, and vice versa
+		if ((mRoute.utilityBalance > routeDisutilityLimit && (new Random()).nextDouble()<0.67)
+				|| (mRoute.utilityBalance < routeDisutilityLimit && (new Random()).nextDouble()<0.33)) { // extend route
 			
 			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 			
@@ -272,7 +297,7 @@ public class EvoOpsMutator {
 				mrouteIter.remove();
 				return false;
 			}
-			else if ((new Random()).nextDouble()<0.6) {
+			else if ((new Random()).nextDouble()<0.5) {
 				extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);				
 			}
 		}
@@ -286,9 +311,9 @@ public class EvoOpsMutator {
 				mrouteIter.remove();
 				return false;
 			}
-			else if ((new Random()).nextDouble()<0.2) {
-				shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
-			}
+//			else if ((new Random()).nextDouble()<0.2) {
+//				shortenRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
+//			}
 		}
 		if (linkListMutate.size() < 2) {
 			Log.write("CAUTION: RouteLength = " + linkListMutate.size() + " --> Deleting "+mRoute.routeID);

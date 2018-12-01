@@ -32,6 +32,9 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 // java -Xmx90G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 9 4000 300 50 25 50 3pm tram 0.25 
 // java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 12 6 10000 300 50 20 50 1pm none 1.0
 
+// java -Xmx85G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.virtualCity.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 16 7 20000 300 150 8 14 0.5pm none 0.5
+
+
 //java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.Run_VC --model-type tour --fallback-behaviour IGNORE_AGENT
 //java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 100 1 2000 individual
 //java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerCBP_Original 100 70 2000 individual2global
@@ -66,10 +69,11 @@ public class VCEvolution {
 		Boolean useFastSBahnModule = false;
 		Boolean varyInitRouteSize = false;
 		Boolean enableThreading = true;
-		Integer nThreads = 3;
+		Integer nThreads = 4;
 		Boolean recallSimulation = false;
-		int generationToRecall = 1;												// it is recommended to use the Generation before the one that failed in order
+		int generationToRecall = 999;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
+		String inputScenario = "VC";
 		Boolean extendMetroGrid = true;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
@@ -135,7 +139,7 @@ public class VCEvolution {
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.11; 									// DEFAULT = 0.14
+		Double pCrossOver = 0.06; 									// DEFAULT = 0.14
 		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
 		Double maxConnectingDistance = 2000.0;
 		Boolean logEntireRoutes = false;
@@ -147,7 +151,7 @@ public class VCEvolution {
 		String crossoverRouletteStrategy = "tournamentSelection3";	// Options: allPositiveProportional, rank, tournamentSelection3, logarithmic
 		Double routeDisutilityLimit = -0.0E7;						// DEFAULT = -1.5E7;
 		Integer blockFreqModGENs = 5;
-		Integer stopUnprofitableRoutesReplacementGEN = 20;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
+		Integer stopUnprofitableRoutesReplacementGEN = 30;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
 		
 		// %% Infrastructure Parameters %%
 		Coord UGcenterCoord = zurich_NetworkCenterCoord;
@@ -264,8 +268,8 @@ public class VCEvolution {
 			int lastEventIteration = lastIteration; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
 			MNetworkPop evoNetworksToProcess = latestPopulation;
 
-			NetworkEvolutionRunSim.runEventsProcessingMetroOnly(evoNetworksToProcess, lastEventIteration,
-					globalNetwork, "zurich_1pm/Evolution/Population/", populationFactor);	
+//			NetworkEvolutionRunSim.runEventsProcessingMetroOnly(evoNetworksToProcess, lastEventIteration,
+//					globalNetwork, "zurich_1pm/Evolution/Population/", populationFactor);	
 			
 			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration, iterationsToAverage,
 					globalNetwork, "zurich_1pm/Evolution/Population/", populationFactor);
@@ -302,9 +306,9 @@ public class VCEvolution {
 						defaultPtMode, stopTime, blocksLane, logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
 						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
 						shortestPathStrategy, minInitialTerminalRadiusFromCenter, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter,
-						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, metroCityRadius, varyInitRouteSize, 
-						tFirstDep, tLastDep, odConsiderationThreshold,
-						xOffset, yOffset, stopUnprofitableRoutesReplacementGEN, blockFreqModGENs, generationNr, lastGeneration, maxConnectingDistance);
+						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, minInitialTerminalDistance, metroCityRadius, varyInitRouteSize, 
+						tFirstDep, tLastDep, odConsiderationThreshold, xOffset, yOffset, stopUnprofitableRoutesReplacementGEN, blockFreqModGENs,
+						generationNr, lastGeneration, maxConnectingDistance, inputScenario);
 			}		
 			
 		}

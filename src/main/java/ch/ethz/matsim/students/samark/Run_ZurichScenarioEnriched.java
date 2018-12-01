@@ -43,7 +43,7 @@ static public void main(String[] args) throws ConfigurationException, IOExceptio
 		
 		Config config = ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml");
 		
-		int lastIteration = 1000;
+		int lastIteration = Integer.parseInt(args[4]);
 		String simulationPath = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched";
 		new File(simulationPath).mkdirs();
 		config.getModules().get("controler").addParam("outputDirectory", simulationPath);

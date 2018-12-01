@@ -56,7 +56,6 @@ import ch.ethz.matsim.students.samark.visualizer.Visualizer;
 import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
 
 public class NetworkEvolutionRunSim {
-
 	
 	public static void run(String[] args, MNetwork mNetwork, String initialRouteType, 
 			String initialConfig, int lastIteration, Boolean useFastSBahnModule, String ptRemoveScenario) throws ConfigurationException, IOException  {

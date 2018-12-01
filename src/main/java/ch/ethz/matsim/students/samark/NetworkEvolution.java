@@ -28,7 +28,7 @@ import ch.ethz.matsim.students.samark.visualizer.Visualizer;
 
 
 /* java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT nLinesInit rad depSapcing popCensus globalCostFactor
- * java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 9 4000 300 50 25 50 1pm 0.35
+ * java -Xmx90G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 9 5000 300 50 7 22 3pm rail 0.18
  * java -Xmx100G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.NetworkEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 10 12 4000 300 50 25 50 1pct 0.2 
  * cp -avr /nas/samark/Simulations/25_CostStudy/samark-0.0.1-SNAPSHOT.jar /nas/samark/Simulations/25_CostStudy/100percent
  * java -Xmx30G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VisualizerIterFluctuations Network1 1 200 1 1000 false false individual
@@ -94,12 +94,13 @@ public class NetworkEvolution {
 		Boolean mergeMetroWithRailway = true;
 		String ptRemoveScenario = args[12];										// "tram", "bus", "rail", "subway", "funicular"
 		Boolean useFastSBahnModule = false;
-		Boolean varyInitRouteSize = false;
+		Boolean varyInitRouteSize = true;
 		Boolean enableThreading = true;
-		Integer nThreads = 3;
-		Boolean recallSimulation = true;
-		int generationToRecall = 1;											// it is recommended to use the Generation before the one that failed in order
+		Integer nThreads = 4;
+		Boolean recallSimulation = false;
+		int generationToRecall = 999;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
+		String inputScenario = "zurich";
 		Boolean extendMetroGrid = false;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
@@ -164,7 +165,8 @@ public class NetworkEvolution {
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.11; 									// DEFAULT = 0.14
+		// CAUTION: adapt pCrossOver & pMutation in EvoCrossover
+		Double pCrossOver = 0.11; // XXX !!							// DEFAULT = 0.14
 		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
 		Double maxConnectingDistance = 2000.0;
 		Boolean logEntireRoutes = false;
@@ -175,7 +177,7 @@ public class NetworkEvolution {
 		Double pSmallChange = 1.0-pBigChange;
 		String crossoverRouletteStrategy = "tournamentSelection3";	// Options: allPositiveProportional, rank, tournamentSelection3, logarithmic
 		Double routeDisutilityLimit = -0.0E7;						// DEFAULT = -1.5E7;
-		Integer blockFreqModGENs = 5;
+		Integer blockFreqModGENs = 10;
 		Integer stopUnprofitableRoutesReplacementGEN = 20;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
 		
 		// %% Infrastructure Parameters %%
@@ -218,7 +220,7 @@ public class NetworkEvolution {
 			pwEvo.close();
 			FileUtils.cleanDirectory(new File("zurich_1pm/Evolution/Population/HistoryLog")); 
 			Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    " + "NETWORK CREATION - START" + "    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-			latestPopulation = NetworkEvolutionImpl.createMNetworks(			// XXX				// Make a list of routes that will be added to this network
+			latestPopulation = NetworkEvolutionImpl.createMNetworks(
 				populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork, lastIterationOriginal,
 				iterationsToAverage, 
 				minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius,
@@ -324,9 +326,9 @@ public class NetworkEvolution {
 						defaultPtMode, stopTime, blocksLane, logEntireRoutes, minCrossingDistanceFactorFromRouteEnd, maxCrossingAngle,
 						zurich_NetworkCenterCoord, lastIterationOriginal, pMutation, pBigChange, pSmallChange, routeDisutilityLimit,
 						shortestPathStrategy, minInitialTerminalRadiusFromCenter, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter,
-						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, metroCityRadius, varyInitRouteSize, 
-						tFirstDep, tLastDep, odConsiderationThreshold,
-						xOffset, yOffset, stopUnprofitableRoutesReplacementGEN, blockFreqModGENs, generationNr, lastGeneration, maxConnectingDistance);
+						minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, minInitialTerminalDistance, metroCityRadius, varyInitRouteSize, 
+						tFirstDep, tLastDep, odConsiderationThreshold, xOffset, yOffset, stopUnprofitableRoutesReplacementGEN, blockFreqModGENs,
+						generationNr, lastGeneration, maxConnectingDistance, inputScenario);
 			}		
 			
 		}

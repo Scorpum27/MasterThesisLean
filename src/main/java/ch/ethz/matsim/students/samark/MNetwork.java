@@ -139,7 +139,7 @@ public class MNetwork implements Serializable{
 	public void calculateRoutesAndNetworkScore(int lastIteration, double populationFactor,
 			Network globalNetwork, Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes,
 			String cbpOriginalPath, String networkPath, String utilityFunctionSelection,
-			Coord UGcenterCoord, double UGradius, double OGdevelopRadius) throws IOException {
+			Coord UGcenterCoord, double UGradius, double OGdevelopRadius, int generationNr) throws IOException {
 		CBPII cbpOriginal =	XMLOps.readFromFile((new CBPII()).getClass(), cbpOriginalPath+"cbpParametersOriginalGlobal.xml");
 //				XMLOps.readFromFile((new CostBenefitParameters()).getClass(), cbpOriginalPath+"cbpParametersOriginal"+lastIterationOriginal+".xml");
 		CBPII cbpNew = XMLOps.readFromFile((new CBPII()).getClass(), networkPath+this.networkID+"/cbpParametersAveraged"+lastIteration+".xml");		
@@ -223,6 +223,8 @@ public class MNetwork implements Serializable{
 				overallUGpercentage, newUGpercentage, developUGpercentage, newOGpercentage, equipOGpercentage, developOGpercentage,
 				nStationsNew, nStationsExtend, utilityFunctionSelection);
 		XMLOps.writeToFile(cbpNew, networkPath+this.networkID+"/cbpParametersAveraged"+lastIteration+".xml");
+		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr+"/"+this.networkID+"/cbpAveraged.xml";
+		XMLOps.writeToFile(cbpNew, historyFileLocation);
 		for (MRoute mr : this.routeMap.values()) {
 			mr.performCostBenefitAnalysisRoute(cbpOriginal, cbpNew, this, globalNetwork, metroLinkAttributes);
 		}

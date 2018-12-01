@@ -23,13 +23,25 @@ public class EvoOpsCrossover {
 			MNetwork eliteMNetwork, double alpha, double pCrossOver, String crossoverRouletteStrategy, boolean useOdPairsForInitialRoutes, 
 			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats,
 			int vehicleStandingRoom, String defaultPtMode, double stopTime, boolean blocksLane, boolean logEntireRoutes,
-			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle) throws IOException {
+			double minCrossingDistanceFactorFromRouteEnd, double maxCrossingAngle, String inputScenario) throws IOException {
 
-		if (currentGEN >= 50) {
-			pCrossOver = 0.09;
+		if (inputScenario.equals("zurich")) {
+			// ZH scenario
+			if (currentGEN >= 27) {
+				pCrossOver = 0.07;
+			}
+			if (currentGEN >= 44) {
+				pCrossOver = 0.04;
+			}			
 		}
-		if (currentGEN >= 75) {
-			pCrossOver = 0.07;
+		else if(inputScenario.equals("VC")) {
+			// VC scenario
+			if (currentGEN >= 50) {
+				pCrossOver = 0.04;
+			}
+			if (currentGEN >= 75) {
+				pCrossOver = 0.03;
+			}						
 		}
 
 		int nOldPop = newPopulation.networkMap.size();

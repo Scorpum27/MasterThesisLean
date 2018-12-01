@@ -43,6 +43,7 @@ import org.matsim.facilities.ActivityFacilities;
 import org.matsim.facilities.ActivityFacility;
 import org.matsim.facilities.ActivityOption;
 import org.matsim.facilities.FacilitiesWriter;
+import org.matsim.pt.transitSchedule.api.TransitStopFacility;
 
 import com.google.common.collect.Sets;
 
@@ -66,35 +67,45 @@ public class Demo {
 	
 	@SuppressWarnings("unchecked")
 	public static void main(String[] args) throws IOException, XMLStreamException, URISyntaxException {
+
 		
-		MNetworkPop latestPopulation = new MNetworkPop("evoNetworks");
-		int initialRoutesPerNetwork = 80;
-		int generationToRecall= 1;
+//		List<TransitStopFacility> terminalFacilityCandidates = new ArrayList<TransitStopFacility>();
+//		Config tempConfig2 = ConfigUtils.createConfig();
+//		tempConfig2.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/Evolution/Population/BaseInfrastructure/4_MetroTerminalCandidateFacilities.xml");
+//		terminalFacilityCandidates.addAll(ScenarioUtils.loadScenario(tempConfig2).getTransitSchedule().getFacilities().values());
+//		System.out.println(terminalFacilityCandidates.subList(0, 10));
 		
-		int n=1;
-		MNetwork loadedNetwork = new MNetwork("Network"+n);
-		latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
-		Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
-		for (int r=1; r<= 10*initialRoutesPerNetwork; r++) {
-			String routeFilePath =
-					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationToRecall+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
-			File f = new File(routeFilePath);
-			if (f.exists()) {
-				MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
-				loadedNetwork.addNetworkRoute(loadedRoute);
-				Log.write("Adding network route "+loadedRoute.routeID);
-			}
-		}
-		latestPopulation.addNetwork(loadedNetwork);
+		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 		
-		Config config = ConfigUtils.createConfig();
-		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
-		Scenario scenario = ScenarioUtils.loadScenario(config);
-		Network globalNetwork = scenario.getNetwork();
-		int lastIteration = 50;
-		String networkPath = "zurich_1pm/Evolution/Population/";
-		int populationFactor = 333;
-		NetworkEvolutionRunSim.runEventsProcessingMetroOnly(latestPopulation, lastIteration, globalNetwork, networkPath, populationFactor);
+		
+//		MNetworkPop latestPopulation = new MNetworkPop("evoNetworks");
+//		int initialRoutesPerNetwork = 80;
+//		int generationToRecall= 1;
+//		
+//		int n=1;
+//		MNetwork loadedNetwork = new MNetwork("Network"+n);
+//		latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
+//		Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
+//		for (int r=1; r<= 10*initialRoutesPerNetwork; r++) {
+//			String routeFilePath =
+//					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationToRecall+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
+//			File f = new File(routeFilePath);
+//			if (f.exists()) {
+//				MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+//				loadedNetwork.addNetworkRoute(loadedRoute);
+//				Log.write("Adding network route "+loadedRoute.routeID);
+//			}
+//		}
+//		latestPopulation.addNetwork(loadedNetwork);
+//		
+//		Config config = ConfigUtils.createConfig();
+//		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
+//		Scenario scenario = ScenarioUtils.loadScenario(config);
+//		Network globalNetwork = scenario.getNetwork();
+//		int lastIteration = 50;
+//		String networkPath = "zurich_1pm/Evolution/Population/";
+//		int populationFactor = 333;
+//		NetworkEvolutionRunSim.runEventsProcessingMetroOnly(latestPopulation, lastIteration, globalNetwork, networkPath, populationFactor);
 		
 		
 //		Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String,Double>();

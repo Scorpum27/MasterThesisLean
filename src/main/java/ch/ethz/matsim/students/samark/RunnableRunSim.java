@@ -156,7 +156,7 @@ public class RunnableRunSim implements Runnable {
 
 	    strategy = new StrategySettings();
 	    strategy.setStrategyName("KeepLastSelected");
-	    strategy.setWeight(0.85);	// 0.80
+	    strategy.setWeight(0.85);	// 0.85
 	    modConfig.strategy().addStrategySettings(strategy);
 	    
 	    boolean bestResponse = true;

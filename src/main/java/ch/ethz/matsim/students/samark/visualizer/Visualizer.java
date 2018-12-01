@@ -481,10 +481,6 @@ public class Visualizer {
 		LegendTitle legend = lineChart.getLegend();
 		legend.setPosition(RectangleEdge.TOP); // RectangleEdge.RIGHT
 		legend.setItemFont(new Font("Arial", Font.PLAIN, 20));
-		// BufferedImage image = new BufferedImage(200, 200,
-		// BufferedImage.TYPE_INT_ARGB); Graphics2D g2 = image.createGraphics();
-		// g2.drawString("heeeello", 50f, 50f); Rectangle2D r2DD = new
-		// Rectangle2D.Double(550, 550, 120, 180); legend.draw(g2,r2DD);
 
 		XYPlot plot = (XYPlot) lineChart.getPlot();
 
@@ -630,7 +626,6 @@ public class Visualizer {
 			 XYSeriesCollection thisSeriesCollection = new XYSeriesCollection();
 			 thisSeriesCollection.addSeries(thisSeries);
 			 dataSets.add((XYDataset) thisSeriesCollection);
-//			dataSets.add((XYDataset) thisSeries);
 		}
 
 		List<Color> defaultColors = Arrays.asList(Color.RED, Color.BLUE, Color.GREEN, Color.CYAN, Color.MAGENTA,
