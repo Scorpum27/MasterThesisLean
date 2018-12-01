@@ -58,7 +58,7 @@ import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
 public class NetworkEvolutionRunSim {
 	
 	public static void run(String[] args, MNetwork mNetwork, String initialRouteType, 
-			String initialConfig, int lastIteration, Boolean useFastSBahnModule, String ptRemoveScenario) throws ConfigurationException, IOException  {
+			String initialConfig, int lastIteration, Boolean useFastSBahnModule, String ptRemoveScenario, String inputPlanStrategy) throws ConfigurationException, IOException  {
 		
 		Log.write("  >> Running MATSim simulation on:  "+mNetwork.networkID);
 		
@@ -70,9 +70,16 @@ public class NetworkEvolutionRunSim {
 		String simulationPath = "zurich_1pm/Evolution/Population/"+mNetwork.networkID+"/Simulation_Output";
 		new File(simulationPath).mkdirs();
 		
-//		modConfig.getModules().get("plans").addParam("inputPlansFile", "Evolution/Population/"+this.mNetwork.networkID+"/Simulation_Output/output_plans.xml.gz");		
-		modConfig.getModules().get("plans").addParam("inputPlansFile", "Zurich_1pm_SimulationOutputEnriched/output_plans.xml.gz");		
-//      leave blank if want to use initial plans
+		if (inputPlanStrategy.equals("default")) {
+			// no nothing with inputPlansFile
+			// leave blank if want to use initial plans
+		}
+		else if(inputPlanStrategy.equals("simEquil")) {
+			modConfig.getModules().get("plans").addParam("inputPlansFile", "Zurich_1pm_SimulationOutputEnriched/output_plans.xml.gz");					
+		}
+		else if(inputPlanStrategy.equals("lastPlan")) {
+			modConfig.getModules().get("plans").addParam("inputPlansFile", "Evolution/Population/"+mNetwork.networkID+"/Simulation_Output/output_plans.xml.gz");			
+		}
 
 		modConfig.getModules().get("controler").addParam("outputDirectory", simulationPath);
 		modConfig.getModules().get("controler").addParam("overwriteFiles", "overwriteExistingFiles");

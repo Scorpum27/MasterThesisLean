@@ -40,9 +40,10 @@ public class RunnableRunSim implements Runnable {
 	int lastIteration;
 	boolean useFastSBahnModule;
 	String ptRemoveScenario;
+	String inputPlanStrategy;
 	
 	public RunnableRunSim(String[] args, MNetwork mNetwork, String initialRouteType,
-			String initialConfig, int lastIteration, boolean useFastSBahnModule, String ptRemoveScenario) {
+			String initialConfig, int lastIteration, boolean useFastSBahnModule, String ptRemoveScenario, String inputPlanStrategy) {
 		this.args = args;
 		this.mNetwork = mNetwork;
 		this.initialRouteType = initialRouteType;
@@ -50,6 +51,7 @@ public class RunnableRunSim implements Runnable {
 		this.lastIteration = lastIteration;
 		this.useFastSBahnModule = useFastSBahnModule;
 		this.ptRemoveScenario = ptRemoveScenario;
+		this.inputPlanStrategy = inputPlanStrategy;
 	}
 	
 	
@@ -73,9 +75,17 @@ public class RunnableRunSim implements Runnable {
 		String simulationPath = "zurich_1pm/Evolution/Population/"+this.mNetwork.networkID+"/Simulation_Output";
 		new File(simulationPath).mkdirs();
 		
-//		modConfig.getModules().get("plans").addParam("inputPlansFile", "Evolution/Population/"+this.mNetwork.networkID+"/Simulation_Output/output_plans.xml.gz");		
-		modConfig.getModules().get("plans").addParam("inputPlansFile", "Zurich_1pm_SimulationOutputEnriched/output_plans.xml.gz");		
-//      leave blank if want to use initial plans
+		
+		if (inputPlanStrategy.equals("default")) {
+			// no nothing with inputPlansFile
+			// leave blank if want to use initial plans
+		}
+		else if(inputPlanStrategy.equals("simEquil")) {
+			modConfig.getModules().get("plans").addParam("inputPlansFile", "Zurich_1pm_SimulationOutputEnriched/output_plans.xml.gz");					
+		}
+		else if(inputPlanStrategy.equals("lastPlan")) {
+			modConfig.getModules().get("plans").addParam("inputPlansFile", "Evolution/Population/"+this.mNetwork.networkID+"/Simulation_Output/output_plans.xml.gz");			
+		}
 		
 		modConfig.getModules().get("controler").addParam("outputDirectory", simulationPath);
 		modConfig.getModules().get("controler").addParam("overwriteFiles", "overwriteExistingFiles");

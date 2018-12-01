@@ -37,11 +37,14 @@ public class EvoOpsCrossover {
 		else if(inputScenario.equals("VC")) {
 			// VC scenario
 			if (currentGEN >= 50) {
-				pCrossOver = 0.04;
+				pCrossOver = 0.065;
 			}
 			if (currentGEN >= 75) {
+				pCrossOver = 0.045;
+			}
+			if (currentGEN >= 100) {
 				pCrossOver = 0.03;
-			}						
+			}
 		}
 
 		int nOldPop = newPopulation.networkMap.size();

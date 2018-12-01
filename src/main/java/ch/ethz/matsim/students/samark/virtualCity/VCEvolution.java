@@ -69,7 +69,8 @@ public class VCEvolution {
 		Boolean useFastSBahnModule = false;
 		Boolean varyInitRouteSize = false;
 		Boolean enableThreading = true;
-		Integer nThreads = 4;
+		Integer nThreads = 8;
+		String inputPlanStrategy = "simEquil";									// "default", "simEquil", "lastPlan" 
 		Boolean recallSimulation = false;
 		int generationToRecall = 999;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
@@ -139,7 +140,7 @@ public class VCEvolution {
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.06; 									// DEFAULT = 0.14
+		Double pCrossOver = 0.09; 									// DEFAULT = 0.14
 		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
 		Double maxConnectingDistance = 2000.0;
 		Boolean logEntireRoutes = false;
@@ -244,7 +245,8 @@ public class VCEvolution {
 				for (MNetwork mNetwork : latestPopulation.getNetworks().values()) {
 					if (latestPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())==false) {continue;}
 					mNetwork.evolutionGeneration = generationNr;
-					RunnableRunSim MATSimRunnable = new RunnableRunSim(args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule, ptRemoveScenario);
+					RunnableRunSim MATSimRunnable = new RunnableRunSim(
+							args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule, ptRemoveScenario, inputPlanStrategy);
 					executorService.execute(MATSimRunnable);
 				} // End Network Simulation Loop
 				executorService.shutdown();
@@ -258,7 +260,7 @@ public class VCEvolution {
 						continue;
 					}
 					mNetwork.evolutionGeneration = generationNr;
-					NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule, ptRemoveScenario);
+					NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule, ptRemoveScenario, inputPlanStrategy);
 				} // End Network Simulation Loop
 			}
 			Log.write("Completed all MATSim runs.");

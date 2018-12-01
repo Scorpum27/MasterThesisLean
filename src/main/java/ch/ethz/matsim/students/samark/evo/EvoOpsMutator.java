@@ -426,12 +426,12 @@ public class EvoOpsMutator {
 				}
 				else {
 					linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
-					Log.write("Failed to add extension before start link, but succeeded to add after end link.");
+					Log.write("Failed to add EXTENSION before start link, but SUCCEEDED to add after end link.");
 				}
 			}
 			else {
 				linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
-				Log.write("Succeeded to add extension before start link.");
+				Log.write("Succeeded to add EXTENSION before start link.");
 			}
 		}
 		else {  //	add on end link
@@ -445,12 +445,12 @@ public class EvoOpsMutator {
 				}
 				else {
 					linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
-					Log.write("Failed to add extension after end link, but succeeded to add before start link.");
+					Log.write("Failed to add EXTENSION after end link, but SUCCEEDED to add before start link.");
 				}
 			}
 			else {
 				linkListMutate = linkListMutateExtended;	// set linkListMutate (which will be returned) to be the new linkList
-				Log.write("Succeeded to add extension after end link.");
+				Log.write("Succeeded to add EXTENSION after end link.");
 			}
 		}
 	}

@@ -95,10 +95,11 @@ public class NetworkEvolution {
 		String ptRemoveScenario = args[12];										// "tram", "bus", "rail", "subway", "funicular"
 		Boolean useFastSBahnModule = false;
 		Boolean varyInitRouteSize = true;
-		Boolean enableThreading = true;
+		Boolean enableThreading = false;
 		Integer nThreads = 4;
-		Boolean recallSimulation = false;
-		int generationToRecall = 999;											// it is recommended to use the Generation before the one that failed in order
+		String inputPlanStrategy = "lastPlan";
+		Boolean recallSimulation = true;
+		int generationToRecall = 1;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
 		String inputScenario = "zurich";
 		Boolean extendMetroGrid = false;
@@ -267,7 +268,8 @@ public class NetworkEvolution {
 				for (MNetwork mNetwork : latestPopulation.getNetworks().values()) {
 					if (latestPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())==false) {continue;}
 					mNetwork.evolutionGeneration = generationNr;
-					RunnableRunSim MATSimRunnable = new RunnableRunSim(args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule, ptRemoveScenario);
+					RunnableRunSim MATSimRunnable = new RunnableRunSim(
+							args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule, ptRemoveScenario, inputPlanStrategy);
 					executorService.execute(MATSimRunnable);
 				} // End Network Simulation Loop
 				executorService.shutdown();
@@ -281,7 +283,7 @@ public class NetworkEvolution {
 						continue;
 					}
 					mNetwork.evolutionGeneration = generationNr;
-					NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule, ptRemoveScenario);
+					NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration, useFastSBahnModule, ptRemoveScenario, inputPlanStrategy);
 				} // End Network Simulation Loop
 			}
 			Log.write("Completed all MATSim runs.");
@@ -290,6 +292,10 @@ public class NetworkEvolution {
 			Log.write("EVENTS PROCESSING of GEN"+generationNr+"");
 			int lastEventIteration = lastIteration; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
 			MNetworkPop evoNetworksToProcess = latestPopulation;
+			
+			NetworkEvolutionRunSim.runEventsProcessingMetroOnly(evoNetworksToProcess, lastEventIteration,
+			globalNetwork, "zurich_1pm/Evolution/Population/", populationFactor);	
+			
 			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration, iterationsToAverage,
 					globalNetwork, "zurich_1pm/Evolution/Population/", populationFactor);
 
