@@ -1,15 +1,1266 @@
 package ch.ethz.matsim.students.samark;
 
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
+import java.awt.geom.Line2D;
+import java.awt.image.BufferedImage;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
+import java.io.PrintWriter;
+import java.net.URISyntaxException;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.Random;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
+import javax.imageio.ImageIO;
+import javax.xml.stream.XMLStreamException;
+
+import org.jfree.data.Range;
+import org.matsim.api.core.v01.Coord;
+import org.matsim.api.core.v01.Id;
+import org.matsim.api.core.v01.Scenario;
+import org.matsim.api.core.v01.network.Link;
+import org.matsim.api.core.v01.network.Network;
+import org.matsim.api.core.v01.network.Node;
+import org.matsim.core.api.experimental.events.EventsManager;
+import org.matsim.core.config.Config;
+import org.matsim.core.config.ConfigUtils;
+import org.matsim.core.events.EventsUtils;
+import org.matsim.core.events.MatsimEventsReader;
+import org.matsim.core.scenario.ScenarioUtils;
+import org.matsim.facilities.ActivityFacilities;
+import org.matsim.facilities.ActivityFacility;
+import org.matsim.facilities.ActivityOption;
+import org.matsim.facilities.FacilitiesWriter;
+import org.matsim.pt.transitSchedule.api.TransitStopFacility;
+
+import com.google.common.collect.Sets;
 
 public class Demo {
-	
-	public static void main(String[] args) throws IOException {
 
+	
+
+	
+	@SuppressWarnings("unchecked")
+	
+	public static Double timeCorrectedUtility(Integer lifeTime, Double discountFactor, List<Double> yearlyRevenueList) {
+		Double correctedUtility = 0.0;
+		for (Integer year=0; year<lifeTime; year++) {
+			correctedUtility += yearlyRevenueList.get(year)/Math.pow(1.013, year);
+		}
+		correctedUtility /= lifeTime;
+		return correctedUtility;
+	}
+	
+
+	
+	@SuppressWarnings("unchecked")
+	public static void main(String[] args) throws IOException, XMLStreamException, URISyntaxException {
+
+		
+//		List<TransitStopFacility> terminalFacilityCandidates = new ArrayList<TransitStopFacility>();
+//		Config tempConfig2 = ConfigUtils.createConfig();
+//		tempConfig2.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/Evolution/Population/BaseInfrastructure/4_MetroTerminalCandidateFacilities.xml");
+//		terminalFacilityCandidates.addAll(ScenarioUtils.loadScenario(tempConfig2).getTransitSchedule().getFacilities().values());
+//		System.out.println(terminalFacilityCandidates.subList(0, 10));
+		
+		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		
+		
+//		MNetworkPop latestPopulation = new MNetworkPop("evoNetworks");
+//		int initialRoutesPerNetwork = 80;
+//		int generationToRecall= 1;
+//		
+//		int n=1;
+//		MNetwork loadedNetwork = new MNetwork("Network"+n);
+//		latestPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
+//		Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
+//		for (int r=1; r<= 10*initialRoutesPerNetwork; r++) {
+//			String routeFilePath =
+//					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationToRecall+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
+//			File f = new File(routeFilePath);
+//			if (f.exists()) {
+//				MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+//				loadedNetwork.addNetworkRoute(loadedRoute);
+//				Log.write("Adding network route "+loadedRoute.routeID);
+//			}
+//		}
+//		latestPopulation.addNetwork(loadedNetwork);
+//		
+//		Config config = ConfigUtils.createConfig();
+//		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
+//		Scenario scenario = ScenarioUtils.loadScenario(config);
+//		Network globalNetwork = scenario.getNetwork();
+//		int lastIteration = 50;
+//		String networkPath = "zurich_1pm/Evolution/Population/";
+//		int populationFactor = 333;
+//		NetworkEvolutionRunSim.runEventsProcessingMetroOnly(latestPopulation, lastIteration, globalNetwork, networkPath, populationFactor);
+		
+		
+//		Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String,Double>();
+//		List<String> rankedRoutes = Arrays.asList("1","2","3","4","5","6","7","8","9","10");
+//		int N = rankedRoutes.size();
+//		for (int n=0; n<N; n++) {
+//			routeMutationProbabilitiesMap.put(rankedRoutes.get(n), 2.0*(n+1)/(N+1)*(N+1)/(2*N));
+//		}
+//		System.out.println(routeMutationProbabilitiesMap.toString());
+//		// %%% Speed SBahn
+
+//		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
+//		
+//		Integer n = 1;
+//		Integer generationNr = 1;
+//		Integer initialRoutesPerNetwork = 500;
+//		MNetwork loadedNetwork = new MNetwork("Network"+n);
+//		for (int r=1; r<=initialRoutesPerNetwork; r++) {
+//			String routeFilePath =
+//					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
+//			File f = new File(routeFilePath);
+//			if (f.exists()) {
+//				MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+//				loadedNetwork.addNetworkRoute(loadedRoute);
+//				Log.write("Adding network route "+loadedRoute.routeID);
+//			}
+//		}
+//		
+//		Metro_TransitScheduleImpl.SpeedSBahnModule(loadedNetwork, "MergedSchedule.xml", "MergedScheduleSpeedSBahn.xml");
+		
+//		// %%%
+//		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
+//		
+//		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+//		metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
+//		Config config = ConfigUtils.createConfig();
+//		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
+//		Network globalNetwork = ScenarioUtils.loadScenario(config).getNetwork();
+//
+//		MNetworkPop newPopulation = new MNetworkPop("testPopulation");
+//		Integer n = 1;
+//		Integer generationNr = 1;
+//		Integer initialRoutesPerNetwork = 10;
+//		MNetwork loadedNetwork = new MNetwork("Network"+n);
+//		newPopulation.addNetwork(loadedNetwork);
+//		newPopulation.modifiedNetworksInLastEvolution.add(loadedNetwork.networkID);
+//		Log.write("Added Network to ModifiedInLastGeneration = "+ loadedNetwork.networkID);
+////		for (int r : Arrays.asList(1, 2, 5)) {
+//		for (int r=1; r<=initialRoutesPerNetwork; r++) {
+//			String routeFilePath =
+//					"zurich_1pm/Evolution/Population/HistoryLog/Generation"+generationNr+"/MRoutes/"+loadedNetwork.networkID+"_Route"+r+"_RoutesFile.xml";
+//			File f = new File(routeFilePath);
+//			if (f.exists()) {
+//				MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+//				loadedNetwork.addNetworkRoute(loadedRoute);
+//				Log.write("Adding network route "+loadedRoute.routeID);
+//			}
+//		}
+//		
+//		Double maxConnectingDistance = 2000.0;
+//		Double maxCrossingAngle = 150.0;
+//		EvoOpsMerger.mergeRoutes(newPopulation, globalNetwork, maxConnectingDistance,
+//				metroLinkAttributes, "eliteNetwork", maxCrossingAngle);
+//	
+//		String historyFileLocation = "zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/MRoutes";
+//			NetworkEvolutionImpl.MRoutesToNetwork(loadedNetwork.getRouteMap(), globalNetwork, 
+//					Sets.newHashSet("pt"), historyFileLocation+"/MRoutesNetwork1MergedTest"+".xml");
+		
+		// %%% ---
+//		List<String> pair1 = Arrays.asList("1", "8");
+//		List<String> pair2 = Arrays.asList("1", "4");
+//		List<String> pair3 = Arrays.asList("8", "3");
+//		List<String> pair4 = Arrays.asList("2", "5");
+//		List<String> pair5 = Arrays.asList("6", "5");
+//		List<String> pair6 = Arrays.asList("7", "5");
+//		List<List<String>> crossedRoutePairs = Arrays.asList(pair1, pair2, pair3, pair4, pair5, pair6);
+//
+//		List<List<String>> autonomousMetroSubnetworks = new ArrayList<List<String>>();
+//		routesLoop:
+//		for (String route : Arrays.asList("1")) {
+//			for (List<String> subnetwork : autonomousMetroSubnetworks) {
+//				if (subnetwork.contains(route)) {
+//					continue routesLoop;	// is already in an autonomous subnetwork
+//				}
+//			}
+//			// if the route has not been identified in a subnetwork,
+//			// make a new subnetwork with this unassigned route and add all routes it has a connection to (digging search algorithm)!
+//			List<String> initialNetworkRouteList = new ArrayList<String>(Arrays.asList(route));
+//			List<String> newSubnetwork = EvoOpsMerger.getAllConnectedRoutes(initialNetworkRouteList, crossedRoutePairs);
+//			autonomousMetroSubnetworks.add(newSubnetwork);
+//		}
+//		System.out.println(autonomousMetroSubnetworks.toString());
+		
+		
+		// %%% ---
+//		List<String> r1linkList = Arrays.asList("0","1","2","3","4","5");
+//		String link1 = "5";
+//		System.out.println(r1linkList.subList(Math.min(r1linkList.size(),r1linkList.indexOf(link1)+1), r1linkList.size()));
+//		System.out.println(r1linkList.subList(0, Math.max(0,r1linkList.indexOf(link1))));
+//		System.out.println(r1linkList.subList(5, 5));
+
+		
+		// %%%---
+//		Integer lifeTime = 40;
+//		Double discountFactor = 1.013;
+//		List<Double> yearlyRevenue = new ArrayList<Double>();
+//		for (Integer year=0; year<lifeTime; year++) {
+//			Random r = new Random();
+//			yearlyRevenue.add(r.nextDouble()*100);
+//		}
+//		System.out.println(timeCorrectedUtility(lifeTime, discountFactor, yearlyRevenue));
+		
+		
+		// %%%---
+		
+//		String title = "Hello World";
+//		String xAxisName = "xAxis";
+//		String yAxisName = "yAxis";
+//		List<Map<Integer, Double>> inputSeries = new ArrayList<Map<Integer, Double>>();
+//		Map<Integer, Double> testMap1 = new HashMap<Integer, Double>();
+//		testMap1.put(1, 2.0);
+//		testMap1.put(3, -1.7);
+//		testMap1.put(4, 2.3);
+//		testMap1.put(8, 3.1);
+//		inputSeries.add(testMap1);
+//		Map<Integer, Double> testMap2 = new HashMap<Integer, Double>();
+//		testMap2.put(2, 1.0);
+//		testMap2.put(5, 1.2);
+//		testMap2.put(3, 2.5);
+//		testMap2.put(6, 1.7);
+//		inputSeries.add(testMap2);
+//		List<String> inputSeriesNames = Arrays.asList("DataSet1", "DataSet2");
+//		Double tickUnitX = 0.0;
+//		Double tickUnitY = 0.5;
+//		String outFileName = "multipleDataSetPlottingTest.png";
+//		
+//		Visualizer.plot2D(title, xAxisName, yAxisName, inputSeries, inputSeriesNames, tickUnitX, tickUnitY, new Range(-3.0, 5.0), outFileName);
+		
+		
+		// %%% multiplePlotter %%%
+		
+//		PrintWriter pwDefault = new PrintWriter("zurich_1pm/Evolution/Population/LogDefault.txt");	pwDefault.close();	// Prepare empty defaultLog file for run
+//		
+//		Config config = ConfigUtils.createConfig();
+//		config.getModules().get("network").addParam("inputNetworkFile", "ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/globalNetwork.xml");
+//		config.getModules().get("transit").addParam("transitScheduleFile","ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/MetroStopFacilities.xml");
+//		Scenario scenario = ScenarioUtils.loadScenario(config);
+//		Network globalNetwork = scenario.getNetwork();
+//		
+//		Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
+//		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(),
+//				"ForExport/21_stabilityTests/7smallerInitialRoutes/zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
+//		
+//		Integer n = 0;
+//		Integer x = 0;
+//		Log.write("#MetroStops = "+allMetroStops.size());
+//
+//		for (CustomStop stopAttr : allMetroStops.values()) {
+//			Log.write(stopAttr.transitStopFacility.getName());
+//			n++;
+////			Log.write("extraLog.txt", "Trying facility="+stopAttr.transitStopFacility.toString());
+//			// use this stopFacility if(terminal is within opening angle)|(in range of prior dist(cut2terminal)*2.5|*0.4)|(shortestPath available)
+//			Id<Node> stopNodeId = stopAttr.newNetworkNode;
+//			Log.write("StopNode = "+stopNodeId+"    n="+n);
+//			Node stopNode = globalNetwork.getNodes().get(stopNodeId);
+//			if (stopNode == null) {
+//				x++;
+//			}
+//			else {
+//				Double dist2newTerminal = GeomDistance.betweenNodes(stopNode, stopNode);
+//				Log.write("dist2newTerminal = "+dist2newTerminal);
+//			}
+//			
+//		}
+//		Log.write("x = "+x);
+
+		
+//		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
+//		pedigreeTree.addAll(XMLOps.readFromFile(pedigreeTree.getClass(), "ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+//		XMLOps.writeToFile(pedigreeTree, "ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTreeNew.xml");
+		
+//		Integer generationToRecall = 6;
+//		
+//		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
+//		File pedigreeTreeFile = new File("ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+//		if (pedigreeTreeFile.exists()) {
+//			pedigreeTree.addAll(XMLOps.readFromFile(pedigreeTree.getClass(),"ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+//			XMLOps.writeToFile(pedigreeTree, "ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+//			System.out.println("Type = "+pedigreeTree.getClass());
+//		}
+//		else {
+//			XMLOps.writeToFile(pedigreeTree,"ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+//		}
+//		if (pedigreeTree.size() > generationToRecall-1) {
+//			System.out.println("Old Size = "+pedigreeTree.size());
+//			pedigreeTree.removeAll(pedigreeTree.subList(generationToRecall-1, pedigreeTree.size()));
+//			System.out.println("New Size = "+pedigreeTree.size());
+//			XMLOps.writeToFile(pedigreeTree, "ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
+//		}
+//		else {
+//			XMLOps.writeToFile(pedigreeTree, "ForExport/21_stabilityTests/1default/zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");			
+//		}
+//		
+//		
+//		List<Map<String, String>> newPedigreeTree = new ArrayList<Map<String, String>>();
+//		pedigreeTree.addAll(0, XMLOps.readFromFile(newPedigreeTree.getClass(), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+		
+	    // (List<Map<String, String>>) 
+	    
+		// %%% draw images attempts
+		
+	    // g.drawImage(bgImage, 0, 0, this.getWidth(), this.getHeight(), null);
+//		List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
+//		Map<String, String> map = new HashMap<String, String>();
+//		map.put("a", "b");
+//		pedigreeTree.add(map);
+//		XMLOps.writeToFile(pedigreeTree, "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml");
+//		pedigreeTree.addAll(XMLOps.readFromFile(pedigreeTree.getClass(), "zurich_1pm/Evolution/Population/HistoryLog/pedigreeTree.xml"));
+//		System.out.println(pedigreeTree.toString());
+		
+		
+		
+		// %%% EVENTS PROCESSING
+//		MNetwork mNetwork = new MNetwork("Network1");
+//		String networkName = mNetwork.networkID;
+//		int lastIteration = 20;
+//		
+//		// read and handle events
+//		String eventsFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIteration+"/"+lastIteration+".events.xml.gz";			
+//		
+//		Config config = ConfigUtils.createConfig();
+//		config.getModules().get("transit").addParam("transitScheduleFile", "zurich_1pm/Evolution/Population/"+networkName+"/MergedSchedule.xml");
+//		TransitSchedule mergedTransitSchedule = ScenarioUtils.loadScenario(config).getTransitSchedule();
+//		
+//		MHandlerPassengers mPassengerHandler = new MHandlerPassengers();
+//		EventsManager eventsManager = EventsUtils.createEventsManager();
+//		eventsManager.addHandler(mPassengerHandler);
+//		MatsimEventsReader eventsReader = new MatsimEventsReader(eventsManager);
+//		eventsReader.readFile(eventsFile);
+//		
+//		double totalMetroPersonKM = 0.0;
+//
+//		for (Entry<String,Double> routeEntry : mPassengerHandler.routeDistances.entrySet()) {
+//			System.out.println(routeEntry.toString());
+//			totalMetroPersonKM += routeEntry.getValue();
+//			if (mNetwork.routeMap.containsKey(routeEntry.getKey())) {
+//				mNetwork.routeMap.get(routeEntry.getKey()).personMetroDist = routeEntry.getValue();
+//				System.out.println("Added distance to route "+routeEntry.getKey().toString());
+//			}
+//		}
+//
+//		mNetwork.personMetroDist = totalMetroPersonKM;
+//		mNetwork.nMetroUsers = mPassengerHandler.metroPassengers.size();
+//
+//		for (String s : mNetwork.routeMap.keySet()) {
+//			System.out.println(s);
+//		}
+		
+		// %%% PLANS PROCESSING
+		
+//			Integer lastIterationOriginal = 20;
+//		
+//			MNetwork mNetwork = new MNetwork("Network1");
+//			String networkName = mNetwork.networkID;
+//			String finalPlansFile = "zurich_1pm/Evolution/Population/"+networkName+"/Simulation_Output/ITERS/it."+lastIterationOriginal+"/"+lastIterationOriginal+".plans.xml.gz";
+//			Config newConfig = ConfigUtils.createConfig();
+//			newConfig.getModules().get("plans").addParam("inputPlansFile", finalPlansFile);
+//			Scenario newScenario = ScenarioUtils.loadScenario(newConfig);
+//			Population finalPlansPopulation = newScenario.getPopulation();
+//
+//			// Metro stats
+//			Integer metroUsers = 0;
+//
+//			Double addedTime = 0.0;
+//			for (Person person : finalPlansPopulation.getPersons().values()) {
+//				Boolean isMetroUser = false;
+//				Plan plan = person.getSelectedPlan();
+//				for (PlanElement element : plan.getPlanElements()) {
+//					if (element instanceof Leg) {
+//						Leg leg = (Leg) element;
+//						// do following two conditions to avoid unreasonably high (transit_)walk times!
+//						if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>7*60.0) {
+//							System.out.println("Too long TRANSIT_WALK = "+leg.getTravelTime());
+//							addedTime += leg.getTravelTime()-420.0;
+//							leg.setTravelTime(7*60.0);
+//						}
+//						if (leg.getMode().equals("walk") && leg.getTravelTime()>10*60.0) {
+//							System.out.println("Too long NORMAL_WALK = "+leg.getTravelTime());
+//							addedTime += leg.getTravelTime()-600.0;
+//							leg.setTravelTime(12*60.0);
+//						}
+//
+//						if (leg.getRoute().getRouteDescription() != null) {
+//							String routeDescription = leg.getRoute().getRouteDescription();
+//							if (routeDescription.contains(networkName) && routeDescription.contains("Route")) {
+//								isMetroUser = true;
+//							}
+//						}
+//					}
+//				}
+//				if (isMetroUser) {
+//					metroUsers++;
+//				}
+//			}
+//		System.out.println("metroUsers = "+metroUsers);
+		
+		// %%% Congestion
+		
+////		Congestion rise 33% by 2040; p.21
+////		is traffic decrease ratio
+////		Can cut car2pt-switchers-percentage (deltaKM/totKM) of stau
+//		Double currentCongestionTimeLoss = 51.0*3600;	// annual time loss [s/person]; Source: INRIX2017 =55*3600/365s/person/day = 542s/person/day = 9min/person/day
+//		Double futureCongestionTimeLoss = currentCongestionTimeLoss*1.33; // factor 1.33 for congestion in 2040
+//		Double congTimeSavingRatio = 0.02; //Math.sqrt(0.01);	// deltaKMcar/overallKMcar --> Use root to depict real life effects of congestion
+//		Double congTimeSavingsPerPerson = congTimeSavingRatio*futureCongestionTimeLoss;
+//		Double nCarUsersNow = 920000.0;
+//		Double nCarUsersFuture = 1.14*nCarUsersNow;		// 
+//		Double congTimeSaving = nCarUsersFuture*congTimeSavingsPerPerson;
+//		Double utilityOfTime = 23.32/3600; // CHF/s [car]
+//		Double congSavings = utilityOfTime*congTimeSaving;
+//		System.out.println(congSavings);
+		
+		
+		
+		// %%%%%%%%%%%%%%%%  FrequencyModificationModule Testing  %%%%%%%%%%%%%%%%%%%
+		
+//		double routeDisutilityLimit = -2;
+//		
+//		MRoute mr0 = new MRoute("0");
+//		mr0.vehiclesNr = 0;
+//		MRoute mr1 = new MRoute("2");
+//		mr1.vehiclesNr = 2;
+//		MRoute mr2 = new MRoute("4");
+//		mr2.vehiclesNr = 4;
+//		MRoute mr3 = new MRoute("6");
+//		mr3.vehiclesNr = 6;
+//		MRoute mr4 = new MRoute("8");
+//		mr4.vehiclesNr = 8;
+//		MRoute mr5 = new MRoute("10");
+//		mr5.vehiclesNr = 10;
+//		MNetwork mn = new MNetwork("mn1");
+//		mn.addNetworkRoute(mr5);
+////		mn.addNetworkRoute(mr4);
+////		mn.addNetworkRoute(mr3);
+////		mn.addNetworkRoute(mr2);
+////		mn.addNetworkRoute(mr1);
+////		mn.addNetworkRoute(mr0);
+//		
+//		boolean hasHadMutation = false;
+//		for (int n=0; n<40; n++) {
+//			
+//			Iterator<MRoute> mRouteIter = mn.routeMap.values().iterator();
+//			while (mRouteIter.hasNext()) {
+//				MRoute mRoute = mRouteIter.next();
+//				if ((new Random()).nextDouble() < 0.0) {
+//					mRoute.significantRouteModOccured = true;
+//				}
+//				mRoute.utilityBalance = -Math.abs(4.0 - mRoute.vehiclesNr);
+//				System.out.println("Route="+mRoute.routeID + " = " + mRoute.vehiclesNr);
+//				if ((new Random()).nextDouble() < Math.abs(1/mRoute.utilityBalance)) {
+//					mRoute.hasBeenShortened = true;
+//				}
+//				
+//				// Most important parameter is significantChangeOccured. Make sure this is false if you don't want to modify, especially for newly created Routes!
+//				// Use blockedFreqModGenerations to block modification for nGenerations
+//				if (mRoute.significantRouteModOccured.equals(true)) {	// if significant route change has occurred, forget history and make normal new freqModifications
+//					mRoute.significantRouteModOccured = false;
+//					mRoute.attemptedFrequencyModifications = new ArrayList<String>();	// clean attemptedModifications entirely and have a clean start.
+//					if (mRoute.utilityBalance > routeDisutilityLimit) {
+//						mRoute.probNextFreqModPositive = 0.75;
+//						hasHadMutation = mRoute.modifyFrequency(mRoute.probNextFreqModPositive);
+//					}
+//					else {
+//						mRoute.probNextFreqModPositive = 0.25;
+//						hasHadMutation = mRoute.modifyFrequency(mRoute.probNextFreqModPositive);					
+//					}
+//				}
+//				else {												// if no significant change has occurred,
+//					if (mRoute.blockedFreqModGenerations > 0) {		// continue if freqMod is still blocked
+//						mRoute.blockedFreqModGenerations--;
+//						continue;
+//					}
+//					else {											// if mRoute is free to modify again
+//						if (mRoute.freqModOccured.equals(true)) {	// if a specific frequencyMod has been set, apply such
+//							// this means last frequency modification is to be evaluated for improvement (because freqMod has occured and more dominant criteria
+//							// of significantRouteChangeOccured does not overrule prior changes)	
+//							if (mRoute.lastFreqMod.equals("none")) {
+//								Log.write("CAUTION: LastModification = none. Setting freqModOccured=false.");
+//								mRoute.lastFreqMod = "none";
+//							}
+//							else if (mRoute.utilityBalance > mRoute.lastUtilityBalance) {
+//								// keep modification and attempt another one in same direction in next move (maybe lock before doing so)
+//								// TODO delete markings in mRoute.xxx
+//								if (mRoute.lastFreqMod.equals("positive")) {
+//									mRoute.blockedFreqModGenerations = 0;
+//									mRoute.probNextFreqModPositive = 1.0;
+//									mRoute.attemptedFrequencyModifications = new ArrayList<String>();
+//									// keep freqModOccured = true
+//								}
+//								else if (mRoute.lastFreqMod.equals("negative")) {
+//									// Two options here to slow down route vehicle removing so that it doesn't die out too soon:
+//									// 1) block 0, but skip modification if route has not been shortened in the mean time
+//										mRoute.blockedFreqModGenerations = 0;
+//										if(mRoute.hasBeenShortened) {
+//											mRoute.hasBeenShortened = false;
+//											mRoute.attemptedFrequencyModifications = new ArrayList<String>();
+//											mRoute.probNextFreqModPositive = 0.0;											
+//										}
+//										else {
+//											mRoute.probNextFreqModPositive = -1.0;
+//										}
+////									// 2) block n(probably=1) generations, but don't have to wait for route to be shortened
+////										mRoute.blockedFreqModGenerations = 1;
+////										mRoute.probNextFreqModPositive = 0.0;
+////										mRoute.attemptedFrequencyModifications = new ArrayList<String>();									// ---
+//									// keep freqModOccured = true
+//								}
+//							}
+//							else { // undo modification and try opposite modification if not attempted already! If already attempted, set long blockage on freqMod of this route
+//								if (mRoute.lastFreqMod.equals("positive")) {
+//									mRoute.vehiclesNr--;														// undo positive vehicle change again
+//									hasHadMutation = true;
+//									if ( ! mRoute.attemptedFrequencyModifications.contains("negative")) {		// if haven't tried opposite modification yet
+//										mRoute.probNextFreqModPositive = 0.0;									// then try opposite modification
+//										mRoute.blockedFreqModGenerations = 0;									// try immediately
+//									}
+//									else {
+//										mRoute.attemptedFrequencyModifications = new ArrayList<String>();
+//										mRoute.probNextFreqModPositive = -1.0;									// if positive/negative have both been tried, set on hold
+//										mRoute.blockedFreqModGenerations = 5;									// this means new default freqMod will be applied in 5GENs
+//										mRoute.freqModOccured = false;
+//									}
+//								}
+//								else if (mRoute.lastFreqMod.equals("negative")) {
+//									mRoute.vehiclesNr++;
+//									hasHadMutation = true;
+//									if ( ! mRoute.attemptedFrequencyModifications.contains("positive")) {		// if haven't tried opposite modification yet
+//										mRoute.probNextFreqModPositive = 1.0;									// then try opposite modification
+//										mRoute.blockedFreqModGenerations = 0;									// try immediately
+//									}
+//									else {
+//										mRoute.attemptedFrequencyModifications = new ArrayList<String>();
+//										mRoute.probNextFreqModPositive = -1.0;									// if positive/negative have both been tried, set on hold
+//										mRoute.blockedFreqModGenerations = 5;									// this means new default freqMod will be applied in 5GENs
+//										mRoute.freqModOccured = false;
+//									}
+//								}
+//							}
+//							hasHadMutation = mRoute.modifyFrequency(mRoute.probNextFreqModPositive);
+//						}
+//						else{										// if nothing has been set go ahead and do the default freqModificationProcedure
+//							if (mRoute.utilityBalance > routeDisutilityLimit) {
+//								mRoute.probNextFreqModPositive = 0.75;
+//								hasHadMutation = mRoute.modifyFrequency(mRoute.probNextFreqModPositive);
+//							}
+//							else {
+//								mRoute.probNextFreqModPositive = 0.25;
+//								hasHadMutation = mRoute.modifyFrequency(mRoute.probNextFreqModPositive);						
+//							}
+//						}
+//					}
+//					
+//				}
+//				if (mRoute.vehiclesNr < 1) {
+//					Log.write("Oops, " + mRoute.routeID + " has died due to no more vehicles. Removing it from network.");
+//					mRouteIter.remove();
+//				}
+//			}
+//		}
+//		
+//		for (MRoute mr : mn.routeMap.values()) {
+//			System.out.println(mr.routeID + " = " + mr.vehiclesNr);
+//		}
+		
+		// %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+		
+//		MRoute mr1 = new MRoute("MRoute_1");
+//		MRoute mr2 = new MRoute("MRoute_2");
+//		MRoute mr3 = new MRoute("MRoute_3");
+//		MRoute mr4 = new MRoute("MRoute_4");
+//		mr1.constrCost = 10.0;
+//		mr1.opsCost = 10.0;
+//		mr1.personMetroDist = 20;
+//		mr2.constrCost = 20.0;
+//		mr2.opsCost = 13.0;
+//		mr2.personMetroDist = 10;
+//		mr3.constrCost = 20.0;
+//		mr3.opsCost = 1.0;
+//		mr3.personMetroDist = 20;
+//		mr4.constrCost = 10.0;
+//		mr4.opsCost = 10.0;
+//		mr4.personMetroDist = 20;
+//		MNetwork mn1 = new MNetwork("MNetwork1");
+//		mn1.addNetworkRoute(mr1);
+//		mn1.addNetworkRoute(mr2);
+//		mn1.addNetworkRoute(mr3);
+//		mn1.addNetworkRoute(mr4);
+
+		
+		// %%% insert this after a customLinkMap to get totalTraffic
+		
+//		Double totalTraffic = 0.0;
+//		double max = 0.0;
+//		Map<String, Double> traffics = new HashMap<String,Double>();
+//		for (CustomLinkAttributes cla : mergedLinks_mostFrequentInRadiusMainFacilitiesSet.values()) {
+//			if ( ! traffics.containsKey(Double.toString(cla.getTotalTraffic()))) {
+//				traffics.put(Double.toString(cla.getTotalTraffic()), 1.0);
+//			}
+//			else {
+//				traffics.put(Double.toString(cla.getTotalTraffic()), traffics.get(Double.toString(cla.getTotalTraffic()))+1.0);
+//			}
+////			Log.write("traffic.txt", Double.toString(cla.getTotalTraffic()));
+//			if (max < cla.getTotalTraffic()) {
+//				max = cla.getTotalTraffic();
+//			}
+//			totalTraffic += cla.getTotalTraffic();
+//		}
+//		Log.write("traffic.txt", "Average/Max traffic="+totalTraffic/mergedLinks_mostFrequentInRadiusMainFacilitiesSet.size()+"/"+max+" "
+//				+ "  at nLinks="+mergedLinks_mostFrequentInRadiusMainFacilitiesSet.size());
+//		Log.write("traffic.txt", traffics.toString());
+//		System.exit(0);
+		
+		
+		// %%% 
+		
+//		Map<String, Double> routeScoreMap = new HashMap<String, Double>();
+//		Map<String, Double> routeMutationProbabilitiesMap = new HashMap<String, Double>();
+//		for (MRoute mRoute : mn1.routeMap.values()) {
+//			routeScoreMap.put(mRoute.routeID, mRoute.personMetroDist/(mRoute.constrCost/mRoute.lifeTime+mRoute.opsCost));
+//		}
+//		List<String> rankedNetworks = EvoOpsMutator.sortRoutesByScore(routeScoreMap);	// highest first
+//		int N = routeScoreMap.size();
+//		for (int n=0; n<N; n++) {
+//			routeMutationProbabilitiesMap.put(rankedNetworks.get(n), 1-(N-n)/(N*(0.5*N+0.5))-(N-2.0)/N);
+//			// 1-p(n), because highest score should least likely be mutated
+//		}
+//		System.out.println(routeMutationProbabilitiesMap.toString());
+//		Iterator<Entry<String, MRoute>> mrouteIter = mn1.routeMap.entrySet().iterator();
+//		while (mrouteIter.hasNext()) {
+//			Entry<String, MRoute> mrouteEntry = mrouteIter.next();
+//			MRoute mRoute = mrouteEntry.getValue();
+//			Random rMutation = new Random();
+//			System.out.println("pMutation = "+rMutation.nextDouble());
+//			System.out.println("routeMutationProb = "+routeMutationProbabilitiesMap.get(mRoute.routeID));
+//			if (rMutation.nextDouble() < routeMutationProbabilitiesMap.get(mRoute.routeID)) { 	// make mutation of this route
+//				System.out.println("It worked ;-)");
+//			}
+//		}
+		
+		
+		
+		
+//		Map<String,Double> overallMap = new HashMap<String,Double>();
+//		overallMap.put("a", 1.00);
+//		overallMap.put("b", 1.50);
+//		overallMap.put("c", 1.50);
+//		overallMap.put("d", 2.00);
+//		overallMap.put("e", 0.00);
+//		Map<String,Double> rouletteMap = new HashMap<String,Double>();
+//
+//		double alpha = 1.3;
+//		
+//		int N = overallMap.size();
+//		double totalRouletteScore = 0.0;
+//		for (String networkName : overallMap.keySet()) {
+//			double value = Math.exp(alpha*overallMap.get(networkName));
+//			rouletteMap.put(networkName, value);
+//			totalRouletteScore += Math.exp(alpha*overallMap.get(networkName));	
+//		}
+//		for (Entry<String,Double> entry : rouletteMap.entrySet()) {
+//			System.out.println(entry.getKey().toString() + " = " + entry.getValue()/totalRouletteScore);
+//		}
+//		
+//		Random r = new Random();
+//		double rD = r.nextDouble();
+//		double attemptedProb = 0.0;
+//		for (String networkName : overallMap.keySet()) {
+//			if (attemptedProb/totalRouletteScore <= rD   &&   rD < (attemptedProb+rouletteMap.get(networkName))/totalRouletteScore) {
+//				System.out.println("Winner = "+networkName);
+//				break;
+//			}
+//			attemptedProb += rouletteMap.get(networkName);
+//		}
+		
+		
+//		List<String> rankedNetworks = Arrays.asList("1","2","3","4","5","6","7","8","9","10");
+//		int N = rankedNetworks.size();
+//		Random r = new Random();
+//		double rD = r.nextDouble();
+//		System.out.println("rD = "+rD);
+//		double attemptedProb = 0.0;
+//		for (int n=1; n<=N; n++) {
+//			System.out.println("attemptedProb = "+attemptedProb);
+//			System.out.println("n = "+n);
+//			if (attemptedProb <= rD   &&   rD < (attemptedProb+(N-n+1)/(N*(0.5*N+0.5)))) {
+//				System.out.println("We have a lucky winner: Nr="+rankedNetworks.get(n-1));
+//				break;
+//			}
+//			attemptedProb += (N-n+1)/(N*(0.5*N+0.5));
+//		}
+		
+		
+		
+		
+//			Set<String> allNetworks = new HashSet<String>();
+//			allNetworks.add("b");
+//			allNetworks.add("f");
+//			allNetworks.add("a");
+//			allNetworks.add("d");
+//			allNetworks.add("c");
+//			int n = 3;
+//			List<String> chosenNetworks = new ArrayList<String>();
+//			
+//			outerLoop:
+//			while(chosenNetworks.size()<n) {
+//				Random r = new Random();
+//				int index = r.nextInt(allNetworks.size());
+//				int i = 0;
+//				for (String network : allNetworks) {
+//					if (i == index) {
+//						if ( ! chosenNetworks.contains(network)) {
+//							chosenNetworks.add(network);
+//						}
+//						continue outerLoop;
+//					}
+//					i++;
+//				}
+//			}
+//			System.out.println(chosenNetworks);
+
+		
+		
+//		Map<String, Double> scoreMap = new HashMap<String, Double>();
+//		scoreMap.put("d", 4.0);
+//		scoreMap.put("a", 1.0);
+//		scoreMap.put("f", 6.0);
+//		scoreMap.put("b", 2.0);
+//		scoreMap.put("c", 3.0);
+//		scoreMap.put("e", 5.0);
+//		List<String> tournamentNetworks = new ArrayList<String>();
+//		tournamentNetworks.add("c");
+//		tournamentNetworks.add("f");
+//		tournamentNetworks.add("a");
+//		String winnerNetwork = tournamentNetworks.get(0);
+//		double max = scoreMap.get(tournamentNetworks.get(0));
+//		for (String network : tournamentNetworks) {
+//			if (scoreMap.get(network) > max) {
+//				winnerNetwork = network;
+//				max = scoreMap.get(network);
+//			}
+//		}
+//		System.out.println(winnerNetwork);
+		
+		
+//		Map<String, Double> scoreMap = new HashMap<String, Double>();
+//		scoreMap.put("d", 4.0);
+//		scoreMap.put("a", 1.0);
+//		scoreMap.put("f", 6.0);
+//		scoreMap.put("b", 2.0);
+//		scoreMap.put("c", 3.0);
+//		scoreMap.put("e", 5.0);
+//		System.out.println(scoreMap.toString());
+//		List<String> sortedNetworks = new ArrayList<String>();
+//		sortedNetworks.add("");	// do this just as a helper to start off with so that valueArray we compare to is not empty
+//		List<Double> sortedValues = new ArrayList<Double>();
+//		sortedValues.add(Double.MAX_VALUE);
+//		for (Entry<String,Double> entry : scoreMap.entrySet()) {
+//			System.out.println(sortedNetworks.toString());
+//			for (int index=0; index < sortedNetworks.size(); index++) {
+//				if (entry.getValue() < sortedValues.get(index)) {
+//					sortedNetworks.add(index, entry.getKey());
+//					sortedValues.add(index, entry.getValue());
+//					break;
+//				}
+//			}
+//		}
+//		sortedNetworks.remove(sortedNetworks.size()-1); // removing the "" entry at the end again.
+//		// sortedValues.remove(sortedValues.size()-1);
+//		System.out.println(sortedNetworks.toString());
+		
+		/*
+		Config czh = ConfigUtils.createConfig();
+		czh.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/CBA_Study/zurich_transit_schedule.xml");
+		czh.getModules().get("transit").addParam("vehiclesFile","zurich_1pm/CBA_Study/zurich_transit_vehicles.xml");
+		Scenario szh = ScenarioUtils.loadScenario(czh);
+		TransitSchedule schedulezh = szh.getTransitSchedule();
+		Vehicles vehicleszh = szh.getTransitVehicles();
+		
+		Config cme = ConfigUtils.createConfig();
+		cme.getModules().get("transit").addParam("transitScheduleFile","zurich_1pm/CBA_Study/MergedSchedule.xml");
+		cme.getModules().get("transit").addParam("vehiclesFile","zurich_1pm/CBA_Study/MergedVehicles.xml");		
+		Scenario sme = ScenarioUtils.loadScenario(czh);
+		TransitSchedule scheduleme = szh.getTransitSchedule();
+		Vehicles vehiclesme = szh.getTransitVehicles();
+		
+		Config c = ConfigUtils.createConfig();
+		Scenario s = ScenarioUtils.loadScenario(c);
+		TransitSchedule ts = s.getTransitSchedule();
+		Vehicles v = s.getTransitVehicles();
+		
+		for (Id<TransitLine> tl : scheduleme.getTransitLines().keySet()) {
+			if (schedulezh.getTransitLines().containsKey(tl)) {
+				ts.addTransitLine(scheduleme.getTransitLines().get(tl));
+			}
+		}
+		TransitScheduleWriter tsw = new TransitScheduleWriter(ts);
+		tsw.writeFile("zurich_1pm/CBA_Study/SubtractedSchedule.xml");
+		*/
+
+		
+		/*
+//		Config config = ConfigUtils.createConfig();
+//		int n = 20;
+//		//String plans = "C:\\Users\\Sascha\\eclipse-workspace\\MATSim-Workspace\\MasterThesis\\zurich_1pm\\Evolution\\Population\\Network1\\Simulation_Output\\ITERS\\it."+n;
+//		//config.getModules().get("plans").addParam("inputPlansFile", plans+"/"+n+".plans.xml.gz");
+//		String plans = "C:\\Users\\Sascha\\eclipse-workspace\\MATSim-Workspace\\MasterThesis\\zurich_1pm\\Zurich_1pm_SimulationOutput\\ITERS\\it.100\\100.plans.xml.gz";
+//		config.getModules().get("plans").addParam("inputPlansFile", plans);
+//		Scenario s = ScenarioUtils.loadScenario(config);
+//		
+//
+//		double totalPersons = 0.0;
+//		double ptPersons = 0.0;
+//		double carPersons = 0.0;
+//		double otherTravelTypePersons = 0.0;
+//		double carTime = 0.0;
+//		double carDist = 0.0;
+//		double ptTime = 0.0;
+//		double ptDist = 0.0;
+//		
+//		for (Person p : s.getPopulation().getPersons().values()) {
+//			boolean isPtTraveler = false;
+//			boolean isCarTraveler = false;
+//			totalPersons++;
+//			Plan selectedPlan = p.getSelectedPlan();
+//			for (PlanElement e : selectedPlan.getPlanElements()) {
+//				if (e instanceof Leg) {
+//					Leg leg = (Leg) e;
+//					if (leg.getMode().contains("car")) {
+//						carTime += leg.getTravelTime();
+//						carDist += leg.getRoute().getDistance();
+//						isCarTraveler = true;
+//					}
+//					if (leg.getMode().contains("pt") || leg.getMode().contains("access_walk") ||
+//							leg.getMode().contains("transit_walk") || leg.getMode().contains("egress_walk")) {
+//						ptTime += leg.getTravelTime();
+//						ptDist += leg.getRoute().getDistance();
+//						isPtTraveler = true;
+//					}
+//				}
+//			}
+//			if (isCarTraveler && isPtTraveler) {
+//				ptPersons += 0.5;
+//				carPersons += 0.5;
+//			}
+//			else if (isCarTraveler) {
+//				carPersons ++;
+//			}
+//			else if (isPtTraveler) {
+//				ptPersons ++;
+//			}
+//			else {
+//				otherTravelTypePersons ++;
+//			}
+//		}
+//		System.out.println("CarTravelers = "+carPersons);
+//		System.out.println("PtTravelers = "+ptPersons);
+//		System.out.println("OtherTypeTravelers = "+otherTravelTypePersons);
+//		System.out.println("Average CarTime [min] = "+carTime/60/carPersons);
+//		System.out.println("Average PtTime [min] = "+ptTime/60/ptPersons);
+//		System.out.println("Average CarDist [km] = "+carDist/1000/carPersons);
+//		System.out.println("Average PtDist [km] = "+ptDist/1000/ptPersons);
+		*/
+		
+		// test plans %%%%%%%%%%%%%%%%%%%%%
+		
+		/*List<Strings>
+        ExecutorService executor = Executors.newFixedThreadPool(4);
+		for (MNetwork mNetwork : latestPopulation.getNetworks().values()) {
+			if (latestPopulation.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())==false) {
+				// must not simulate this loop again, because it has not been changed in last evolution
+				// Comment this if lastIteration changes over evolutions !!
+				continue;
+			}
+			mNetwork.evolutionGeneration = generationNr;
+			String initialConfig = "zurich_1pm/zurich_config.xml";
+			MATSimRunnable matsimrunnable = new MATSimRunnable(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+			executor.execute(matsimrunnable);
+			NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+		} // End Network Simulation Loop
+        executor.shutdown();			        // Wait until all threads are finished
+        try {
+        	  executor.awaitTermination(180*60, TimeUnit.SECONDS);
+        	} catch (InterruptedException e) {
+        	  Log.writeAndDisplay(e.getMessage().toString());
+        }
+		Log.write("Completed all MATSim runs.");*/
+		
+		// another stream 
+		/*NetworkEvolutionImpl.saveCurrentMRoutes2HistoryLog(latestPopulation, generationNr, globalNetwork, storeScheduleInterval);			
+		
+		// - SIMULATION LOOP:
+	
+		Log.write("SIMULATION of GEN"+generationNr+": ("+lastIteration+" iterations)");
+		Log.write("  >> A modification has occured for networks: "+latestPopulation.modifiedNetworksInLastEvolution.toString());
+		final int tmpGen = generationNr;
+
+		ForkJoinPool fork.JoinPool = new ForkJoinPool(nrThreads);
+		forkJoinPool.submit(()-> plans.parallelStream().forEach(plan->getPlanAlgoInstance().run(plan)));
+		
+		final MNetworkPop tmpPop = latestPopulation;
+		final int tmpGen = generationNr;
+		ForkJoinPool forkJoinPool = new ForkJoinPool(4);
+		forkJoinPool.submit(()-> tmpPop.getNetworks().values().parallelStream().forEach(mNetwork -> {
+			mNetwork.evolutionGeneration = tmpGen;
+			String initialConfig = "zurich_1pm/zurich_config.xml";
+			try {
+				Log.write("Inside parallel MATSim loop of network " + mNetwork.networkID);
+			} catch (IOException e1) {
+				e1.printStackTrace();
+			}
+				try {
+					NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+				} catch (ConfigurationException | IOException e) {
+					e.printStackTrace();
+				}
+		}));
+		
+		---
+		latestPopulation.getNetworks().values().parallelstream().filter(mNetwork -> tmp.modifiedNetworksInLastEvolution.contains(mNetwork.getNetworkID())).forEach(mNetwork -> {
+//			if (==false) {
+//				// must not simulate this loop again, because it has not been changed in last evolution
+//				// Comment this if lastIteration changes over evolutions !!
+//				continue;
+//			}
+			mNetwork.evolutionGeneration = tmpGen;
+			String initialConfig = "zurich_1pm/zurich_config.xml";
+//			MATSimRunnable matsimrunnable = new MATSimRunnable(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+//			executor.execute(matsimrunnable);
+			// Alternative: (new ThreadMATSimRun(args, mNetwork, initialRouteType, initialConfig, lastIteration)).start();
+			try {
+				NetworkEvolutionRunSim.run(args, mNetwork, initialRouteType, initialConfig, lastIteration);
+			} catch (ConfigurationException | IOException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
+		}); 
+//		{
+//        executor.shutdown();			        // Wait until all threads are finished
+//		} // End Network Simulation Loop
+
+//        try {
+//        	  executor.awaitTermination(120*60, TimeUnit.SECONDS);
+//        	} catch (InterruptedException e) {
+//        	  Log.writeAndDisplay(e.getMessage().toString());
+//        	}
+		Log.write("Completed all MATSim runs.");
+		*/
+		
+		
+		/*Config c2 = ConfigUtils.createConfig();
+		c2.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/TotalMetroNetwork.xml");
+		Network metroNetwork = ScenarioUtils.loadScenario(c2).getNetwork();
+		
+		MRoute mr = XMLOps.readFromFile(MRoute.class, "zurich_1pm/Evolution/Population/HistoryLog/Generation2/MRoutes/Network2_Route2_RoutesFile.xml");
+		List<Id<Link>> linkList = NetworkEvolutionImpl.NetworkRoute2LinkIdList(mr.networkRoute);
+		System.out.println("LinkList = "+linkList.toString());
+		
+		List<Link> links = new ArrayList<Link>();
+		for (Id<Link> linkId : linkList) {
+			links.add(metroNetwork.getLinks().get(linkId));
+		}
+		
+		Link lastLink = links.get(0);
+		for (Link thisLink : links.subList(1, links.size())) {
+			System.out.println(GeomDistance.angleBetweenLinks(lastLink, thisLink) + "     LastLink="+lastLink.getId().toString());
+			lastLink = thisLink;
+		}
+		
+		
+//		List<String> strings = new LinkedList<>();
+//		strings.stream().parallel().forEach(string -> {
+//			
+//		});
+		*/
+		
+		
+		
+		/*Map<String, CustomStop> allMetroStops = new HashMap<String, CustomStop>();
+		allMetroStops.putAll(XMLOps.readFromFile(allMetroStops.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroStopAttributes.xml"));
+		
+		Config c1 = ConfigUtils.createConfig();
+		c1.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/GlobalNetwork.xml");
+		Network globalNetwork = ScenarioUtils.loadScenario(c1).getNetwork();
+		Config c2 = ConfigUtils.createConfig();
+		c2.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/TotalMetroNetwork.xml");
+		Network metroNetwork = ScenarioUtils.loadScenario(c2).getNetwork();
+		
+		for (CustomStop cs : allMetroStops.values()) {
+			if (globalNetwork.getNodes().containsKey(cs.newNetworkNode)==false) {
+				Log.write("testLogNodes.txt","GlobalNetwork does not contain the node "+cs.newNetworkNode.toString() + " referenced by facility " + cs.transitStopFacility.getName());
+			}
+			if (metroNetwork.getNodes().containsKey(cs.newNetworkNode)==false) {
+				Log.write("testLogNodes.txt","MetroNetwork does not contain the node "+cs.newNetworkNode.toString() + " referenced by facility " + cs.transitStopFacility.getName());
+			}
+		}*/
+		
+		
+		/*
+		MRoute mr = new MRoute("mRoute1äöü");
+		MNetwork mn = new MNetwork("mNetwork1äöü");
+		mn.network = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+		MNetworkPop mnp = new MNetworkPop("mNetworkPop1äöü");
+		mn.addNetworkRoute(mr);
+		mnp.addNetwork(mn);
+		
+		CustomMetroLinkAttributes cmla = new CustomMetroLinkAttributes("testLinkäöü", Id.createLinkId("originalLinkId"));
+		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAtt = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+		metroLinkAtt.put(Id.createLinkId("testLinkId"), cmla);
+		
+		XMLOps.writeToFile(metroLinkAtt, "metroLinkAtt.xml");
+		XMLOps.writeToFileMNetwork(mn, "mn.xml");
+		XMLOps.writeToFileMNetworkPop(mnp, "mnp.xml");
+		
+		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAtt2 = XMLOps.readFromFile(metroLinkAtt.getClass(), "metroLinkAtt.xml");
+		MNetwork mn2 = XMLOps.readFromFileMNetwork("mn.xml");
+		MNetworkPop mnp2 = XMLOps.readFromFileMNetworkPop("mnp.xml");
+		
+		System.out.println(metroLinkAtt2.get(Id.createLinkId("testLinkId")).type.toString());
+		System.out.println(mn2.networkID);
+		System.out.println(mnp2.populationId);*/
+		
+		
+		// DISPLAY TIME
+//        Calendar cal = Calendar.getInstance();
+//        SimpleDateFormat sdf = new SimpleDateFormat("HH:mm:ss");
+//        System.out.println( (new SimpleDateFormat("HH:mm:ss")).format(Calendar.getInstance().getTime()) );
+		
+		// RUNNABLE
+		
+		/*
+		System.out.println("Inside : " + Thread.currentThread().getName());
+		int i = 2;
+        System.out.println("Creating Runnable...");
+        Runnable runnable = new Runnable() {
+            @Override
+            public void run() {
+                System.out.println("Inside : " + Thread.currentThread().getName());
+            }
+        };
+
+        System.out.println("Creating Thread...");
+        Thread thread = new Thread(runnable);
+
+        System.out.println("Starting Thread...");
+        thread.start();*/
+        
+		
+		// EVOLUTIONARY PROCESS
+		/*Config config = ConfigUtils.createConfig();
+		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/TotalMetroNetwork.xml");
+		Scenario scenario = ScenarioUtils.loadScenario(config);
+		Network globalNetwork = scenario.getNetwork();
+		
+		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
+		metroLinkAttributes = XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/MetroLinkAttributes.xml");
+
+		for (Id<Link> linkid : globalNetwork.getLinks().keySet()) {
+			System.out.println(linkid.toString());
+			if (metroLinkAttributes.get(linkid) == null) {
+				System.out.println("Cannot find this linkId in metroLinkAttributes!");
+				break;
+			}
+			TransitStopFacility tsf = NetworkEvolutionImpl.searchStopFacilitiesOnLink(metroLinkAttributes, globalNetwork.getLinks().get(linkid));
+			if (tsf == null) {
+				System.out.println("No facility found on link="+linkid.toString());
+			}
+			else {
+				System.out.println("Stop facility=" + tsf.getName());
+			}
+		}*/
+		
+//		System.out.println(Charset.defaultCharset().toString());
+		
+//		int generationNr = 2;
+//		int storeScheduleInterval = 1;
+//		if ((generationNr % storeScheduleInterval) == 0) {
+//			File sourceSchedule = new File("zurich_1pm/Evolution/Population/MergedSchedule.xml");
+//			File destSchedule = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/Network1/MergedSchedule.xml");
+//			File sourceVehicles = new File("zurich_1pm/Evolution/Population/MergedVehicles.xml");
+//			File destVehicles = new File("zurich_1pm/Evolution/Population/HistoryLog/Generation"+(generationNr)+"/Network1/MergedVehicles.xml");		
+//			try {
+//			    FileUtils.copyFile(sourceSchedule, destSchedule);
+//			    FileUtils.copyFile(sourceVehicles, destVehicles);
+//			} catch (IOException e) {
+//			    e.printStackTrace();
+//			}
+//		}
+		
+//		System.out.println((4%3));
+		
+//		MNetwork loadedNetwork = new MNetwork("Network1");
+//		String routeFilePath = "zurich_1pm/Evolution/Population/HistoryLog/Generation3/MRoutes/Network1_Route1_RoutesFile.xml";
+//		MRoute loadedRoute = XMLOps.readFromFile(MRoute.class, routeFilePath);
+//		for (TransitRoute tr : loadedRoute.transitLine.getRoutes().values()) {
+//			for (TransitRouteStop trs : tr.getStops()) {
+//				System.out.println(trs.getStopFacility().getName());
+//			}
+//		}
+//		System.out.println(loadedRoute.routeID);
+//		
+//		XMLInputFactory factory = XMLInputFactory.newInstance();
+//		loadedRoute = (MRoute) factory.createXMLStreamReader(new FileInputStream(routeFilePath));
+//		System.out.println(loadedRoute.routeID);
+
+		
+		
+	// String splitting trials:
+	
+		/*String s1 = " he.l,-/__//\\'.-'\\,lo-,";
+		String s2 = NetworkEvolutionImpl.removeSpecialChar(s1);
+		String s3 = NetworkEvolutionImpl.removeStrings(s1, Arrays.asList("_","-",","," ",".","'"));
+		System.out.println(s2);*/
+		
+		
+	// Merging network trials:
+
+//		System.out.println(NetworkEvolutionImpl.removeString(s1, "."));
+
+//		Network nw1 = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+//		NetworkFactory nwf1 = nw1.getFactory();
+//		Node a1 = nwf1.createNode(Id.createNodeId("a1"), new Coord(0.0, 0.0));
+//		Node a2 = nwf1.createNode(Id.createNodeId("a2"), new Coord(1.0, 0.0));
+//		Link l1 = nwf1.createLink(Id.createLinkId("l1"), a1, a2);
+//		nw1.addNode(a1);
+//		nw1.addNode(a2);
+//		nw1.addLink(l1);
+//
+//		Network nw2 = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+//		NetworkFactory nwf2 = nw2.getFactory();
+//		Node a3 = nwf2.createNode(Id.createNodeId("a3"), new Coord(-1.0, 0.0));
+//		Node a4 = nwf2.createNode(Id.createNodeId("a1"), new Coord(0.0, 0.0));
+//		Node a5 = nwf2.createNode(Id.createNodeId("a5"), new Coord(0.0, 1.0));
+//		Link l2 = nwf2.createLink(Id.createLinkId("l2"), a4, a5);
+//		Link l3 = nwf2.createLink(Id.createLinkId("l3"), a4, a3);
+//		nw2.addNode(a3);
+//		nw2.addNode(a4);
+//		nw2.addNode(a5);
+//		nw2.addLink(l2);
+//		nw2.addLink(l3);
+//		
+//		Network nw4 = Metro_NetworkImpl.mergeNetworks(nw1, nw2, null);
+//		Network nw3 = NetworkEvolutionImpl.mergeNetworksX(nw1, nw2);
+//		for (Node node : nw3.getNodes().values()) {
+//			System.out.println(node);
+//		}
+//		for (Link link : nw3.getLinks().values()) {
+//			System.out.println(link);
+//			System.out.println("FromNode = "+link.getFromNode());
+//			System.out.println("ToNode = "+link.getToNode());
+//		}
+		
+		
+	// ApplyFrequencyModification --> Explanation:
+			// Error happened because last and second last route were deleted in the same top loop, while their place was not deleted in perf order.
+			// Lower loop than took elements from perfOrderList and tried to find in routesMap. However, they had already been deleted --> NullPointerException
+		
+		
+		/*PrintWriter pw = new PrintWriter("demoLog.txt");	pw.close();		// Prepare empty log file for run
+		
+		MNetworkPop pop = new MNetworkPop("evoNetworks");
+		MNetwork mn1 = new MNetwork("Network1");
+		pop.addNetwork(mn1);
+		MRoute mr1 = new MRoute("Network1_Route1");
+		MRoute mr2 = new MRoute("Network1_Route2");
+		MRoute mr3 = new MRoute("Network1_Route3");
+		MRoute mr4 = new MRoute("Network1_Route4");
+		MRoute mr5 = new MRoute("Network1_Route5");
+		mn1.addNetworkRoute(mr1);
+		mn1.addNetworkRoute(mr2);
+		mn1.addNetworkRoute(mr3);
+		mn1.addNetworkRoute(mr4);
+		mn1.addNetworkRoute(mr5);
+		mr1.personMetroKM = 1;
+		mr1.drivenKM = 1;
+		mr1.vehiclesNr = 1;
+		mr2.personMetroKM = 2;
+		mr2.drivenKM = 1;
+		mr2.vehiclesNr = 1;
+		mr3.personMetroKM = 3;
+		mr3.drivenKM = 1;
+		mr3.vehiclesNr = 1;
+		mr4.personMetroKM = 4;
+		mr4.drivenKM = 1;
+		mr4.vehiclesNr = 1;
+		mr5.personMetroKM = 5;
+		mr5.drivenKM = 1;
+		mr5.vehiclesNr = 1;
+		
+		for (int i=0; i<30; i++) {
+			Log.write("demoLog.txt","ITER = "+i);
+			for(MNetwork mn : pop.networkMap.values()) {
+				Map<String, Double> routePerformances = new HashMap<String, Double>();
+				for (MRoute mr : mn.routeMap.values()) {
+					Log.write("demoLog.txt","ROUTE = "+mr.routeID);
+					routePerformances.put(mr.routeID, mr.personMetroKM/mr.drivenKM);
+				}
+				List<String> routePerformanceOrder = NetworkEvolutionImpl.sortMapByValueScore(routePerformances);
+				Log.write("demoLog.txt","RouteMapSize="+routePerformanceOrder.size()+"  -->PerformanceOrder="+routePerformanceOrder.toString());
+				if (mn.routeMap.size()>3) {
+					Log.write("demoLog.txt","1st loop shift with SIZE="+routePerformanceOrder.size());
+					Random r1 = new Random();
+					Random r2 = new Random();
+					if (r1.nextDouble() < 0.67) {
+						Log.write("demoLog.txt","Shifting one vehicle from weakest " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " to strongest " + routePerformanceOrder.get(0));
+						mn.routeMap.get(routePerformanceOrder.get(0)).vehiclesNr++;
+						mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr--;
+						if (mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr < 1) {
+							Log.write("Oops, " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " has died due to no more vehicles");
+							mn.routeMap.remove(routePerformanceOrder.get(routePerformanceOrder.size()-1));
+						}
+					}
+					if (r2.nextDouble() < 1.00) {//0.33) {
+						Log.write("demoLog.txt","Shifting one vehicle from second weakest " + routePerformanceOrder.get(routePerformanceOrder.size()-2) + " to second strongest" + routePerformanceOrder.get(1));
+						mn.routeMap.get(routePerformanceOrder.get(1)).vehiclesNr++;
+						mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-2)).vehiclesNr--;
+						if (mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-2)).vehiclesNr < 1) {
+							Log.write("demoLog.txt","Oops, " + routePerformanceOrder.get(routePerformanceOrder.size()-2) + " has died due to no more vehicles");
+							mn.routeMap.remove(routePerformanceOrder.get(routePerformanceOrder.size()-2));
+						}
+					}
+				}
+				if ( 4 > mn.routeMap.size() && mn.routeMap.size() > 1 ) {
+					Random r1 = new Random();
+					if (r1.nextDouble() < 0.67) {
+						Log.write("demoLog.txt","2nd loop shift with SIZE="+routePerformanceOrder.size());
+						// Log.write("Shifting one vehicle from weakest " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " to strongest " + routePerformanceOrder.get(0));
+						mn.routeMap.get(routePerformanceOrder.get(0)).vehiclesNr++;
+						mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr--;
+						if (mn.routeMap.get(routePerformanceOrder.get(routePerformanceOrder.size()-1)).vehiclesNr < 1) {
+							Log.write("demoLog.txt","   >> Oops, " + routePerformanceOrder.get(routePerformanceOrder.size()-1) + " has died due to no more vehicles");
+							mn.routeMap.remove(routePerformanceOrder.get(routePerformanceOrder.size()-1));
+						}
+					}
+				}
+			}
+		}*/
+		
+		
 	// Event reading
+
+//		System.out.println(NetworkEvolutionImpl.removeString("hello", "l"));
+//		Network nw = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
+//		NetworkFactory nf = nw.getFactory();
+//		nf.createLink(Id.createLinkId("testLink"), null, null);
 		
 		
 	// Extracting S-Bahn stops in ZH

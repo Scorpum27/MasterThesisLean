@@ -2,6 +2,11 @@ package ch.ethz.matsim.students.samark;
 
 import java.io.FileWriter;
 import java.io.IOException;
+import java.nio.charset.Charset;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.logging.FileHandler;
 import java.util.logging.Logger;
 import java.util.logging.SimpleFormatter;
@@ -9,10 +14,15 @@ import java.util.logging.SimpleFormatter;
 public class Log {
 
 	//This does not work: protected static String defaultLogFile = "C:Users/Sascha/eclipse-workspace/MATSim-Workspace/MasterThesis/zurich_1pm/Evolution/Population/PopulationEvolutionLog.txt";
-	protected static String defaultLogFile = "zurich_1pm/Evolution/Population/PopulationEvolutionLog.txt";
-
+	protected static String defaultLogFile = "zurich_1pm/Evolution/Population/LogDefault.txt";
+	protected static String defaultEvoLogFile = "zurich_1pm/Evolution/Population/LogEvo.txt";
+	
 	public static void write(String comment) throws IOException {
 		write(defaultLogFile, comment);
+	}
+
+	public static void writeEvo(String comment) throws IOException {
+		write(defaultEvoLogFile, comment);
 	}
 	
 	public static void writeAndDisplay(String comment) throws IOException {
@@ -29,7 +39,7 @@ public class Log {
 
 		FileWriter aWriter = new FileWriter(f, true);
 		// aWriter.write(currentTime + " " + s + "\n");
-		aWriter.write(comment + "\r\n");
+		aWriter.write((new SimpleDateFormat("HH:mm:ss")).format(Calendar.getInstance().getTime()) + " |  " + comment + "\r\n");
 		aWriter.flush();
 		aWriter.close();
 	}
@@ -70,5 +80,12 @@ public class Log {
 	public static void writeSameLine(String comment) throws IOException {
 		writeSameLine(defaultLogFile, comment);
 	}
+	
+	public static String readFile(String path, Charset encoding) 
+			  throws IOException 
+			{
+			  byte[] encoded = Files.readAllBytes(Paths.get(path));
+			  return new String(encoded, encoding);
+			}
 
 }

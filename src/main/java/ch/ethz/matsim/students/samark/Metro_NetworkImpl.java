@@ -442,7 +442,7 @@ public class Metro_NetworkImpl {
 		List<Id<Link>> linkList = new ArrayList<Id<Link>>(nodeList.size() - 1);
 		for (int n = 0; n < (nodeList.size() - 1); n++) {
 			for (Link l : nodeList.get(n).getOutLinks().values()) {
-				if (l.getToNode() == nodeList.get(n + 1)) {
+				if (l.getToNode().getId().equals(nodeList.get(n + 1).getId())) {
 					linkList.add(l.getId());
 				}
 			}
@@ -469,33 +469,10 @@ public class Metro_NetworkImpl {
 		return linkList;
 	}
 
-	public static Network copyNetworkToNetwork(Network fromNetwork, Network toNetwork, Set<String> transportModes) {
-		NetworkFactory networkFactory = toNetwork.getFactory();
-		// connectingLinkToToNode.setAllowedModes(transportModes);
-		for (Link link : fromNetwork.getLinks().values()) {
-			Node tempFromNode = networkFactory.createNode(Id.createNodeId(link.getFromNode().getId()), link.getFromNode().getCoord());
-			Node tempToNode = networkFactory.createNode(Id.createNodeId(link.getToNode().getId()), link.getToNode().getCoord());
-			Link tempLink = networkFactory.createLink(Id.createLinkId(link.getId()), tempFromNode, tempToNode);
-			
-			if (transportModes == null) {
-				tempLink.setAllowedModes(link.getAllowedModes());				
-			}
-			else {
-				tempLink.setAllowedModes(transportModes);
-			}
-			if (toNetwork.getNodes().keySet().contains(tempFromNode.getId())==false) {
-				toNetwork.addNode(tempFromNode);
-			}
-			if (toNetwork.getNodes().keySet().contains(tempToNode.getId())==false) {
-				toNetwork.addNode(tempToNode);
-			}
-			if (toNetwork.getLinks().keySet().contains(tempLink.getId())==false) {
-				toNetwork.addLink(tempLink);
-			}
-		}
-		
-		return toNetwork;
-	}
+	
+	
+
+	
 	
 	public static void createNetworkFromCustomLinks(Map<Id<Link>,CustomLinkAttributes> customLinkMap, Network oldNetwork, String linksString) {
 		// public static void createNetworkFromCustomLinks(Map<Id<Link>,CustomLinkAttributes> customLinkMap, Network oldNetwork, String linksString, String facilityNodesString) {	

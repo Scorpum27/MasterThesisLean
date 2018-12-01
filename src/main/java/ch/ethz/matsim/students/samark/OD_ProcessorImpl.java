@@ -175,14 +175,15 @@ public class OD_ProcessorImpl {
 						Node originNode = findClosestNode(originCoord, metroNetwork);
 						Node destinationNode = findClosestNode(destinationCoord, metroNetwork);
 						//
-						ArrayList<Node> nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(metroNetwork, originNode.getId(), destinationNode.getId());
+						//ArrayList<Node> nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(metroNetwork, originNode.getId(), destinationNode.getId());
+						ArrayList<Node> nodeList = (ArrayList<Node>) DemoDijkstra.calculateShortestPath(metroNetwork, originNode.getId(), destinationNode.getId());
 						if (nodeList == null) {
 								//System.out.println("Oops, no shortest path available. Trying to create next networkRoute. Please lower minTerminalDistance"
 								//		+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
 								continue;
 						}
-						else {
-							//System.out.println("Shortest Path found :-)");
+						else if (nodeList.size() < 2){
+							continue;
 						}
 						List<Id<Link>> originalLinkList = Metro_NetworkImpl.nodeListToNetworkLinkList(metroNetwork, nodeList);	// this is the new route candidate;						
 						for (Id<Link> thisLinkId : originalLinkList) {
@@ -272,7 +273,7 @@ public class OD_ProcessorImpl {
 				}
 			} 
 			loopCounter++;
-		}while((changeListener == true || odRoutesValues.values().contains(0.0)) && loopCounter < 200);				// while either a new better OD pair could be added,
+		}while((changeListener == true || odRoutesValues.values().contains(0.0)) && loopCounter < 100);				// while either a new better OD pair could be added,
 																													// a new overlap or extension was found or
 																													// bestRouteMaps still has a blank space with value 0.0
 		if (odRoutes.size() != nRoutes) {
@@ -314,7 +315,7 @@ public class OD_ProcessorImpl {
 	
 	public static Id<Link> ReverseLink(Id<Link> linkId){
 		String[] linkIdStrings = linkId.toString().split("_");
-		Id<Link> reverseId = Id.createLinkId("MetroNodeLinkRef_"+linkIdStrings[3]+"_MetroNodeLinkRef_"+linkIdStrings[1]);
+		Id<Link> reverseId = Id.createLinkId(linkIdStrings[1]+"_"+linkIdStrings[0]);
 		return reverseId;
 	}
 	

@@ -1,10 +1,13 @@
 package ch.ethz.matsim.students.samark;
 
+import java.io.File;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Random;
 import java.util.Set;
 
 import org.matsim.api.core.v01.Id;
@@ -92,15 +95,27 @@ public class Clone {
 		if(o.linkList != null) {
 			copy.linkList = Clone.linkList(o.linkList);
 		}
+		if(o.facilityBlockedLinks != null) {
+			copy.facilityBlockedLinks = Clone.linkList(o.facilityBlockedLinks);
+		}
 		if(o.transitLine != null) {
 			copy.transitLine = Clone.transitLine(o.transitLine, ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule().getFactory());
 		}
+		copy.lastUtilityBalance = o.lastUtilityBalance;
+		copy.attemptedFrequencyModifications = o.attemptedFrequencyModifications;
+		copy.blockedFreqModGenerations = o.blockedFreqModGenerations;
+		copy.freqModOccured = o.freqModOccured;
+		copy.significantRouteModOccured = o.significantRouteModOccured;
+		copy.lastFreqMod = o.lastFreqMod;
+		copy.probNextFreqModPositive = o.probNextFreqModPositive;
+		
 		copy.routeLength = o.routeLength;
 		copy.vehiclesNr = o.vehiclesNr;
+		copy.lifeTime = o.lifeTime;
 		
 		copy.eventsFile = o.eventsFile;
 		copy.nBoardings = o.nBoardings;
-		copy.personMetroKM = o.personMetroKM;
+		copy.personMetroDist = o.personMetroDist;
 		
 		copy.nDepartures = o.nDepartures;
 		copy.departureSpacing = o.departureSpacing;
@@ -108,10 +123,18 @@ public class Clone {
 		copy.lastDeparture = o.lastDeparture;
 		copy.roundtripTravelTime = o.roundtripTravelTime;
 		copy.transitScheduleFile = o.transitScheduleFile;
-		copy.drivenKM = o.drivenKM;
+		copy.totalDrivenDist = o.totalDrivenDist;
+		copy.nStationsExtend = o.nStationsExtend;
+		copy.nStationsNew = o.nStationsNew;
 		copy.opsCost = o.opsCost;
 		copy.constrCost = o.constrCost;
+		copy.utilityBalance = o.utilityBalance;
 		copy.undergroundPercentage = o.undergroundPercentage;
+		copy.NewUGpercentage = o.NewUGpercentage;
+		copy.DevelopUGPercentage = o.DevelopUGPercentage;
+		copy.NewOGpercentage = o.NewOGpercentage;
+		copy.EquipOGPercentage = o.EquipOGPercentage;
+		copy.DevelopOGPercentage = o.DevelopOGPercentage;
 		return copy;
 	}
 	
@@ -128,15 +151,19 @@ public class Clone {
 	
 	public static TransitStopFacility transitStopFacility(TransitStopFacility o, TransitScheduleFactory tsf) {
 		TransitStopFacility copy = tsf.createTransitStopFacility(o.getId(), o.getCoord(), o.getIsBlockingLane());
+		copy.setLinkId(o.getLinkId());
+		copy.setName(o.getName());
+		copy.setStopAreaId(o.getStopAreaId());
 		return copy;
 	}
 
 	public static TransitLine transitLine(TransitLine o, TransitScheduleFactory tsf) {
 		TransitLine copy = tsf.createTransitLine(o.getId());
+		copy.setName(o.getName());
 		for (Id<TransitRoute> tr : o.getRoutes().keySet()) {
 			TransitRoute TR = o.getRoutes().get(tr);
 			TransitRoute TRR = tsf.createTransitRoute(tr, TR.getRoute().clone(), Clone.list(TR.getStops()), TR.getTransportMode());
-			for (Departure d : TR.getDepartures().values()){				
+			for (Departure d : TR.getDepartures().values()){ 			// DEFAULT MODULE
 				TRR.addDeparture(d);
 			}
 			copy.addRoute(TRR);
@@ -184,24 +211,34 @@ public class Clone {
 		copy.networkID = o.networkID;
 		copy.routeMap = Clone.mRouteMap(o.routeMap);
 		copy.totalRouteLength = o.totalRouteLength;			// calculate from individual route lengths (one-way only) 
+		copy.lifeTime = o.lifeTime;
 		//copy.transitSchedule = o.transitSchedule;
 		//copy.vehicles = o.getVehicles();
 
-		copy.totalMetroPersonKM = o.totalMetroPersonKM;		// NetworkEvolutionRunSim.runEventsProcessing
+		copy.personMetroDist = o.personMetroDist;		// NetworkEvolutionRunSim.runEventsProcessing
 		copy.personKMdirect = o.personKMdirect;			// to be implemented in: NetworkEvolutionRunSim.runEventsProcessing
 		copy.nMetroUsers = o.nMetroUsers;				// NetworkEvolutionRunSim.runEventsProcessing
-		copy.totalPtTransitPersonKM = o.totalPtTransitPersonKM;
+		copy.totalPtPersonDist = o.totalPtPersonDist;
 
-		copy.drivenKM = o.drivenKM;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
+		copy.totalDrivenDist = o.totalDrivenDist;				// TODO: to be implemented in NetworkEvolution (may make separate scoring function!) --> Take lengths from route lengths and km from nDepartures*routeLengths
 		copy.totalVehiclesNr = o.totalVehiclesNr;
-		copy.opsCost = o.opsCost;					// to be implemented in NetworkEvolution
-		copy.constrCost = o.constrCost;				// to be implemented in NetworkEvolution
-
+		copy.annualCost = o.annualCost;					// to be implemented in NetworkEvolution
+		copy.annualBenefit = o.annualBenefit;				// to be implemented in NetworkEvolution
+		copy.constructionCost = o.constructionCost;
+		copy.operationalCost = o.operationalCost;
+		
 		copy.evolutionGeneration = o.evolutionGeneration;		// NetworkEvolution --> Evolutionary loop
 		copy.averageTravelTime = o.averageTravelTime;		// NetworkEvolutionRunSim.peoplePlansProcessingM
 		copy.stdDeviationTravelTime = o.stdDeviationTravelTime;	// NetworkEvolutionRunSim.peoplePlansProcessingM
 		copy.totalTravelTime = o.totalTravelTime; 		// NetworkEvolutionRunSim.peoplePlansProcessingM
-
+		copy.evoLog = o.evoLog;
+		copy.parents = o.parents;
+		copy.dominantParent = o.dominantParent;
+		
+		copy.travelTimeGainsPT = o.travelTimeGainsPT;
+		copy.travelTimeGainsCar = o.travelTimeGainsCar;
+		copy.otherGains = o.otherGains;
+		
 		copy.overallScore = o.overallScore;			// NetworkEvolution main separate line
 		return copy;
 	}
@@ -230,5 +267,6 @@ public class Clone {
 		}
 		return copy;
 	}
-		
+	
+	
 }
