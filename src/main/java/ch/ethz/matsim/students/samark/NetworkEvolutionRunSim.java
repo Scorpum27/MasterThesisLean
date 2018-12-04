@@ -118,6 +118,9 @@ public class NetworkEvolutionRunSim {
 				for (PlanElement element : plan.getPlanElements()) {
 					if (element instanceof Leg) {
 						Leg leg = (Leg) element;
+//						if (leg.getMode().equals("car") || leg.getMode().equals("bike") || leg.getMode().equals("walk") || leg.getMode().equals("other")) {
+//							continue;
+//						}
 						leg.setRoute(null);
 					}
 				}

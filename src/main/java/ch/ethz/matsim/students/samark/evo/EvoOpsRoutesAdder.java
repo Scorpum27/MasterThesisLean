@@ -45,6 +45,9 @@ public class EvoOpsRoutesAdder {
 			Double tFirstDep, Double tLastDep,
 			MNetwork eliteMNetwork, Double odConsiderationThreshold, Coord zurich_NetworkCenterCoord, Double xOffset, Double yOffset) throws IOException {
 		
+		if (currentGEN > 100) {
+			maxRouteNumber = 6;
+		}
 		
 		Config config = ConfigUtils.createConfig();
 		config.getModules().get("network").addParam("inputNetworkFile", "zurich_1pm/Evolution/Population/BaseInfrastructure/TotalMetroNetwork.xml");
@@ -73,7 +76,7 @@ public class EvoOpsRoutesAdder {
 					nRoutesToBeToppedUp = initialRoutesPerNetwork - mNetwork.routeMap.size();					
 				}
 			}
-			else if (percentageOfProfitableRoute(mNetwork) >= 2.0/3.0
+			else if (percentageOfProfitableRoute(mNetwork) >= 0.80
 					&& mNetwork.routeMap.size() < maxRouteNumber ) {	// if past replacement generation but enough profitable routes, then add one more route!
 				nRoutesToBeToppedUp = 1;
 			}

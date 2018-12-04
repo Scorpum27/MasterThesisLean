@@ -85,7 +85,7 @@ public class NetworkOperators {
 		return mergedNetwork;
 	}
 
-	public static Network networkRoutesToNetwork(ArrayList<NetworkRoute> networkRoutes, Network network, Set<String> networkRouteModes, String fileName) {
+	public static Network networkRoutesToNetwork(ArrayList<NetworkRoute> networkRoutes, Network network, Set<String> networkRouteModes, String fileName) throws IOException {
 		// Store all new networkRoutes in a separate network file for visualization
 			Network routesNetwork = ScenarioUtils.createScenario(ConfigUtils.createConfig()).getNetwork();
 			NetworkFactory networkFactory = routesNetwork.getFactory();
@@ -95,6 +95,13 @@ public class NetworkOperators {
 				routeLinkList.addAll(nR.getLinkIds());
 				routeLinkList.add(nR.getEndLinkId());
 				for (Id<Link> linkID : routeLinkList) {
+					if (network.getLinks().get(linkID) == null) {
+						continue;
+					}
+//					Log.write("LinkID = "+linkID);
+//					Log.write("Link = "+network.getLinks().get(linkID).toString());
+//					Log.write("ToNode = "+network.getLinks().get(linkID).getToNode().toString());
+//					Log.write("ToNodeId = "+network.getLinks().get(linkID).getToNode().getId().toString());
 					Node tempToNode = networkFactory.createNode(network.getLinks().get(linkID).getToNode().getId(),
 							network.getLinks().get(linkID).getToNode().getCoord());
 					Node tempFromNode = networkFactory.createNode( network.getLinks().get(linkID).getFromNode().getId(),

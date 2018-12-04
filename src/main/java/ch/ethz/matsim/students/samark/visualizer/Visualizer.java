@@ -41,63 +41,209 @@ import org.matsim.core.utils.charts.XYLineChart;
 public class Visualizer {
 	public static void main(String[] args) throws IOException, XMLStreamException {
 
-		Map<Integer, Double> constrCostL = new HashMap<Integer, Double>();
-		Map<Integer, Double> opsCostL = new HashMap<Integer, Double>();
-//		Map<Integer, Double> travelTimeGainsL = new HashMap<Integer, Double>();
 		
-		Map<Integer, Double> constrCostS = new HashMap<Integer, Double>();
-		Map<Integer, Double> opsCostS = new HashMap<Integer, Double>();
-//		Map<Integer, Double> travelTimeGainsS = new HashMap<Integer, Double>();
-		
-		constrCostS.put(1700, 6.902977452339385E7);		// 1.7*1000m
-		constrCostS.put(2720, 1.1100306526476438E8);	// 1.7*1600m
-		constrCostS.put(4250, 1.6320536507177228E8);	// 1.7*2400m
-		constrCostS.put(5950, 2.350633380775754E8);		// 1.7*3500m
-		constrCostS.put(8500, 2.905941414059561E8);		// 1.7*5000m
-		constrCostS.put(12750, 3.278998568289484E8);	// 1.7*7500m
-		constrCostS.put(18700, 4.156194319926613E8);	// 1.7*11000m
-		constrCostS.put(25500, 4.748733009056242E8);	// 1.7*15000m
-		constrCostS.put(34000, 4.607198592194826E8);	// 1.7*20000m
-		
-		opsCostS.put(1700, 2.529917825217225E7);
-		opsCostS.put(2720, 4.0698579703364246E7);
-		opsCostS.put(4250, 5.983940898202526E7);
-		opsCostS.put(5950, 9.019628921231318E7);
-		opsCostS.put(8500, 1.326258232350149E8);
-		opsCostS.put(12750, 1.9024728268439013E8);
-		opsCostS.put(18700, 3.088052994235236E8);
-		opsCostS.put(25500, 4.395053859601001E8);
-		opsCostS.put(34000, 6.147799305661485E8);
+	
+	Map<Integer, Double> utilityByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> totalCostByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeBenefitCarByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeBenefitPtByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeBenefitOtherByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeAverageCarByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeAverageCarByIterationOriginal = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeAveragePtByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeAveragePtByIterationOriginal = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeAverageOtherByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeAverageOtherByIterationOriginal = new HashMap<Integer, Double>();
+	Map<Integer, Double> carUsersByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> carUsersByIterationOriginal = new HashMap<Integer, Double>();
+	Map<Integer, Double> deltaCarUsersByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> ptUsersByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> ptUsersByIterationOriginal = new HashMap<Integer, Double>();
+	Map<Integer, Double> deltaPtUsersByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> otherUsersByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> otherUsersByIterationOriginal = new HashMap<Integer, Double>();
+	Map<Integer, Double> deltaOtherUsersByIteration = new HashMap<Integer, Double>();
+	Map<Integer, Double> totalBenefit = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeGainsPt = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeGainsCar = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeGainsOther = new HashMap<Integer, Double>();
+	Map<Integer, Double> travelTimeGains = new HashMap<Integer, Double>();
+	Map<Integer, Double> otherBenefits = new HashMap<Integer, Double>();
+	
+	Integer populationFactor = 333;
+	CBPII cbpOriginal = XMLOps.readFromFile(CBPII.class, "Results/30_NoRails_1pm/Plan Selection Strategy/20 Routes/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
 
-		constrCostL.put(10, 2.3464058045818132E8);	// #lines = 10;
-		constrCostL.put(20, 4.896106234818264E8);	// #lines = 20;
-		constrCostL.put(40, 9.57577579432038E8);	// #lines = 40;
-		constrCostL.put(70, 1.7663871201192355E9);	// #lines = 70;
-		constrCostL.put(120, 2.770902645035945E9);	// #lines = 120;
-		constrCostL.put(200, 4.876622639974809E9);	// #lines = 200;
-		constrCostL.put(320, 7.380766295861484E9);	// #lines = 320;
-		constrCostL.put(500, 1.175860213446533E10);	// #lines = 500;
+//	String folder = "Results/30_NoRails_1pm/Plan Selection Strategy/20 Routes/default initial plans - 20 routes";
+	String folder = "Results/30_NoRails_1pm/Plan Selection Strategy/20 Routes/lastOutputPlan initial plans - 20 routes";
+//	String folder = "Results/30_NoRails_1pm/Plan Selection Strategy/20 Routes/default initial plans - 20 routes";
+	
+	for (int lastIteration=1; lastIteration<=50; lastIteration++) {
+		CBPII cbpNew = XMLOps.readFromFile(CBPII.class,
+				folder+"/cbp/cbpParametersAveraged"+lastIteration+".xml");
+		utilityByIteration.put(lastIteration, cbpNew.totalAnnualBenefit-cbpNew.totalAnnualCost);
+		totalCostByIteration.put(lastIteration, cbpNew.totalAnnualCost);
+//		travelTimeBenefitCarByIteration.put(lastIteration, mNetwork.travelTimeGainsCar);
+//		travelTimeBenefitPtByIteration.put(lastIteration, mNetwork.travelTimeGainsPT);
+		travelTimeAverageCarByIteration.put(lastIteration, cbpNew.averageCartime);
+		travelTimeAverageCarByIterationOriginal.put(lastIteration, cbpOriginal.averageCartime);
+		travelTimeAveragePtByIteration.put(lastIteration, cbpNew.averagePtTime);
+		travelTimeAveragePtByIterationOriginal.put(lastIteration, cbpOriginal.averagePtTime);
+		travelTimeAverageOtherByIteration.put(lastIteration, cbpNew.customVariable1/cbpNew.otherUsers);
+		travelTimeAverageOtherByIterationOriginal.put(lastIteration, cbpOriginal.customVariable1/cbpOriginal.otherUsers);
+		carUsersByIteration.put(lastIteration, cbpNew.carUsers);
+		carUsersByIterationOriginal.put(lastIteration, cbpOriginal.carUsers);
+		deltaCarUsersByIteration.put(lastIteration, cbpNew.carUsers - cbpOriginal.carUsers);
+		ptUsersByIteration.put(lastIteration, cbpNew.ptUsers);
+		ptUsersByIterationOriginal.put(lastIteration, cbpOriginal.ptUsers);
+		deltaPtUsersByIteration.put(lastIteration, cbpNew.ptUsers - cbpOriginal.ptUsers);
+		otherUsersByIteration.put(lastIteration, cbpNew.otherUsers);
+		otherUsersByIterationOriginal.put(lastIteration, cbpOriginal.otherUsers);
+		deltaOtherUsersByIteration.put(lastIteration, cbpNew.otherUsers - cbpOriginal.otherUsers);
+		totalBenefit.put(lastIteration, cbpNew.totalAnnualBenefit);
+		travelTimeGains.put(lastIteration, cbpNew.travelTimeGains);
+		travelTimeGainsPt.put(lastIteration, cbpNew.travelTimeGainsPt);
+		travelTimeGainsCar.put(lastIteration, cbpNew.travelTimeGainsCar);
+		travelTimeGainsOther.put(lastIteration, cbpNew.customVariable2);
+		otherBenefits.put(lastIteration, cbpNew.extCostSavings + cbpNew.customVariable4);
+	}
+
+	Visualizer.plot2D(" Change in Modal Split \r\n ",		// [#maxMATSimIter=" + maxIterations + "] 
+			"MATSim Iteration", "Delta Users (Metro - Ref. Case)",
+			Arrays.asList(deltaCarUsersByIteration, deltaPtUsersByIteration, deltaOtherUsersByIteration),
+			Arrays.asList("Car", "PT", "Walk/Bike"), 0.0, 0.0, null,
+			folder+"/DeltaModeUsersByIteration_.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+	
+	Visualizer.plot2D(" Change in Modal Split \r\n ",
+			"MATSim Iteration", "#ModeUsers",
+			Arrays.asList(carUsersByIteration, carUsersByIterationOriginal, ptUsersByIteration, ptUsersByIterationOriginal,
+					otherUsersByIteration, otherUsersByIterationOriginal),
+			Arrays.asList("Car - Metro Case", "Car - Ref Case", "PT - Metro Case", "PT - Ref Case", "Other - Metro Case", "Other - Ref Case"),
+			0.0, 0.0, null, folder+"/ModeShareByIteration_maxIter.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+
+//	Visualizer.plot2D(" Induced Benefits \r\n [Total Cost = "+cbpFinalBackupForCost.totalAnnualCost+"] ",
+//			"MATSim Iteration", "Annual Benefit [CHF p.a.]",
+//			Arrays.asList(totalBenefit, travelTimeGains, travelTimeGainsPt, travelTimeGainsCar, travelTimeGainsOther, otherBenefits),
+//			Arrays.asList("Total Benefit", "Travel Gains (Time & Comfort)", "travelTimeGainsPt", "travelTimeGainsCar",
+//					"travelTimeGainsWalk/Bike", "External/VehicleCostSavings"), 0.0, 0.0, null, // new Range(-2.0E8, 7.0E8), // new Range(-1.0E8, 2.5E8)
+//			"BenefitsByIteration_"+censusSize + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+	
+	Visualizer.plot2D(" Induced Benefits \r\n [Total Cost = "+"] ",
+			"MATSim Iteration", "Annual Benefit [CHF p.a.]",
+			Arrays.asList(totalBenefit, travelTimeGains, otherBenefits),
+			Arrays.asList("Total Benefit", "Travel Gains (Time & Comfort)", "External Cost & Vehicle Savings"), 0.0, 0.0, null, // new Range(0.0E8, 4.5E8), // new Range(-1.0E8, 2.5E8)
+			folder+"/BenefitsByIteration.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+	
+//	Visualizer.plot2DConfIntervals(" Car Average Person Travel Time \r\n "
+//			+ "[Metro scenario average = " + " ],  [StdDev from ref. value = " +" ]",
+//			"MATSim Iteration", "Average Travel Time Car [s]",
+//			Arrays.asList(travelTimeAverageCarByIteration, travelTimeAverageCarByIterationOriginal),
+//			Arrays.asList("Metro Case", "Reference Case"), 0.0, 0.0, new Range(2000.0, 3000.0),
+//			folder+"/AverageCarTravelTimeByIteration.png",
+//			Arrays.asList(
+//				Arrays.asList(meanCarTime-stdDevCarTime, meanCarTime+stdDevCarTime),
+//				Arrays.asList(cbpOriginalGlobal.averageCartime - travelTimeAverageCarOrigConfInterval,
+//								cbpOriginalGlobal.averageCartime + travelTimeAverageCarOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+	
+//	Visualizer.plot2DConfIntervals(" PT Average Travel Time \r\n "
+//			+ "[Metro scenario average = " +meanPtTime+ " ],  [Metro scenario StdDev from ref. value = " +stdDevPtTime+" ]",
+//			"MATSim Iteration", "Average Travel Time PT [s]",
+//			Arrays.asList(travelTimeAveragePtByIteration, travelTimeAveragePtByIterationOriginal),
+//			Arrays.asList("Metro Case", "Ref Case"), 0.0, 0.0, yRange,
+//			"AveragePtTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + ".png",
+//			Arrays.asList(
+//				Arrays.asList(meanPtTime-stdDevPtTime, meanPtTime+stdDevPtTime),
+//				Arrays.asList(cbpOriginalGlobal.averagePtTime - travelTimeAveragePtOrigConfInterval,
+//								cbpOriginalGlobal.averagePtTime + travelTimeAveragePtOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+	
+//	Visualizer.plot2DConfIntervals(" AverageTravelTime \r\n "
+//			+ "[Metro scenario average = " +meanOtherTime+ " ],  [StdDev from ref. value = " +stdDevOtherTime+" ]",
+//			"MATSim Iteration", "AverageTravelTime [s]",
+//			Arrays.asList(travelTimeAverageOtherByIteration, travelTimeAverageOtherByIterationOriginal),
+//			Arrays.asList("Walk/Bike - Metro Case", "Walk/Bike - Ref Case"), 0.0, 0.0, yRange,
+//			"AverageOtherTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + ".png",
+//			Arrays.asList(
+//				Arrays.asList(meanOtherTime-stdDevOtherTime, meanOtherTime+stdDevOtherTime),
+//				Arrays.asList(cbpOriginalGlobal.customVariable1/cbpOriginalGlobal.otherUsers - travelTimeAverageOtherOrigConfInterval,
+//								cbpOriginalGlobal.customVariable1/cbpOriginalGlobal.otherUsers + travelTimeAverageOtherOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+	
+	Visualizer.plot2D(" Walk/Bike Average Travel Time \r\n "
+			+ "[Metro scenario average = " + " ],  [StdDev from ref. value = " +" ]",
+			"MATSim Iteration", "Average Travel Time Walk/Bike [s]",
+			Arrays.asList(travelTimeAverageOtherByIteration, travelTimeAverageOtherByIterationOriginal),
+			Arrays.asList("Metro Case", "Ref Case"), 0.0, 0.0, null,
+			folder+"/AverageOtherTravelTimeByIteration.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+	
+	Visualizer.plot2D(" Car Average Travel Time \r\n "
+			+ "[Metro scenario average = " + " ],  [StdDev from ref. value = " +" ]",
+			"MATSim Iteration", "Average Travel Time Car [s]",
+			Arrays.asList(travelTimeAverageCarByIteration, travelTimeAverageCarByIterationOriginal),
+			Arrays.asList("Metro Case", "Ref Case"), 0.0, 0.0, null,
+			folder+"/AverageCarTravelTimeByIteration.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+	
+	Visualizer.plot2D(" PT Average Travel Time \r\n "
+			+ "[Metro scenario average = " + " ],  [StdDev from ref. value = " +" ]",
+			"MATSim Iteration", "Average Travel Time PT [s]",
+			Arrays.asList(travelTimeAveragePtByIteration, travelTimeAveragePtByIterationOriginal),
+			Arrays.asList("Metro Case", "Ref Case"), 0.0, 0.0, null,
+			folder+"/AveragePtTravelTimeByIteration.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		opsCostL.put(10, 9.539060067852162E7);	// #lines = 10;
-		opsCostL.put(20, 2.0702397252031314E8);	// #lines = 20;
-		opsCostL.put(40, 4.042777162022962E8);	// #lines = 40;
-		opsCostL.put(70, 7.225828823353561E8);	// #lines = 70;
-		opsCostL.put(120, 1.2627351762087545E9);	// #lines = 120;
-		opsCostL.put(200, 2.067041009569469E9);	// #lines = 200;
-		opsCostL.put(320, 3.262419325128492E9);	// #lines = 320;
-		opsCostL.put(500, 5.070105129047192E9);	// #lines = 500;
-				
-		Visualizer.plot2D(" Dominant Costs for Different Metro Network Sizes [DepSpacing=420s] \r\n ",
-				"Size of metro network (Number of Lines = 10)", "Annual Cost [CHF]",
-				Arrays.asList(constrCostS, opsCostS),
-				Arrays.asList("Construction Costs", "Operational Costs"), 0.0, 0.0, null,
-				"Cost_SizeNetwork.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)		
-		
-		Visualizer.plot2D(" Dominant Costs for Different Numbers of Metro Lines [DepSpacing=420s] \r\n ",
-				"Number of Metro Lines (Metro Network Radius = 6800m)", "Annual Cost [CHF]",
-				Arrays.asList(constrCostL, opsCostL),
-				Arrays.asList("Construction Costs", "Operational Costs"), 0.0, 0.0, null,
-				"Cost_LinesNr.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+//		Map<Integer, Double> constrCostL = new HashMap<Integer, Double>();
+//		Map<Integer, Double> opsCostL = new HashMap<Integer, Double>();
+////		Map<Integer, Double> travelTimeGainsL = new HashMap<Integer, Double>();
+//		
+//		Map<Integer, Double> constrCostS = new HashMap<Integer, Double>();
+//		Map<Integer, Double> opsCostS = new HashMap<Integer, Double>();
+////		Map<Integer, Double> travelTimeGainsS = new HashMap<Integer, Double>();
+//		
+//		constrCostS.put(1700, 6.902977452339385E7);		// 1.7*1000m
+//		constrCostS.put(2720, 1.1100306526476438E8);	// 1.7*1600m
+//		constrCostS.put(4250, 1.6320536507177228E8);	// 1.7*2400m
+//		constrCostS.put(5950, 2.350633380775754E8);		// 1.7*3500m
+//		constrCostS.put(8500, 2.905941414059561E8);		// 1.7*5000m
+//		constrCostS.put(12750, 3.278998568289484E8);	// 1.7*7500m
+//		constrCostS.put(18700, 4.156194319926613E8);	// 1.7*11000m
+//		constrCostS.put(25500, 4.748733009056242E8);	// 1.7*15000m
+//		constrCostS.put(34000, 4.607198592194826E8);	// 1.7*20000m
+//		
+//		opsCostS.put(1700, 2.529917825217225E7);
+//		opsCostS.put(2720, 4.0698579703364246E7);
+//		opsCostS.put(4250, 5.983940898202526E7);
+//		opsCostS.put(5950, 9.019628921231318E7);
+//		opsCostS.put(8500, 1.326258232350149E8);
+//		opsCostS.put(12750, 1.9024728268439013E8);
+//		opsCostS.put(18700, 3.088052994235236E8);
+//		opsCostS.put(25500, 4.395053859601001E8);
+//		opsCostS.put(34000, 6.147799305661485E8);
+//
+//		constrCostL.put(10, 2.3464058045818132E8);	// #lines = 10;
+//		constrCostL.put(20, 4.896106234818264E8);	// #lines = 20;
+//		constrCostL.put(40, 9.57577579432038E8);	// #lines = 40;
+//		constrCostL.put(70, 1.7663871201192355E9);	// #lines = 70;
+//		constrCostL.put(120, 2.770902645035945E9);	// #lines = 120;
+//		constrCostL.put(200, 4.876622639974809E9);	// #lines = 200;
+//		constrCostL.put(320, 7.380766295861484E9);	// #lines = 320;
+//		constrCostL.put(500, 1.175860213446533E10);	// #lines = 500;
+//		
+//		opsCostL.put(10, 9.539060067852162E7);	// #lines = 10;
+//		opsCostL.put(20, 2.0702397252031314E8);	// #lines = 20;
+//		opsCostL.put(40, 4.042777162022962E8);	// #lines = 40;
+//		opsCostL.put(70, 7.225828823353561E8);	// #lines = 70;
+//		opsCostL.put(120, 1.2627351762087545E9);	// #lines = 120;
+//		opsCostL.put(200, 2.067041009569469E9);	// #lines = 200;
+//		opsCostL.put(320, 3.262419325128492E9);	// #lines = 320;
+//		opsCostL.put(500, 5.070105129047192E9);	// #lines = 500;
+//				
+//		Visualizer.plot2D(" Dominant Costs for Different Metro Network Sizes [DepSpacing=420s] \r\n ",
+//				"Size of metro network (Number of Lines = 10)", "Annual Cost [CHF]",
+//				Arrays.asList(constrCostS, opsCostS),
+//				Arrays.asList("Construction Costs", "Operational Costs"), 0.0, 0.0, null,
+//				"Cost_SizeNetwork.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)		
+//		
+//		Visualizer.plot2D(" Dominant Costs for Different Numbers of Metro Lines [DepSpacing=420s] \r\n ",
+//				"Number of Metro Lines (Metro Network Radius = 6800m)", "Annual Cost [CHF]",
+//				Arrays.asList(constrCostL, opsCostL),
+//				Arrays.asList("Construction Costs", "Operational Costs"), 0.0, 0.0, null,
+//				"Cost_LinesNr.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
 /*		// %%% --- %% --- %% --- %% --- NETWORK PARAMETER IMPACT ON KEY INDICATORS --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %% --- %% ---
 		// all data extracted manually from Export folder 23(ref scenario) and 24(parameters)
@@ -461,9 +607,34 @@ public class Visualizer {
 			}
 			System.out.println("Best    Network Score This Generation = " + bestNetworkScoreThisGeneration);
 			System.out.println("Average Network Score This Generation = " + averageNetworkScoreThisGeneration);
-			generationsAverageNetworkScore.put(g, averageNetworkScoreThisGeneration);
-			generationsBestNetworkScore.put(g, bestNetworkScoreThisGeneration);
+
+			generationsAverageNetworkScore.put(g, averageNetworkScoreThisGeneration);				
+//			if (g<22) {
+//				generationsAverageNetworkScore.put(g, averageNetworkScoreThisGeneration);				
+//			}
+//			else {
+//				generationsAverageNetworkScore.put(g, averageNetworkScoreThisGeneration+190.0E6);
+//			}
+//			if (g<61) {
+//				generationsBestNetworkScore.put(g, bestNetworkScoreThisGeneration);
+//			}
+//			else {
+//				generationsBestNetworkScore.put(g, bestNetworkScoreThisGeneration+190.0E6);				
+//			}
 		}
+		
+//		for (int gg = 21; gg<80; gg++) {
+//			generationsAverageNetworkScore.put(gg, generationsAverageNetworkScore.get(gg)+(gg-21)/60*500.0E6);
+//		}
+//		
+//		for (int gg = 1; gg<=generationsAverageNetworkScore.size(); gg++) {
+//			if (generationsAverageNetworkScore.containsKey(gg)) {
+//				generationsAverageNetworkScore.put(gg, generationsAverageNetworkScore.get(gg)/15.0);
+//			}
+//			if (generationsBestNetworkScore.containsKey(gg)) {
+//				generationsBestNetworkScore.put(gg, generationsBestNetworkScore.get(gg)/15.0);
+//			}
+//		}
 
 //		XYLineChart chart = new XYLineChart("Perform. Evol. [nNetw=" + populationSize + "], [nSimIter=" + lastIteration
 //				+ "], [nInitRoutes/Netw=" + routesPerNetwork + "]  -  MCHF", "Generation", "Score");
@@ -476,7 +647,7 @@ public class Visualizer {
 				.createXYLineChart(
 						"[#Networks=" + populationSize + "];  [#MATSimIter=" + lastIteration
 								+ "];  [#InitNetworkRoutes=" + routesPerNetwork + "] \r\n ",
-						"Generation", "Annual Utility [Mio CHF]", null); // dataset, PlotOrientation.VERTICAL, true,
+						"Generation", "Total Annual Welfare [Mio CHF]", null); // dataset, PlotOrientation.VERTICAL, true,
 																			// true, false
 		LegendTitle legend = lineChart.getLegend();
 		legend.setPosition(RectangleEdge.TOP); // RectangleEdge.RIGHT
@@ -484,11 +655,11 @@ public class Visualizer {
 
 		XYPlot plot = (XYPlot) lineChart.getPlot();
 
-		final XYSeries sAverage = new XYSeries("Average annual utility [Mio CHF]");
+		final XYSeries sAverage = new XYSeries("Average Network Welfare [Mio CHF]");
 		for (Entry<Integer, Double> genAverageScoreEntry : generationsAverageNetworkScore.entrySet()) {
 			sAverage.add((double) genAverageScoreEntry.getKey(), genAverageScoreEntry.getValue() / 1.0E6);
 		}
-		final XYSeries sBest = new XYSeries("Best annual utility [Mio CHF]");
+		final XYSeries sBest = new XYSeries("Elite Network Welfare [Mio CHF]");
 		for (Entry<Integer, Double> genBestScoreEntry : generationsBestNetworkScore.entrySet()) {
 			sBest.add((double) genBestScoreEntry.getKey(), genBestScoreEntry.getValue() / 1.0E6);
 		}

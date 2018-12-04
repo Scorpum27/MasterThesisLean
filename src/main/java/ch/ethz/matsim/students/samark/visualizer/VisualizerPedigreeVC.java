@@ -73,11 +73,10 @@ public class VisualizerPedigreeVC {
 		} else {
 			finalGeneration = Integer.parseInt(args[2]);
 		}
-		if (args[2].equals("null")) {
-			System.out.println(args[1]);
-		}
 
+		int pedigreeShift = 0;
 		if (pedigreeTree.size() != finalGeneration - 1) {
+			pedigreeShift = finalGeneration-1 -pedigreeTree.size();
 //			Log.writeAndDisplay(
 //					"CAUTION: Pedigree tree has not same number of generations as finalGeneration! Please check.");
 		}
@@ -138,14 +137,17 @@ public class VisualizerPedigreeVC {
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
-				if (gen > firstGeneration) { // do this loop to update the network (parent) which shall be displayed in
+				if (gen > firstGeneration && gen-2-pedigreeShift >=0) { // do this loop to update the network (parent) which shall be displayed in
 												// generation prior to this one.
 					System.out.println("Pedigree tree GEN" + (gen - 2) + " = ");
-					System.out.println(pedigreeTree.get(gen - 2));
-					thisGenNetwork = pedigreeTree.get(gen - 2).get(thisGenNetwork); // -2 because go from gen(minimum=1) to
+					System.out.println(pedigreeTree.get(gen-2 - pedigreeShift));
+					thisGenNetwork = pedigreeTree.get(gen-2 - pedigreeShift).get(thisGenNetwork); // -2 because go from gen(minimum=1) to
 																					// pedigreeList(minimum=0) and need one
 																					// gen before
 					System.out.println("Parent Network = " + thisGenNetwork);
+				}
+				else {
+					break;
 				}
 			}
 		}

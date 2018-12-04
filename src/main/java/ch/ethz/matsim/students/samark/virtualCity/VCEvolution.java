@@ -63,47 +63,48 @@ public class VCEvolution {
 		Integer populationSize = Integer.parseInt(args[4]);						// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		Integer initialRoutesPerNetwork = Integer.parseInt(args[5]);			// DEFAULT = 5;
-		Integer maxRouteNumber = (int) (2*initialRoutesPerNetwork);
+		Integer maxRouteNumber = Math.max(7, initialRoutesPerNetwork+2);
 		Boolean mergeMetroWithRailway = false;
 		String ptRemoveScenario = args[12];										// "tram", "bus", "rail", "subway", "funicular"
 		Boolean useFastSBahnModule = false;
 		Boolean varyInitRouteSize = false;
-		Boolean enableThreading = true;
-		Integer nThreads = 8;
+		Boolean enableThreading = false;
+		Integer nThreads = 16;
 		String inputPlanStrategy = "simEquil";									// "default", "simEquil", "lastPlan" 
 		Boolean recallSimulation = false;
 		int generationToRecall = 999;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
 		String inputScenario = "VC";
-		Boolean extendMetroGrid = true;
+		Boolean extendMetroGrid = false;	// XXX true
+		Boolean entireMetroGrid = true;		// XXX false
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
 		Boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
-		Integer iterationToReadOriginalNetwork = 100;								// This is the iteration for the simulation output of the original network
+		Integer iterationToReadOriginalNetwork = 50;								// This is the iteration for the simulation output of the original network
 		Double lifeTime = 40.0;
 		
 		// %% Parameters for NetworkRoutes %%
 		Coord zurich_NetworkCenterCoord = new Coord(Double.parseDouble(args[6])/2, Double.parseDouble(args[6])/2);
 		Double xOffset = 0.0;
 		Double yOffset = 0.0;
-		Double metroCityRadius = Double.parseDouble(args[6])/Math.sqrt(2.0);		// DEFAULT = 3000 (OLD=3600) ... (800 for no rail tests)
+		Double metroCityRadius = Double.parseDouble(args[6])/Math.sqrt(2.0)+1;		// DEFAULT = 3000 (OLD=3600) ... (800 for no rail tests)
 		Double minMetroRadiusFactor = 0.00;											// DEFAULT = 0.00
 		Double maxMetroRadiusFactor = 1.00;											// DEFAULT = 1.70; (OLD=1.40: give some flexibility by increasing from 1.00 to 1.40)
 		Double minMetroRadiusFromCenter = metroCityRadius * minMetroRadiusFactor; 	// DEFAULT = set 0.00 to not restrict metro network in city center
 		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
 		Double maxExtendedMetroRadiusFromCenter = 1.0*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (2.1 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
 		Integer nMostFrequentLinks = (int) (metroCityRadius/40.0);					// DEFAULT = (int) (metroCityRadius/20.0) (or 70; will further be reduced during merging procedure for close facilities)
-		Double maxNewMetroLinkDistance = 1800.0;									// DEFAULT = Math.max(0.33*metroCityRadius, 1400)
+		Double maxNewMetroLinkDistance = 799.0;										// keeep this high enough to not run into nullPointerExceptions in NetworkRoute2Network bc it can suddenly not find its reverse link anymore in network // DEFAULT = Math.max(0.33*metroCityRadius, 1400)
 
 		Double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
 		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
 		Double minInitialTerminalRadiusFromCenter = 0.40*metroCityRadius; 			// DEFAULT = 0.30*metroCityRadius | put in parameter file and in routes creation file! alt: 0.20*maxExtendedMetroRadiusFromCenter
-		Double maxInitialTerminalRadiusFromCenter = 1.00*metroCityRadius;			// DEFAULT = 1.20*metroCityRadius | put in parameter file and in routes creation file! alt: 0.80*maxExtendedMetroRadiusFromCenter
+		Double maxInitialTerminalRadiusFromCenter = 1.00*metroCityRadius-600;			// DEFAULT = 1.20*metroCityRadius | put in parameter file and in routes creation file! alt: 0.80*maxExtendedMetroRadiusFromCenter
 		Double minInitialTerminalDistance = 
 		   (minInitialTerminalRadiusFromCenter+maxInitialTerminalRadiusFromCenter); // DEFAULT = minInitialTerminalRadiusFromCenter+maxInitialTerminalRadiusFromCenter (OLD=0.80*maxMetroRadiusFromCenter)
 		Double railway2metroCatchmentArea = 150.0;									// DEFAULT = 150 or metroProximityRadius/3
-		Double metro2metroCatchmentArea = 600.0;									// DEFAULT = 400  (merge metro stops within 400 meters)
+		Double metro2metroCatchmentArea = 300.0;									// DEFAULT = 400  (merge metro stops within 400 meters)
 		Double odConsiderationThreshold = 0.10;										// DEFAULT = 0.10 (from which threshold onwards odPairs can be considered for adding to developing 																						routes)
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
@@ -140,7 +141,7 @@ public class VCEvolution {
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
 																	// The higher, the more strong networks are favored!
-		Double pCrossOver = 0.09; 									// DEFAULT = 0.14
+		Double pCrossOver = 0.06; 									// DEFAULT = 0.14
 		Double minCrossingDistanceFactorFromRouteEnd = 0.25; 		// DEFAULT = 0.30; MINIMUM = 0.25
 		Double maxConnectingDistance = 2000.0;
 		Boolean logEntireRoutes = false;
@@ -152,12 +153,12 @@ public class VCEvolution {
 		String crossoverRouletteStrategy = "tournamentSelection3";	// Options: allPositiveProportional, rank, tournamentSelection3, logarithmic
 		Double routeDisutilityLimit = -0.0E7;						// DEFAULT = -1.5E7;
 		Integer blockFreqModGENs = 5;
-		Integer stopUnprofitableRoutesReplacementGEN = 30;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
+		Integer stopUnprofitableRoutesReplacementGEN = 60;			// DEAFULT TBD; After this generation, a route that dies is not replaced by a newborn!
 		
 		// %% Infrastructure Parameters %%
 		Coord UGcenterCoord = zurich_NetworkCenterCoord;
-		final double UGradius = 5000.0;
-		final double OGdevelopRadius = 5000.0;
+		final double UGradius = 6000.0;
+		final double OGdevelopRadius = 6000.0;
 		final double globalCostFactor = Double.parseDouble(args[13]);
 		final double ConstrCostUGnew = globalCostFactor*1.5E5;								// within UG radius, new rails
 		final double ConstrCostUGdevelop = globalCostFactor*2.25E4;							// DEFAULT: 0.25E5 = within UG radius, but existing train rails
@@ -194,11 +195,11 @@ public class VCEvolution {
 			pwEvo.close();
 			FileUtils.cleanDirectory(new File("zurich_1pm/Evolution/Population/HistoryLog")); 
 			Log.write("%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%    " + "NETWORK CREATION - START" + "    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%");
-			latestPopulation = NetworkEvolutionImpl.createMNetworks(			// XXX				// Make a list of routes that will be added to this network
+			latestPopulation = NetworkEvolutionImpl.createMNetworks(		// Make a list of routes that will be added to this network
 				populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork, lastIterationOriginal,
 				iterationsToAverage, 
 				minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius,
-				nMostFrequentLinks, extendMetroGrid,
+				nMostFrequentLinks, extendMetroGrid, entireMetroGrid,
 				maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalDistance, 
 				minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, varyInitRouteSize, mergeMetroWithRailway, railway2metroCatchmentArea,
 				metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, 1.0*populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 
@@ -270,8 +271,8 @@ public class VCEvolution {
 			int lastEventIteration = lastIteration; // CAUTION: make sure it is not higher than lastIteration above resp. the last simulated iteration!
 			MNetworkPop evoNetworksToProcess = latestPopulation;
 
-//			NetworkEvolutionRunSim.runEventsProcessingMetroOnly(evoNetworksToProcess, lastEventIteration,
-//					globalNetwork, "zurich_1pm/Evolution/Population/", populationFactor);	
+			NetworkEvolutionRunSim.runEventsProcessingMetroOnly(evoNetworksToProcess, lastEventIteration,
+					globalNetwork, "zurich_1pm/Evolution/Population/", populationFactor);	
 			
 			evoNetworksToProcess = NetworkEvolutionRunSim.runEventsProcessing(evoNetworksToProcess, lastEventIteration, iterationsToAverage,
 					globalNetwork, "zurich_1pm/Evolution/Population/", populationFactor);

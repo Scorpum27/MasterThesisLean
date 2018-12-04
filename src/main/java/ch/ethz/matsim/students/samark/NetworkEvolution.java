@@ -97,17 +97,18 @@ public class NetworkEvolution {
 		Boolean varyInitRouteSize = true;
 		Boolean enableThreading = false;
 		Integer nThreads = 4;
-		String inputPlanStrategy = "lastPlan";
-		Boolean recallSimulation = true;
-		int generationToRecall = 1;											// it is recommended to use the Generation before the one that failed in order
+		String inputPlanStrategy = "default";									// "default", "simEquil", "lastPlan"
+		Boolean recallSimulation = false;
+		int generationToRecall = 1;												// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
 		String inputScenario = "zurich";
 		Boolean extendMetroGrid = false;
+		Boolean entireMetroGrid = false;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
 		Boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
-		Integer iterationToReadOriginalNetwork = 100;								// This is the iteration for the simulation output of the original network
+		Integer iterationToReadOriginalNetwork = 5;								// This is the iteration for the simulation output of the original network
 		Double lifeTime = 40.0;
 		
 		// %% Parameters for NetworkRoutes %%
@@ -225,7 +226,7 @@ public class NetworkEvolution {
 				populationName, populationSize, initialRoutesPerNetwork, initialRouteType, shortestPathStrategy, iterationToReadOriginalNetwork, lastIterationOriginal,
 				iterationsToAverage, 
 				minMetroRadiusFromCenter, maxMetroRadiusFromCenter, maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, metroCityRadius,
-				nMostFrequentLinks, extendMetroGrid,
+				nMostFrequentLinks, extendMetroGrid, entireMetroGrid,
 				maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalDistance, 
 				minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, varyInitRouteSize, mergeMetroWithRailway, railway2metroCatchmentArea,
 				metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, 1.0*populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 

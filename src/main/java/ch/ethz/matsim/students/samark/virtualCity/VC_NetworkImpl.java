@@ -61,15 +61,19 @@ public class VC_NetworkImpl {
 	// 3] Copy resulting files from VC files folder to zurich_1pm folder
 	
 	public static void main(String[] args) throws IOException {
-		double popCutPercentage = 0.5;
-		double unusedFacilitiesPercentage = 0.0;
-		int xmax = 100;
-		int ymax = 100;
-		double unitLinkLength = 200.0;		
+		double popCutPercentage = 1.0;
+		double facilitiesPercentage = 0.3;
+		int xmax = 20;
+		int ymax = 20;
+		double unitLinkLength = 400.0;		
 		double minStopDistance = 400.0; // original bus stop spacing
 		double maxMetroLinkDist = 1000.0;
-		int nBusRoutes = 75;
-		double minTerminalDist = Math.sqrt(xmax*xmax+ymax*ymax)*unitLinkLength*0.5;
+		boolean addFacilitiesOnAllNodes = true;
+		int nBusRoutes = 1;
+		double departureSpacing = 24*3600.0;		// this will result in NO departures
+		double firstDeparture = 6.0*3600.0;
+		double lastDeparture = 22.5*3600.0;
+		double minTerminalDist = 1000.0; // Math.sqrt(xmax*xmax+ymax*ymax)*unitLinkLength*0.5;
 		int maxRemovalsPerSide = 10;
 		int maxEatSize = 6;
 		
@@ -78,40 +82,40 @@ public class VC_NetworkImpl {
 		Scenario sceanrio = ScenarioUtils.loadScenario(config);
 		Network network = sceanrio.getNetwork();
 		network = fillNetwork(xmax, ymax, network, unitLinkLength);
-		Integer nrRectanglesToBeRemoved = 12;
+		Integer nrRectanglesToBeRemoved = 0;
 		Integer maxRemovalSizeFraction = 8;
 		List<RectX> rectanglesToBeRemoved = new ArrayList<RectX>();
-		rectanglesToBeRemoved.add(new RectX(20, 40, 25, 40));
-		rectanglesToBeRemoved.add(new RectX(50, 70, 20, 25));
-		rectanglesToBeRemoved.add(new RectX(50, 85, 40, 50));
-		rectanglesToBeRemoved.add(new RectX(20, 50, 65, 80));
+		rectanglesToBeRemoved.add(new RectX(4, 8, 4, 8));
+		rectanglesToBeRemoved.add(new RectX(12, 16, 4, 8));
+//		rectanglesToBeRemoved.add(new RectX(50, 85, 40, 50));
+//		rectanglesToBeRemoved.add(new RectX(20, 50, 65, 80));
 		network = removeRectangluarSection(rectanglesToBeRemoved, nrRectanglesToBeRemoved, maxRemovalSizeFraction, xmax, ymax, network,
 				unitLinkLength, maxMetroLinkDist, true);
 		
 		// make river + bridge
 		List<RectX> riversToBeRemoved = new ArrayList<RectX>();
-		riversToBeRemoved.add(new RectX(51, 53, 20, 100));
-		riversToBeRemoved.add(new RectX(0, 52, 37, 39));
-			List<Integer> bridge1 = new ArrayList<Integer>(); bridge1.add(xy2NodeNr(51, 27, xmax)); bridge1.add(xy2NodeNr(53, 27, xmax));
-			addNodePairToNetwork(bridge1, network, maxMetroLinkDist);
-			List<Integer> bridge2 = new ArrayList<Integer>(); bridge2.add(xy2NodeNr(51, 55, xmax)); bridge2.add(xy2NodeNr(53, 55, xmax));
-			addNodePairToNetwork(bridge2, network, maxMetroLinkDist);
-			List<Integer> bridge3 = new ArrayList<Integer>(); bridge3.add(xy2NodeNr(51, 81, xmax)); bridge3.add(xy2NodeNr(53, 81, xmax));
-			addNodePairToNetwork(bridge3, network, maxMetroLinkDist);
-			List<Integer> bridge4 = new ArrayList<Integer>(); bridge4.add(xy2NodeNr(51, 90, xmax)); bridge4.add(xy2NodeNr(53, 90, xmax));
-			addNodePairToNetwork(bridge4, network, maxMetroLinkDist);
-			List<Integer> bridge5 = new ArrayList<Integer>(); bridge5.add(xy2NodeNr(8, 37, xmax)); bridge5.add(xy2NodeNr(8, 39, xmax));
-			addNodePairToNetwork(bridge5, network, maxMetroLinkDist);
-			List<Integer> bridge6 = new ArrayList<Integer>(); bridge6.add(xy2NodeNr(16, 37, xmax)); bridge6.add(xy2NodeNr(16, 39, xmax));
-			addNodePairToNetwork(bridge6, network, maxMetroLinkDist);
-			List<Integer> bridge7 = new ArrayList<Integer>(); bridge7.add(xy2NodeNr(45, 37, xmax)); bridge7.add(xy2NodeNr(45, 39, xmax));
-			addNodePairToNetwork(bridge7, network, maxMetroLinkDist);
+//		riversToBeRemoved.add(new RectX(51, 53, 20, 100));
+//		riversToBeRemoved.add(new RectX(0, 52, 37, 39));
+//			List<Integer> bridge1 = new ArrayList<Integer>(); bridge1.add(xy2NodeNr(51, 27, xmax)); bridge1.add(xy2NodeNr(53, 27, xmax));
+//			addNodePairToNetwork(bridge1, network, maxMetroLinkDist);
+//			List<Integer> bridge2 = new ArrayList<Integer>(); bridge2.add(xy2NodeNr(51, 55, xmax)); bridge2.add(xy2NodeNr(53, 55, xmax));
+//			addNodePairToNetwork(bridge2, network, maxMetroLinkDist);
+//			List<Integer> bridge3 = new ArrayList<Integer>(); bridge3.add(xy2NodeNr(51, 81, xmax)); bridge3.add(xy2NodeNr(53, 81, xmax));
+//			addNodePairToNetwork(bridge3, network, maxMetroLinkDist);
+//			List<Integer> bridge4 = new ArrayList<Integer>(); bridge4.add(xy2NodeNr(51, 90, xmax)); bridge4.add(xy2NodeNr(53, 90, xmax));
+//			addNodePairToNetwork(bridge4, network, maxMetroLinkDist);
+//			List<Integer> bridge5 = new ArrayList<Integer>(); bridge5.add(xy2NodeNr(8, 37, xmax)); bridge5.add(xy2NodeNr(8, 39, xmax));
+//			addNodePairToNetwork(bridge5, network, maxMetroLinkDist);
+//			List<Integer> bridge6 = new ArrayList<Integer>(); bridge6.add(xy2NodeNr(16, 37, xmax)); bridge6.add(xy2NodeNr(16, 39, xmax));
+//			addNodePairToNetwork(bridge6, network, maxMetroLinkDist);
+//			List<Integer> bridge7 = new ArrayList<Integer>(); bridge7.add(xy2NodeNr(45, 37, xmax)); bridge7.add(xy2NodeNr(45, 39, xmax));
+//			addNodePairToNetwork(bridge7, network, maxMetroLinkDist);
 		network = removeRectangluarSection(riversToBeRemoved, riversToBeRemoved.size(), maxRemovalSizeFraction, xmax, ymax, network,
 					unitLinkLength, maxMetroLinkDist, false);
 
-		network = removeRandomEdgeBlocks(maxRemovalsPerSide, maxEatSize, xmax, ymax, network, unitLinkLength);
+//		network = removeRandomEdgeBlocks(maxRemovalsPerSide, maxEatSize, xmax, ymax, network, unitLinkLength);
 		
-		Integer nDiagonalsToBeBuilt = 50;
+		Integer nDiagonalsToBeBuilt = 0;
 		network = buildDiagonals(network, nDiagonalsToBeBuilt, xmax, ymax, maxMetroLinkDist);
 		NetworkWriter nw = new NetworkWriter(network); nw.write("zurich_1pm/VC_files/zurich_network.xml.gz");
 		
@@ -120,17 +124,19 @@ public class VC_NetworkImpl {
 //		Config configZh1pm = ConfigUtils.createConfig();
 //		configZh1pm.getModules().get("plans").addParam("inputPlansFile", "zurich_1pm/VC_files/zurich_population_cut.xml.gz");		
 //		Population popVC = ScenarioUtils.loadScenario(configZh1pm).getPopulation();
-		ActivityFacilities rebuiltFacilities = rebuildFacilities(network, popVC, popCutPercentage, xmax, ymax, unitLinkLength, unusedFacilitiesPercentage);
+		ActivityFacilities rebuiltFacilities = rebuildFacilities(network, popVC, popCutPercentage, xmax, ymax, unitLinkLength, facilitiesPercentage);
 		popVC = rebuildPlans(network, popVC, rebuiltFacilities, popCutPercentage);
 		
 	// create pt
-		List<List<Coord>> manualKeyRoutingPoints = Arrays.asList(
-				// Arrays.asList(new Coord(0.0, 0.0), new Coord(unitLinkLength*xmax, unitLinkLength*ymax)),
-				// Arrays.asList(new Coord(unitLinkLength*xmax, 0.0), new Coord(0.0, unitLinkLength*ymax))
-				);
+//		List<List<Coord>> manualKeyRoutingPoints = Arrays.asList(
+//				 Arrays.asList(new Coord(0.0, 0.0), new Coord(unitLinkLength*xmax, unitLinkLength*ymax)),
+//				 Arrays.asList(new Coord(unitLinkLength*xmax, 0.0), new Coord(0.0, unitLinkLength*ymax))
+//				);
+		List<List<Coord>> manualKeyRoutingPoints = new ArrayList<List<Coord>>();
 		List<List<Node>> keyRouteNodeSequences = createKeyNodeSequences(nBusRoutes, manualKeyRoutingPoints, network, minTerminalDist, xmax, unitLinkLength);
+		System.out.println(keyRouteNodeSequences.toString());
 		ArrayList<NetworkRoute> busRoutes = createInitialRoutes(network, keyRouteNodeSequences);
-		applyPtSchedule(busRoutes, network, minStopDistance);
+		applyPtSchedule(busRoutes, network, minStopDistance, departureSpacing, firstDeparture, lastDeparture, addFacilitiesOnAllNodes);
 	}
 	
 
@@ -296,7 +302,7 @@ public class VC_NetworkImpl {
 // %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%      SCENARIO      %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%	
 	
 	public static ActivityFacilities rebuildFacilities(Network network, Population popVC, double popPercentage, int xmax, int ymax,
-			double unitLinkLength, double unusedFacilitiesPercentage) throws IOException {
+			double unitLinkLength, double facilitiesPercentage) throws IOException {
 		Config configZh = ConfigUtils.createConfig();
 		configZh.getModules().get("facilities").addParam("inputFacilitiesFile", "zurich_1pm/Zurich Files/1pmFiles/zurich_facilities.xml.gz");		
 		// load existing facilities in ZH
@@ -319,7 +325,7 @@ public class VC_NetworkImpl {
 		System.out.println("Number of activity facilities in ZH = "+activityFacilitiesZH.size());
 		ActivityFacilities activityFacilitiesCut = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getActivityFacilities();
 		for (ActivityFacility origFacility : activityFacilitiesZH) {
-			if (activityFacilitiesInInitialPlans.contains(origFacility.getId()) || (new Random()).nextDouble() < unusedFacilitiesPercentage) {
+			if (activityFacilitiesInInitialPlans.contains(origFacility.getId()) || (new Random()).nextDouble() < facilitiesPercentage) {
 				ActivityFacility activityFacility = rebuildFacilityIntoVC(origFacility, activityFacilitiesCut.getFactory(), network, xmax, ymax, unitLinkLength);
 				if (activityFacility != null) {
 					activityFacilitiesCut.addActivityFacility(activityFacility);
@@ -420,18 +426,19 @@ public class VC_NetworkImpl {
 //			else {
 //				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
 //			}
-			if (rD < 0.25) {
-				facilityLink = getRandomLink((int) (Math.round(xmax*0.80)), xmax, (int) (Math.round(ymax*0.80)), ymax, network, xmax);
-			}
-			else if (rD < 0.50) {
-				facilityLink = getRandomLink((int) (Math.round(xmax*0.60)), (int) (Math.round(xmax*0.80)), (int) (Math.round(ymax*0.60)), (int) (Math.round(ymax*0.80)), network, xmax);
-			}
-			else if (rD < 1.00) {
-				facilityLink = getRandomLink((int) (Math.round(xmax*0.30)), (int) (Math.round(xmax*0.60)), (int) (Math.round(ymax*0.40)), (int) (Math.round(ymax*0.70)), network, xmax);
-			}
-			else {
-				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
-			}
+//			if (rD < 0.25) {
+//				facilityLink = getRandomLink((int) (Math.round(xmax*0.80)), xmax, (int) (Math.round(ymax*0.80)), ymax, network, xmax);
+//			}
+//			else if (rD < 0.50) {
+//				facilityLink = getRandomLink((int) (Math.round(xmax*0.60)), (int) (Math.round(xmax*0.80)), (int) (Math.round(ymax*0.60)), (int) (Math.round(ymax*0.80)), network, xmax);
+//			}
+//			else if (rD < 1.00) {
+//				facilityLink = getRandomLink((int) (Math.round(xmax*0.30)), (int) (Math.round(xmax*0.60)), (int) (Math.round(ymax*0.40)), (int) (Math.round(ymax*0.70)), network, xmax);
+//			}
+//			else {
+//				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
+//			}
+			facilityLink = getRandomLink((int) (Math.round(xmax*0.00)), (int) (Math.round(xmax*0.20)), (int) (Math.round(ymax*0.40)), (int) (Math.round(ymax*0.60)), network, xmax);
 		}
 		else if(facilityType.equals("home")) {
 			Double rD = (new Random()).nextDouble();
@@ -444,24 +451,32 @@ public class VC_NetworkImpl {
 //			else {
 //				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
 //			}
-			if (rD < 0.33) {
-				facilityLink = getRandomLink(0, (int) (Math.round(xmax*0.50)), (int) (Math.round(ymax*0.85)), ymax, network, xmax);
-			}
-			else if (rD < 0.66) {
-				facilityLink = getRandomLink(0, (int) (Math.round(xmax*0.50)), 0, (int) (Math.round(ymax*0.15)), network, xmax);
-			}
-			else if (rD < 0.77) {
-				facilityLink = getRandomLink((int) (Math.round(xmax*0.50)), (int) (Math.round(xmax*0.70)), (int) (Math.round(ymax*0.30)), (int) (Math.round(ymax*0.40)), network, xmax);
-			}
-			else if (rD < 1.00) {
-				facilityLink = getRandomLink((int) (Math.round(xmax*0.70)), (int) (Math.round(xmax*1.00)), 0, (int) (Math.round(ymax*0.15)), network, xmax);
+//			if (rD < 0.33) {
+//				facilityLink = getRandomLink(0, (int) (Math.round(xmax*0.50)), (int) (Math.round(ymax*0.85)), ymax, network, xmax);
+//			}
+//			else if (rD < 0.66) {
+//				facilityLink = getRandomLink(0, (int) (Math.round(xmax*0.50)), 0, (int) (Math.round(ymax*0.15)), network, xmax);
+//			}
+//			else if (rD < 0.77) {
+//				facilityLink = getRandomLink((int) (Math.round(xmax*0.50)), (int) (Math.round(xmax*0.70)), (int) (Math.round(ymax*0.30)), (int) (Math.round(ymax*0.40)), network, xmax);
+//			}
+//			else if (rD < 1.00) {
+//				facilityLink = getRandomLink((int) (Math.round(xmax*0.70)), (int) (Math.round(xmax*1.00)), 0, (int) (Math.round(ymax*0.15)), network, xmax);
+//			}
+//			else {
+//				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
+//			}
+			if (rD < 0.50) {
+				facilityLink = getRandomLink((int) (Math.round(xmax*0.40)), (int) (Math.round(xmax*0.60)), (int) (Math.round(ymax*0.00)), (int) (Math.round(ymax*0.20)), network, xmax);				
 			}
 			else {
-				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
+				facilityLink = getRandomLink((int) (Math.round(xmax*0.40)), (int) (Math.round(xmax*0.60)), (int) (Math.round(ymax*0.80)), (int) (Math.round(ymax*1.00)), network, xmax);
 			}
+			
 		}
 		else {
-			facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
+//			facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
+			facilityLink = getRandomLink((int) (Math.round(xmax*0.80)), (int) (Math.round(xmax*1.00)), (int) (Math.round(ymax*0.40)), (int) (Math.round(ymax*0.60)), network, xmax);
 		}
 		
 		return facilityLink;
@@ -561,7 +576,8 @@ public class VC_NetworkImpl {
 	}
 	
 	// %%% Add actual Transit: Create stops & make schedule along lines %%%
-	public static void applyPtSchedule(List<NetworkRoute> busRoutes, Network network, double minStopDistance) throws IOException {
+	public static void applyPtSchedule(List<NetworkRoute> busRoutes, Network network,
+			double minStopDistance, double departureSpacing, double firstDeparture, double lastDeparture, boolean addFacilitiesOnAllNodes) throws IOException {
 		
 		Config busConfig = ConfigUtils.createConfig();						// this is totally default and may be modified as required
 		Scenario busScenario = ScenarioUtils.createScenario(busConfig);
@@ -580,10 +596,10 @@ public class VC_NetworkImpl {
 			NetworkRoute busRoute = busRoutes.get(lineNr-1);
 			MRoute mRoute = new MRoute("myBus_Route"+lineNr);
 			mRoute.lifeTime = 40;
-			mRoute.departureSpacing = 450.0;
+			mRoute.departureSpacing = departureSpacing;
 			mRoute.isInitialDepartureSpacing = false;
-			mRoute.firstDeparture = 6.0*3600;
-			mRoute.lastDeparture = 22.0*3600;
+			mRoute.firstDeparture = firstDeparture;
+			mRoute.lastDeparture = lastDeparture;
 			mRoute.setNetworkRoute(busRoute);
 			//	mNetwork.addNetworkRoute(mRoute);
 			
@@ -607,13 +623,13 @@ public class VC_NetworkImpl {
 			
 			Id<Link> lastStopLinkId = routeLinkList.get(0); // Have secured by terminal choice that first link definitely has a stopFacility
 			Link lastStopLink = network.getLinks().get(lastStopLinkId);
-			TransitStopFacility foundLastTransitStopFacility = busSchedule.getFacilities().get(Id.create(lastStopLink.getFromNode().getId().toString(), TransitStopFacility.class));
+			TransitStopFacility foundLastTransitStopFacility = busSchedule.getFacilities().get(Id.create("NodeStop"+lastStopLink.getFromNode().getId().toString(), TransitStopFacility.class));
 			TransitStopFacility lastStopFacility;
 			if (foundLastTransitStopFacility == null) {
 				lastStopFacility = busScheduleFactory.createTransitStopFacility(
-						Id.create(lastStopLink.getFromNode().getId().toString(), TransitStopFacility.class), lastStopLink.getFromNode().getCoord(), false);
+						Id.create("NodeStop"+lastStopLink.getFromNode().getId().toString(), TransitStopFacility.class), lastStopLink.getFromNode().getCoord(), false);
 				lastStopFacility.setLinkId(lastStopLinkId);
-				lastStopFacility.setName("stopNode"+lastStopLink.getFromNode().getId().toString());
+				lastStopFacility.setName("NodeStopNr"+lastStopLink.getFromNode().getId().toString());
 				busSchedule.addStopFacility(lastStopFacility);
 				newlyAddedTSF.add(lastStopFacility);
 			}
@@ -632,13 +648,13 @@ public class VC_NetworkImpl {
 				}
 				
 				TransitStopFacility currentStopFacility;
-				Id<TransitStopFacility> transitStopFacilityId = Id.create(currentLink.getFromNode().getId().toString(), TransitStopFacility.class);
+				Id<TransitStopFacility> transitStopFacilityId = Id.create("NodeStop"+currentLink.getFromNode().getId().toString(), TransitStopFacility.class);
 				TransitStopFacility foundTransitStopFacility = busSchedule.getFacilities().get(transitStopFacilityId);
 				if (foundTransitStopFacility == null) {
 					currentStopFacility = busScheduleFactory.createTransitStopFacility(
 							transitStopFacilityId, currentLink.getFromNode().getCoord(), false);
 					currentStopFacility.setLinkId(currentLinkID);
-					currentStopFacility.setName("stopNode"+currentLink.getFromNode().getId().toString());
+					currentStopFacility.setName("NodeStopNr"+currentLink.getFromNode().getId().toString());
 					busSchedule.addStopFacility(currentStopFacility);
 					newlyAddedTSF.add(currentStopFacility);
 				}
@@ -686,7 +702,7 @@ public class VC_NetworkImpl {
 			// Build TransitRoute from stops and NetworkRoute --> and add departures
 			String vehicleFileLocation = ("zurich_1pm/VC_files/zurich_transit_vehicles.xml.gz");
 			TransitRoute transitRoute = busScheduleFactory.createTransitRoute(Id.create("VC_Route"+lineNr, TransitRoute.class ), 
-					busRoute, stopArray, "bus");
+					busRoute, stopArray, "customBus");
 			transitRoute = Metro_TransitScheduleImpl.addDeparturesAndVehiclesToTransitRoute(mRoute, busScenario, busSchedule, 
 					transitRoute, metroVehicleType, vehicleFileLocation); // Add departures to TransitRoute as a function of f=(DepSpacing, First/LastDeparture)
 			// Build TransitLine from TrasitRoute
@@ -701,6 +717,19 @@ public class VC_NetworkImpl {
 			mRoute.setTotalDrivenDist(mRoute.routeLength * mRoute.nDepartures);		
 		}	// end of TransitLine creator loop
 
+		
+		if (addFacilitiesOnAllNodes) {
+			for (Node node : network.getNodes().values()) {
+				if (!busSchedule.getFacilities().containsKey(Id.create("NodeStop"+node.getId().toString(), TransitStopFacility.class))){
+					Id<TransitStopFacility> transitStopFacilityId = Id.create("NodeStop"+node.getId().toString(), TransitStopFacility.class);
+				TransitStopFacility tsf = busScheduleFactory.createTransitStopFacility(transitStopFacilityId, node.getCoord(), false);
+				tsf.setLinkId(node.getOutLinks().keySet().iterator().next());
+				tsf.setName("NodeStopNr"+node.getId().toString());
+				busSchedule.addStopFacility(tsf);					
+				}
+			}
+		}
+		
 		// Write TransitSchedule to corresponding file
 		TransitScheduleWriter tsw = new TransitScheduleWriter(busSchedule);
 		tsw.writeFile("zurich_1pm/VC_files/zurich_transit_schedule.xml.gz");	
@@ -973,7 +1002,7 @@ public class VC_NetworkImpl {
 		}
 		// build some of the potential diagonals
 		for (List<Integer> diagonalPair : potentialNewDiagonals) {
-			if (new Random().nextDouble() < 0.80) {
+			if (new Random().nextDouble() < 0.00) {
 				continue;
 			}
 			addNodePairToNetwork(diagonalPair, positiveNetwork, maxMetroLinkDist);

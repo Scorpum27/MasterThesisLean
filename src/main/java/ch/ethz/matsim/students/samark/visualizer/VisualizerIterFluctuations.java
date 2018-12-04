@@ -269,23 +269,41 @@ public class VisualizerIterFluctuations {
 				Arrays.asList("Total Benefit", "Travel Gains (Time & Comfort)", "External Cost & Vehicle Savings"), 0.0, 0.0, null, // new Range(0.0E8, 4.5E8), // new Range(-1.0E8, 2.5E8)
 				"BenefitsByIteration_"+censusSize + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2DConfIntervals(" Car Average Person Travel Time \r\n "
-				+ "[Metro scenario average = " +meanCarTime+ " ],  [StdDev from ref. value = " +stdDevCarTime+" ]",
+		Visualizer.plot2D(" Car Average Person Travel Time \r\n "
+				+ "[Metro scenario average = " +meanCarTime+ " ],  \r\n"
+						+ "[StdDev from ref. value = " +stdDevCarTime+" ]",
 				"MATSim Iteration", "Average Travel Time Car [s]",
 				Arrays.asList(travelTimeAverageCarByIteration, travelTimeAverageCarByIterationOriginal),
-				Arrays.asList("Metro Case", "Reference Case"), 0.0, 0.0, new Range(2000.0, 3000.0),
-				"AverageCarTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + ".png",
+				Arrays.asList("Metro Case", "Reference Case Average Value"), 0.0, 0.0, new Range(2200.0, 2600.0),
+				"AverageCarTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+		
+		Visualizer.plot2D(" PT Average Person Travel Time \r\n "
+				+ "[Metro scenario average = " +meanPtTime+ " ],  \r\n"
+						+ "[StdDev from ref. value = " +stdDevPtTime+" ]",
+				"MATSim Iteration", "Average Travel Time PT [s]",
+				Arrays.asList(travelTimeAveragePtByIteration, travelTimeAveragePtByIterationOriginal),
+				Arrays.asList("Metro Case", "Reference Case Average Value"), 0.0, 0.0, new Range(6000.0, 7600.0),
+				"AveragePtTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+		
+		Visualizer.plot2DConfIntervals(" Car Average Person Travel Time \r\n "
+				+ "[Metro scenario average = " +meanCarTime+ " ],    \r\n"
+						+ "[StdDev from ref. value = " +stdDevCarTime+" ]",
+				"MATSim Iteration", "Average Travel Time Car [s]",
+				Arrays.asList(travelTimeAverageCarByIteration, travelTimeAverageCarByIterationOriginal),
+				Arrays.asList("Metro Case", "Reference Case Average Value"), 0.0, 0.0, new Range(2000.0, 3000.0),
+				"AverageCarTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + "CONF.png",
 				Arrays.asList(
 					Arrays.asList(meanCarTime-stdDevCarTime, meanCarTime+stdDevCarTime),
 					Arrays.asList(cbpOriginalGlobal.averageCartime - travelTimeAverageCarOrigConfInterval,
 									cbpOriginalGlobal.averageCartime + travelTimeAverageCarOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
 		Visualizer.plot2DConfIntervals(" PT Average Travel Time \r\n "
-				+ "[Metro scenario average = " +meanPtTime+ " ],  [Metro scenario StdDev from ref. value = " +stdDevPtTime+" ]",
+				+ "[Metro scenario average = " +meanPtTime+ " ],  \r\n"
+						+ "[Metro scenario StdDev from ref. value = " +stdDevPtTime+" ]",
 				"MATSim Iteration", "Average Travel Time PT [s]",
 				Arrays.asList(travelTimeAveragePtByIteration, travelTimeAveragePtByIterationOriginal),
 				Arrays.asList("Metro Case", "Ref Case"), 0.0, 0.0, yRange,
-				"AveragePtTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + ".png",
+				"AveragePtTravelTimeByIteration_" + censusSize + "_maxIter" + maxIterations + "CONF.png",
 				Arrays.asList(
 					Arrays.asList(meanPtTime-stdDevPtTime, meanPtTime+stdDevPtTime),
 					Arrays.asList(cbpOriginalGlobal.averagePtTime - travelTimeAveragePtOrigConfInterval,
@@ -303,7 +321,8 @@ public class VisualizerIterFluctuations {
 //									cbpOriginalGlobal.customVariable1/cbpOriginalGlobal.otherUsers + travelTimeAverageOtherOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
 		Visualizer.plot2D(" Walk/Bike Average Travel Time \r\n "
-				+ "[Metro scenario average = " +meanOtherTime+ " ],  [StdDev from ref. value = " +stdDevOtherTime+" ]",
+				+ "[Metro scenario average = " +meanOtherTime+ " ],  \r\n"
+						+ "[StdDev from ref. value = " +stdDevOtherTime+" ]",
 				"MATSim Iteration", "Average Travel Time Walk/Bike [s]",
 				Arrays.asList(travelTimeAverageOtherByIteration, travelTimeAverageOtherByIterationOriginal),
 				Arrays.asList("Metro Case", "Walk/Bike - Ref Case"), 0.0, 0.0, yRange,

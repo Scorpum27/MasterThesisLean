@@ -62,10 +62,12 @@ public class VisualizerScoresEvolution {
 				}
 			}
 			if (betterValueFound) {
+				
 				bestScore.put(gen, bestCBP.totalAnnualBenefit-bestCBP.totalAnnualCost);
 				averageScore.put(gen, averageNetworkScore);
 				bestTotalBenefit.put(gen, bestCBP.totalAnnualBenefit);
 				bestTotalCost.put(gen, bestCBP.totalAnnualCost);
+				
 				bestAveragePtDisutilityEquivalentTime.put(gen, (bestCBP.customVariable3/bestCBP.ptUsers)/60.0);
 				bestAveragePtTime.put(gen, bestCBP.averagePtTime/60.0);
 				bestAverageCarTime.put(gen, bestCBP.averageCartime/60.0);

@@ -60,11 +60,11 @@ public class NetworkEvolutionImpl {
 	public static MNetworkPop createMNetworks(String populationName, int populationSize, int initialRoutesPerNetwork, String initialRouteType, 
 			String shortestPathStrategy, int iterationToReadOriginalNetwork, int lastIterationOriginal, Integer iterationsToAverage, double minMetroRadiusFromCenter,
 			double maxMetroRadiusFromCenter, double maxExtendedMetroRadiusFromCenter, Coord zurich_NetworkCenterCoord, double metroCityRadius, 
-			int nMostFrequentLinks, boolean extendMetroGrid, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter, double minInitialTerminalDistance, 
+			int nMostFrequentLinks, boolean extendMetroGrid, boolean entireMetroGrid, double maxNewMetroLinkDistance, double minTerminalRadiusFromCenter, double maxTerminalRadiusFromCenter, double minInitialTerminalDistance, 
 			double minInitialTerminalRadiusFromCenter, double maxInitialTerminalRadiusFromCenter, boolean varyInitRouteSize,
 			boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea,
 			double odConsiderationThreshold, boolean useOdPairsForInitialRoutes, double xOffset, double yOffset, double populationFactor,
-			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom,String defaultPtMode, 
+			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, 
 			boolean blocksLane, double stopTime, double maxVehicleSpeed, double tFirstDep, double tLastDep, double initialDepSpacing, double lifeTime
 			) throws IOException {
 
@@ -93,70 +93,83 @@ public class NetworkEvolutionImpl {
 			NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, 100, 80);
 		}
 		
+		Map<String, CustomStop> railStops = new HashMap<String, CustomStop>();
+		Map<Id<Link>, CustomLinkAttributes> mergedLinks_mostFrequentInRadiusMainFacilitiesSet = new HashMap<Id<Link>, CustomLinkAttributes>();
 		
-		// Initialize a customLinkMap with all links from original network
-		Map<Id<Link>, CustomLinkAttributes> allOriginalLinks = NetworkEvolutionImpl.createCustomLinkMap(originalNetwork, null);
-		
-		// Run event handler to count movements on each stop facility of original map and add traffic data to customLinkMap
-		Map<Id<Link>, CustomLinkAttributes> trafficProcessedLinkMap = NetworkEvolutionImpl.runPTStopTrafficScanner(
-				new PT_StopTrafficCounter(), allOriginalLinks, iterationToReadOriginalNetwork, originalNetwork, null);
-		
-		// Select all metro candidate links by setting bounds on their location (distance from city center)	
-		Map<Id<Link>, CustomLinkAttributes> links_withinRadius = NetworkEvolutionImpl.findLinksWithinBounds(
-				trafficProcessedLinkMap , originalNetwork, zurich_NetworkCenterCoord, minMetroRadiusFromCenter, maxMetroRadiusFromCenter,
-				(networkPath+"/1a_WithinRadius" + ((int) Math.round(metroCityRadius)) + ".xml"));
-				// null); // FOR SAVING: replace (null) by (networkPath+"/1a_WithinRadius" + ((int) Math.round(metroCityRadius)) + ".xml")
-
-		// Find most frequent links from input links
-		Map<Id<Link>, CustomLinkAttributes> links_mostFrequentInRadius = 
-				NetworkEvolutionImpl.findMostFrequentLinks(nMostFrequentLinks, extendMetroGrid, 
-						maxNewMetroLinkDistance, metroCityRadius, zurich_NetworkCenterCoord, links_withinRadius, originalNetwork, null);
+		if (true) {
+			// Initialize a customLinkMap with all links from original network
+			Map<Id<Link>, CustomLinkAttributes> allOriginalLinks = NetworkEvolutionImpl.createCustomLinkMap(originalNetwork, null);
+			
+			// Run event handler to count movements on each stop facility of original map and add traffic data to customLinkMap
+			Map<Id<Link>, CustomLinkAttributes> trafficProcessedLinkMap = NetworkEvolutionImpl.runPTStopTrafficScanner(
+					new PT_StopTrafficCounter(), allOriginalLinks, iterationToReadOriginalNetwork, originalNetwork, null);
+			
+			// Select all metro candidate links by setting bounds on their location (distance from city center)	
+			Map<Id<Link>, CustomLinkAttributes> links_withinRadius = NetworkEvolutionImpl.findLinksWithinBounds(
+					trafficProcessedLinkMap , originalNetwork, zurich_NetworkCenterCoord, minMetroRadiusFromCenter, maxMetroRadiusFromCenter,
+					(networkPath+"/1a_WithinRadius" + ((int) Math.round(metroCityRadius)) + ".xml"));
+					// null); // FOR SAVING: replace (null) by (networkPath+"/1a_WithinRadius" + ((int) Math.round(metroCityRadius)) + ".xml")
 	
-		// Set dominant transit stop facility in given network (from custom link list)
-		// On these highly frequented links find for each the most dominant stop facility (by mode e.g. rail) attached to them
-		Map<Id<Link>, CustomLinkAttributes> links_mostFrequentInRadiusMainFacilitiesSet = NetworkEvolutionImpl.setMainFacilities(originalTransitSchedule, 
-				originalNetwork, links_mostFrequentInRadius, 
-				(networkPath+"/2a_MostFrequentInRadius.xml"));
-				//null); // FOR SAVING: replace (null) by (networkPath+"/2_MostFrequentInRadius.xml")
+			// Find most frequent links from input links
+			Map<Id<Link>, CustomLinkAttributes> links_mostFrequentInRadius = 
+					NetworkEvolutionImpl.findMostFrequentLinks(nMostFrequentLinks, extendMetroGrid, entireMetroGrid,
+							maxNewMetroLinkDistance, metroCityRadius, zurich_NetworkCenterCoord, links_withinRadius, originalNetwork, null);
 		
-		// Extract current rails network [stations, originalLinks] - Do this now in order to hand over stations so that linksMerging can take place around railStations
-				// Maybe delete <<metroLinkAttributesOriginalScenario>> because it is not (yet) required.
-				// This is for extracting all original railwayStations with
-					// - String=SuperName (only first part of TransitStopFacilityId, which is identical for all stopFacilities around one station with different refLinks)
-					// - CustomRailStop=Facility|Name|LinkRefIds|Node
-				Map<String, CustomStop> railStops = new HashMap<String, CustomStop>();
-				railStops = NetworkEvolutionImpl.getOriginalRailwayStations(maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, railStops);
-				
-				// 1. Frequent link stop facilities within 150m range of a railway stop facility are replaced be the railway stop facility for economic reasons
-				//    Take care, may add several custom links to one railway station --> have to merge them and remove "duplicates"
-				// 2. Merge close frequent links + add their total traffic to one dominant stopFacility -> this way metro links are not squeezed unreasonably next to each other
-				// 3. Finally, for all, set a reference railway facility if it is within bounds!
-				// In the next steps only the remaining domStopFacilities will be taken and used as starting point for the new metro network nodes
-		Map<Id<Link>, CustomLinkAttributes> mergedLinks_mostFrequentInRadiusMainFacilitiesSet = NetworkEvolutionImpl.mergeLinksWithinBounds(
-				links_mostFrequentInRadiusMainFacilitiesSet, railway2metroCatchmentArea, metro2metroCatchmentArea, railStops, originalNetwork,
-				(networkPath+"/2b_MostFrequentInRadiusMERGED.xml"));
-				// null); // FOR SAVING: replace (null) by (networkPath+"/2b_MostFrequentInRadiusMERGED.xml"));
-		
-
-		// %%% EVERYTHING IN OLD SYSTEM UP TO HERE %%% CONVERSIONS %%%
-		// 	Get [new map] node from [old map] refLink: Node newMapNode = newNetwork.getNodes.get(Id.createNodeId("MetroNodeLinkRef_"+oldMapRefLink.toString()))
-		// 	---> Id<Node> metroNodeId = metroNodeFromOriginalLink(Id<Link> originalLinkRefID) 
-		// 	Get [old map] refLink from [new map] node: Link oldMapLink = newMapNode.parse
-		// 	---> Id<Link> originalLinkId = orginalLinkFromMetroNode(Id<Node> metroNodeId)
-
-		
-		// Make a New innerCity network:
-					// - Create and add to newInnerCityNetwork a new node for each domFacility at its coordinates --> Interconnect nodes by new metroLinks
-					// - Build a new clone as metroStopFacility
-					// - Build map with newMetroStopAttributes and build a map of newMetroLinkAttributes such as neighboring stop facilities
-					// - Update by superName if facility is featured in railwayFacilities
+			// Set dominant transit stop facility in given network (from custom link list)
+			// On these highly frequented links find for each the most dominant stop facility (by mode e.g. rail) attached to them
+			Map<Id<Link>, CustomLinkAttributes> links_mostFrequentInRadiusMainFacilitiesSet = NetworkEvolutionImpl.setMainFacilities(originalTransitSchedule, 
+					originalNetwork, links_mostFrequentInRadius, entireMetroGrid,
+					(networkPath+"/2a_MostFrequentInRadius.xml"));
+					//null); // FOR SAVING: replace (null) by (networkPath+"/2_MostFrequentInRadius.xml")
+			
+			//		for (Id<Link> linkID : links_mostFrequentInRadiusMainFacilitiesSet.keySet()) {
+			//			System.out.println(linkID.toString());
+			//			if (links_mostFrequentInRadiusMainFacilitiesSet.get(linkID) == null) {
+			//			}
+			//		}
+			
+			// Extract current rails network [stations, originalLinks] - Do this now in order to hand over stations so that linksMerging can take place around railStations
+					// Maybe delete <<metroLinkAttributesOriginalScenario>> because it is not (yet) required.
+					// This is for extracting all original railwayStations with
+						// - String=SuperName (only first part of TransitStopFacilityId, which is identical for all stopFacilities around one station with different refLinks)
+						// - CustomRailStop=Facility|Name|LinkRefIds|Node
+					
+					railStops = NetworkEvolutionImpl.getOriginalRailwayStations(maxExtendedMetroRadiusFromCenter, zurich_NetworkCenterCoord, railStops);
+					
+					// 1. Frequent link stop facilities within 150m range of a railway stop facility are replaced be the railway stop facility for economic reasons
+					//    Take care, may add several custom links to one railway station --> have to merge them and remove "duplicates"
+					// 2. Merge close frequent links + add their total traffic to one dominant stopFacility -> this way metro links are not squeezed unreasonably next to each other
+					// 3. Finally, for all, set a reference railway facility if it is within bounds!
+					// In the next steps only the remaining domStopFacilities will be taken and used as starting point for the new metro network nodes
+			mergedLinks_mostFrequentInRadiusMainFacilitiesSet = NetworkEvolutionImpl.mergeLinksWithinBounds(
+					entireMetroGrid, links_mostFrequentInRadiusMainFacilitiesSet, railway2metroCatchmentArea, metro2metroCatchmentArea, railStops, originalNetwork,
+					(networkPath+"/2b_MostFrequentInRadiusMERGED.xml"));
+					// null); // FOR SAVING: replace (null) by (networkPath+"/2b_MostFrequentInRadiusMERGED.xml"));
+			
+	
+			// %%% EVERYTHING IN OLD SYSTEM UP TO HERE %%% CONVERSIONS %%%
+			// 	Get [new map] node from [old map] refLink: Node newMapNode = newNetwork.getNodes.get(Id.createNodeId("MetroNodeLinkRef_"+oldMapRefLink.toString()))
+			// 	---> Id<Node> metroNodeId = metroNodeFromOriginalLink(Id<Link> originalLinkRefID) 
+			// 	Get [old map] refLink from [new map] node: Link oldMapLink = newMapNode.parse
+			// 	---> Id<Link> originalLinkId = orginalLinkFromMetroNode(Id<Node> metroNodeId)
+	
+			
+			// Make a New innerCity network:
+						// - Create and add to newInnerCityNetwork a new node for each domFacility at its coordinates --> Interconnect nodes by new metroLinks
+						// - Build a new clone as metroStopFacility
+						// - Build map with newMetroStopAttributes and build a map of newMetroLinkAttributes such as neighboring stop facilities
+						// - Update by superName if facility is featured in railwayFacilities
+		}
+		else {
+			mergedLinks_mostFrequentInRadiusMainFacilitiesSet = NetworkEvolutionImpl.createEntireMetroGrid(originalNetwork);
+		}
 		
 		
 		Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes = new HashMap<Id<Link>, CustomMetroLinkAttributes>();
 		Map<String, CustomStop> innerCityMetroStops = new HashMap<String, CustomStop>();	// to save all details of new cloned stops
 		Network innerCityMetroNetwork = NetworkEvolutionImpl.createMetroNetworkFromCandidates( mergedLinks_mostFrequentInRadiusMainFacilitiesSet,
 				railStops, innerCityMetroStops, metroLinkAttributes, maxNewMetroLinkDistance, originalNetwork, networkPath+"/MetroStopFacilities.xml",
-				networkPath+"/3a_MetroNetworkInnerCity.xml");
+				networkPath+"/3a_MetroNetworkInnerCity.xml", entireMetroGrid);
 				//null); // FOR SAVING: replace (null) by (networkPath+"/4_MetroNetwork.xml"))
 		
 		
@@ -235,6 +248,7 @@ public class NetworkEvolutionImpl {
 						terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, zurich_NetworkCenterCoord, metroCityRadius, varyInitRouteSize,
 						minInitialTerminalDistance, minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter);
 				// CAUTION: If NullPointerException, probably maxTerminalRadius >  metroNetworkRadius
+//				Log.write(metroNetwork...);
 				separateRoutesNetwork = NetworkOperators.networkRoutesToNetwork(initialMetroRoutes, metroNetwork,
 						Sets.newHashSet("pt"), (mNetworkPath + "/0_MetroInitialRoutes_Random.xml"));
 			}
@@ -331,6 +345,21 @@ public class NetworkEvolutionImpl {
 			networkPopulation.addNetwork(mNetwork);
 		}
 		return networkPopulation;
+	}
+
+
+	public static Map<Id<Link>, CustomLinkAttributes> createEntireMetroGrid(Network network) {
+		
+		Map<Id<Link>, CustomLinkAttributes> customLinkMap = new HashMap<Id<Link>, CustomLinkAttributes>();
+		for (TransitStopFacility tsf : ScenarioUtils.loadScenario(ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml")).getTransitSchedule().getFacilities().values()) {
+			if (network.getLinks().containsKey(tsf.getLinkId()) &&  !customLinkMap.containsKey(tsf.getLinkId())){
+				CustomLinkAttributes cla = new CustomLinkAttributes();
+				cla.dominantMode = "metro";
+				cla.dominantStopFacility = tsf;
+				customLinkMap.put(tsf.getLinkId(), cla);
+			}
+		}
+		return customLinkMap;
 	}
 
 
@@ -610,10 +639,13 @@ public class NetworkEvolutionImpl {
 		}
 		
 		
-		public static Map<Id<Link>, CustomLinkAttributes> mergeLinksWithinBounds( Map<Id<Link>, CustomLinkAttributes> links_withinRadius, 
+		public static Map<Id<Link>, CustomLinkAttributes> mergeLinksWithinBounds( boolean entireMetroGrid, Map<Id<Link>, CustomLinkAttributes> links_withinRadius, 
 				double railway2metroCatchmentArea,
 				double metro2metroCatchmentArea, Map<String, CustomStop> railwayStations, Network originalNetwork, String fileName) throws IOException{
 			
+			if (entireMetroGrid) {
+				return links_withinRadius;
+			}
 			
 			// SECTION 1: Merge links with railwayStopFacility if their dominant facilities is in vicinity of existing railwayStop & set reference railwayStation (= closest railwayStation)
 			Map<Id<Link>, CustomLinkAttributes> metroRailwayMergedLinks = Clone.customLinkMap(links_withinRadius); // just a copy so that we can play around and remove entries
@@ -688,17 +720,19 @@ public class NetworkEvolutionImpl {
 		
 		
 
-		public static Map<Id<Link>, CustomLinkAttributes> findMostFrequentLinks(int nMostFrequentLinks, boolean extendMetroGrid,
+		public static Map<Id<Link>, CustomLinkAttributes> findMostFrequentLinks(int nMostFrequentLinks, boolean extendMetroGrid, boolean entireMetroGrid,
 				double maxNewMetroLinkDistance, double metroCityRadius, Coord centerCoord,
 				Map<Id<Link>, CustomLinkAttributes> customLinkMap, Network network, String fileName) throws IOException {
 			// output is a map with all links above threshold and their traffic (number of link enter events)
 
 			// add links if they are within top nMostFrequentlinks
-			Map<Id<Link>, CustomLinkAttributes> mostFrequentLinks = new HashMap<Id<Link>, CustomLinkAttributes>( nMostFrequentLinks);
+			Map<Id<Link>, CustomLinkAttributes> mostFrequentLinks = new HashMap<Id<Link>, CustomLinkAttributes>( nMostFrequentLinks );
+			
 			int i = 0;
 			for (Id<Link> linkID : customLinkMap.keySet()) {
 				if (customLinkMap.get(linkID).getTotalTraffic() == 0) {
-//					Log.write("Cannot add link to mostFrequentlinks because it has no traffic and will therefore have no domStopFacility!");
+					// Log.write("Cannot add link to mostFrequentlinks because it has no traffic and
+					// will therefore have no domStopFacility!");
 					continue;
 				}
 				mostFrequentLinks.put(linkID, customLinkMap.get(linkID));
@@ -707,19 +741,34 @@ public class NetworkEvolutionImpl {
 					break;
 				}
 			}
-
+	
 			// add other links from customLinkMap if they have more traffic than previous
 			// minimum link
 			for (Id<Link> linkID : customLinkMap.keySet()) {
 				Id<Link> minTrafficLinkID = minimumTrafficLink(mostFrequentLinks);
+				if (minTrafficLinkID == null) {
+					continue;
+				}
 				Double minTraffic = mostFrequentLinks.get(minimumTrafficLink(mostFrequentLinks)).getTotalTraffic();
 				if (customLinkMap.get(linkID).getTotalTraffic() > minTraffic
 						&& mostFrequentLinks.containsKey(linkID) == false) {
 					mostFrequentLinks.put(linkID, customLinkMap.get(linkID));
 					mostFrequentLinks.remove(minTrafficLinkID);
 				}
-			}
+			}			
 			
+			if (entireMetroGrid) {
+				List<Id<Link>> linksWithFacility = new ArrayList<Id<Link>>();
+				for (TransitStopFacility tsf : ScenarioUtils.loadScenario(ConfigUtils.loadConfig("zurich_1pm/zurich_config.xml")).getTransitSchedule().getFacilities().values()) {
+					if (network.getLinks().containsKey(tsf.getLinkId()) && !linksWithFacility.contains(tsf.getLinkId())){
+						customLinkMap.get(tsf.getLinkId()).dominantStopFacility = tsf;
+						mostFrequentLinks.put(tsf.getLinkId(), customLinkMap.get(tsf.getLinkId()));
+						linksWithFacility.add(tsf.getLinkId());
+					}
+					Log.write("# linksWithFacilities = "+linksWithFacility.size());
+				}
+				Log.write("linksWithFacilities are: "+linksWithFacility.toString());
+			}
 			
 			if (extendMetroGrid) {
 				Network newNodesNetwork = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getNetwork();
@@ -840,8 +889,15 @@ public class NetworkEvolutionImpl {
 		}
 
 		public static Map<Id<Link>, CustomLinkAttributes> setMainFacilities(TransitSchedule transitSchedule,
-				Network network, Map<Id<Link>, CustomLinkAttributes> selectedLinksIn, String fileName) {
+				Network network, Map<Id<Link>, CustomLinkAttributes> selectedLinksIn, boolean entireMetroGrid, String fileName) {
 
+			if (entireMetroGrid) {
+				if (fileName != null) {
+					createNetworkFromCustomLinks(selectedLinksIn, network, fileName);
+				}
+				return selectedLinksIn;
+			}
+			
 			Map<Id<Link>, CustomLinkAttributes> selectedLinks = copyCustomMap(selectedLinksIn);
 
 			// Go through all facilities and whenever a stop facility refers to a selected
@@ -856,6 +912,14 @@ public class NetworkEvolutionImpl {
 
 			LinkLoop:
 			for (Id<Link> selectedLinkID : selectedLinks.keySet()) {
+//				System.out.println("tryings selectedLinksID = "+selectedLinkID);
+//				if (selectedLinks.containsKey(selectedLinkID)) {
+//					System.out.println("yes, selectedLinks contains selectedLinkId");					
+//				}
+//				if (selectedLinks.get(selectedLinkID)==null) {
+//					System.out.println("had to continue, bc customLinkAttributes were zero!");
+//					continue;
+//				}
 			boolean facilityFound = false;
 				for (TransitLine transitLine : transitSchedule.getTransitLines().values()) {
 					for (TransitRoute transitRoute : transitLine.getRoutes().values()) {
@@ -880,6 +944,13 @@ public class NetworkEvolutionImpl {
 									// System.out.println("Added mode: "+mode);
 
 								} else if (mode.equals("bus")) {
+//									System.out.println(selectedLinkID.toString());
+//									if (selectedLinks.containsKey(selectedLinkID)) {
+//										System.out.println("yes, it STILL contains selectedLinkId");					
+//									}
+//									System.out.println(selectedLinks.keySet().toString());
+//									System.out.println(selectedLinks.get(selectedLinkID));
+//									System.out.println(selectedLinks.get(selectedLinkID).getDominantMode());
 									if (selectedLinks.get(selectedLinkID).getDominantMode() == null
 											|| selectedLinks.get(selectedLinkID).getDominantMode() == "funicular") {
 										CustomLinkAttributes updatedAttributes = selectedLinks.get(selectedLinkID);
@@ -945,7 +1016,7 @@ public class NetworkEvolutionImpl {
 
 		public static Network createMetroNetworkFromCandidates(Map<Id<Link>, CustomLinkAttributes> customLinkMap,
 			Map<String, CustomStop> railStops, Map<String, CustomStop> innerCityMetroStops, Map<Id<Link>,CustomMetroLinkAttributes> metroLinkAttributes,
-			double maxNewMetroLinkDistance,  Network mergerNetwork, String transitScheduleFileName, String fileName)  	throws IOException {
+			double maxNewMetroLinkDistance,  Network mergerNetwork, String transitScheduleFileName, String fileName, Boolean entireMetroGrid)  	throws IOException {
 		
 			Config config = ConfigUtils.createConfig();
 			Scenario scenario = ScenarioUtils.createScenario(config);
@@ -963,45 +1034,115 @@ public class NetworkEvolutionImpl {
 						TransitSchedule newTransitSchedule = scenario.getTransitSchedule();
 						TransitScheduleFactory newTSF = newTransitSchedule.getFactory();
 						
-						Node newNode = null;
-						Link newLink = null;
-						Map<Id<Node>, Id<Link>> metroNode2originalLinkRefMap = new HashMap<Id<Node>, Id<Link>>(customLinkMap.size());
-						for (Entry<Id<Link>, CustomLinkAttributes> customLink : customLinkMap.entrySet()) {
-							Id<Link> linkID = customLink.getKey();
-							CustomLinkAttributes cla = customLink.getValue();
-							TransitStopFacility dominantFacility = cla.dominantStopFacility;
-							if (dominantFacility == null) {
-								Log.write("CAUTION: NoDomFacility for this selected Link!!");
-								continue;	// XXX this line is new
+						
+						if (false) {
+							for (Node node : mergerNetwork.getNodes().values()) {
+								Node newNode = networkFactory.createNode( Id.createNodeId("zhStopNodeRef" + node.getId().toString()), node.getCoord());
+								newNetwork.addNode(newNode);
+
+								Id<TransitStopFacility> transitStopFacilityId = Id.create("zhStopNodeRef" +node.getId().toString()+"_metro", TransitStopFacility.class);
+								TransitStopFacility tsf = newTSF.createTransitStopFacility(transitStopFacilityId, node.getCoord(), false);
+								tsf.setLinkId(node.getOutLinks().keySet().iterator().next());
+								tsf.setName(transitStopFacilityId.toString());
+								if ( ! newTransitSchedule.getFacilities().containsKey(tsf.getId())) {
+									newTransitSchedule.addStopFacility(tsf);
+								}
+								innerCityMetroStops.put(transitStopFacilityId.toString(), new CustomStop(tsf, newNode.getId(), "newMetro", true));
 							}
-							// - Create and add to network a new node for each domFacility at exactly the Coordinates of domFacility --> Naming: "zhLinkRef"+LinkId"
-								// THIS AND THE FOLLOWING ELSE LOOP HAVE BEEN DELETED: if (cla.getDominantStopFacility() != null) {
-							newNode = networkFactory.createNode(
-									Id.createNodeId("zhStopLinkRef" + NetworkEvolutionImpl.removeString(linkID.toString(),"_")), dominantFacility.getCoord());
-							metroNode2originalLinkRefMap.put(newNode.getId(), linkID);
-							newNetwork.addNode(newNode);
-							// - Make new facility with Id (removeBlanks! add "_metro") and add to transitSchedule (add _metro also in facilityName)
-							String originalStopFacilityId = dominantFacility.getId().toString();
-							String originalStopFacilityName = dominantFacility.getName().toString();
-							String newStopSuperName = cutString(originalStopFacilityId, ".");
-							String newMetroStopFacilityId = newStopSuperName+"_metro"; // stopFacilityId = superName.refLinkId --> Want only superName
-							String newMetroStopFacilityName = removeSpecialChar(originalStopFacilityName)+"_metro"; // don't want blanks in stop name
-							TransitStopFacility metroCloneFacility = newTSF.createTransitStopFacility(Id.create(newMetroStopFacilityId, TransitStopFacility.class), 
-									dominantFacility.getCoord(), dominantFacility.getIsBlockingLane());
-							metroCloneFacility.setName(newMetroStopFacilityName);
-							// Add new MetroFacility to schedule and this current (innerCity) customStopMap
-							newTransitSchedule.addStopFacility(metroCloneFacility);
-							innerCityMetroStops.put(newStopSuperName, new CustomStop(metroCloneFacility, newNode.getId(), "newMetro", true));
-							// - If facility is featured in railwayFacilities (check by superName): Process facility (superName) in railCustomStopMap - Set mode/NODE/addedToSchedule
-							for (String railStopSuperName : railStops.keySet()) {
-								if (newStopSuperName.equals(railStopSuperName)) {
-									railStops.get(railStopSuperName).mode = "railway2metro";
-									railStops.get(railStopSuperName).addedToNewSchedule = true;
-									railStops.get(railStopSuperName).newNetworkNode = newNode.getId();
-									railStops.get(railStopSuperName).transitStopFacility = metroCloneFacility;
+							for (Node thisNode : newNetwork.getNodes().values()) {
+								for (Node otherNode : newNetwork.getNodes().values()) {
+									double thisMaxMetroLinkDistance = maxNewMetroLinkDistance;
+									// increase maxLinkDistance if two hotspot nodes are connected i.e. nodes with traffic above a threshold, here 15.0
+									if (thisNode.equals(otherNode)) {
+										continue;
+									}
+									// add NEW links (with appropriate naming method) to all nodes within a specific radius
+									else if (GeomDistance.betweenNodes(thisNode, otherNode) < thisMaxMetroLinkDistance) {
+										Link newLink = networkFactory.createLink(
+												Id.createLinkId(thisNode.getId().toString() + "_" + otherNode.getId().toString()), thisNode,
+												otherNode);
+										if ( ! newNetwork.getLinks().containsKey(newLink.getId())) {
+											newNetwork.addLink(newLink);											
+										}
+									}
 								}
 							}
 						}
+						
+						else {
+							Node newNode = null;
+							Link newLink = null;
+							Map<Id<Node>, Id<Link>> metroNode2originalLinkRefMap = new HashMap<Id<Node>, Id<Link>>(customLinkMap.size());
+							for (Entry<Id<Link>, CustomLinkAttributes> customLink : customLinkMap.entrySet()) {
+								Id<Link> linkID = customLink.getKey();
+								CustomLinkAttributes cla = customLink.getValue();
+								TransitStopFacility dominantFacility = cla.dominantStopFacility;
+								if (dominantFacility == null) {
+									Log.write("CAUTION: NoDomFacility for this selected Link!!");
+									continue;	// XXX this line is new
+								}
+								// - Create and add to network a new node for each domFacility at exactly the Coordinates of domFacility --> Naming: "zhLinkRef"+LinkId"
+									// THIS AND THE FOLLOWING ELSE LOOP HAVE BEEN DELETED: if (cla.getDominantStopFacility() != null) {
+								newNode = networkFactory.createNode(
+										Id.createNodeId("zhStopLinkRef" + NetworkEvolutionImpl.removeString(linkID.toString(),"_")), dominantFacility.getCoord());
+								metroNode2originalLinkRefMap.put(newNode.getId(), linkID);
+								newNetwork.addNode(newNode);
+								// - Make new facility with Id (removeBlanks! add "_metro") and add to transitSchedule (add _metro also in facilityName)
+								String originalStopFacilityId = dominantFacility.getId().toString();
+								String originalStopFacilityName = dominantFacility.getName().toString();
+								String newStopSuperName = cutString(originalStopFacilityId, ".");
+								String newMetroStopFacilityId = newStopSuperName+"_metro"; // stopFacilityId = superName.refLinkId --> Want only superName
+								String newMetroStopFacilityName = removeSpecialChar(originalStopFacilityName)+"_metro"; // don't want blanks in stop name
+								TransitStopFacility metroCloneFacility = newTSF.createTransitStopFacility(Id.create(newMetroStopFacilityId, TransitStopFacility.class), 
+										dominantFacility.getCoord(), dominantFacility.getIsBlockingLane());
+								metroCloneFacility.setName(newMetroStopFacilityName);
+								// Add new MetroFacility to schedule and this current (innerCity) customStopMap
+								newTransitSchedule.addStopFacility(metroCloneFacility);
+								innerCityMetroStops.put(newStopSuperName, new CustomStop(metroCloneFacility, newNode.getId(), "newMetro", true));
+								// - If facility is featured in railwayFacilities (check by superName): Process facility (superName) in railCustomStopMap - Set mode/NODE/addedToSchedule
+								for (String railStopSuperName : railStops.keySet()) {
+									if (newStopSuperName.equals(railStopSuperName)) {
+										railStops.get(railStopSuperName).mode = "railway2metro";
+										railStops.get(railStopSuperName).addedToNewSchedule = true;
+										railStops.get(railStopSuperName).newNetworkNode = newNode.getId();
+										railStops.get(railStopSuperName).transitStopFacility = metroCloneFacility;
+									}
+								}
+							}
+							for (Node thisNode : newNetwork.getNodes().values()) {
+								for (Node otherNode : newNetwork.getNodes().values()) {
+									double thisMaxMetroLinkDistance = maxNewMetroLinkDistance;
+									// increase maxLinkDistance if two hotspot nodes are connected i.e. nodes with traffic above a threshold, here 15.0
+									if (Math.min(customLinkMap.get(metroNode2originalLinkRefMap.get(thisNode.getId())).getTotalTraffic(),
+											customLinkMap.get(metroNode2originalLinkRefMap.get(otherNode.getId())).getTotalTraffic()) > 15.0) {
+										thisMaxMetroLinkDistance = 1.3*maxNewMetroLinkDistance;
+										//Log.write("traffic.txt", "Found a very frequent link between coords: "+thisNode.getCoord()+" / "+otherNode.getCoord());
+									}
+									if (thisNode.equals(otherNode)) {
+										continue;
+									}
+									// add NEW links (with appropriate naming method) to all nodes within a specific radius
+									else if (GeomDistance.betweenNodes(thisNode, otherNode) < thisMaxMetroLinkDistance) {
+										newLink = networkFactory.createLink(
+												Id.createLinkId(thisNode.getId().toString() + "_" + otherNode.getId().toString()), thisNode,
+												otherNode);
+										newNetwork.addLink(newLink);
+									}
+									// add NEW links if refLink of other facility node was on a next link to the link of this facility (an outLink of toNode of this node's refLink)
+									else if (mergerNetwork.getLinks().get(metroNode2originalLinkRefMap.get(thisNode.getId())).getToNode()
+											.getOutLinks().containsKey(metroNode2originalLinkRefMap.get(otherNode.getId()))) {
+										newLink = networkFactory.createLink(
+												Id.createLinkId(thisNode.getId().toString() + "_" + otherNode.getId().toString()), thisNode,
+												otherNode);
+										newNetwork.addLink(newLink);
+									}
+								}
+				
+							}
+						}
+						// --
+						
+						
 						TransitScheduleWriter tsw = new TransitScheduleWriter(newTransitSchedule);
 						tsw.writeFile(transitScheduleFileName);	
 			
@@ -1011,36 +1152,7 @@ public class NetworkEvolutionImpl {
 							// - railStops is marked that has been assigned and is linked with railStops.transitStopFacility = newMetroStopFacility
 			
 			// Create links in network --> for every node:
-			for (Node thisNode : newNetwork.getNodes().values()) {
-				for (Node otherNode : newNetwork.getNodes().values()) {
-					double thisMaxMetroLinkDistance = maxNewMetroLinkDistance;
-					// increase maxLinkDistance if two hotspot nodes are connected i.e. nodes with traffic above a threshold, here 15.0
-					if (Math.min(customLinkMap.get(metroNode2originalLinkRefMap.get(thisNode.getId())).getTotalTraffic(),
-							customLinkMap.get(metroNode2originalLinkRefMap.get(otherNode.getId())).getTotalTraffic()) > 15.0) {
-						thisMaxMetroLinkDistance = 1.3*maxNewMetroLinkDistance;
-						//Log.write("traffic.txt", "Found a very frequent link between coords: "+thisNode.getCoord()+" / "+otherNode.getCoord());
-					}
-					if (thisNode.equals(otherNode)) {
-						continue;
-					}
-					// add NEW links (with appropriate naming method) to all nodes within a specific radius
-					else if (GeomDistance.betweenNodes(thisNode, otherNode) < thisMaxMetroLinkDistance) {
-						newLink = networkFactory.createLink(
-								Id.createLinkId(thisNode.getId().toString() + "_" + otherNode.getId().toString()), thisNode,
-								otherNode);
-						newNetwork.addLink(newLink);
-					}
-					// add NEW links if refLink of other facility node was on a next link to the link of this facility (an outLink of toNode of this node's refLink)
-					else if (mergerNetwork.getLinks().get(metroNode2originalLinkRefMap.get(thisNode.getId())).getToNode()
-							.getOutLinks().containsKey(metroNode2originalLinkRefMap.get(otherNode.getId()))) {
-						newLink = networkFactory.createLink(
-								Id.createLinkId(thisNode.getId().toString() + "_" + otherNode.getId().toString()), thisNode,
-								otherNode);
-						newNetwork.addLink(newLink);
-					}
-				}
 
-			}
 			
 			for (Entry<Id<Link>, ? extends Link> newLinkEntry : newNetwork.getLinks().entrySet()) {
 				TransitStopFacility fromNodeFacility = Metro_TransitScheduleImpl.node2Facility(newLinkEntry.getValue().getFromNode(), innerCityMetroStops);
