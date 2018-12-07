@@ -89,37 +89,37 @@ public class VisualizerScoresEvolution {
 			}
 		}
 		
-		Visualizer.plot2D(" Total Welfare \r\n ", "Generation", "Annual Welfare [CHF p.a.]",
+		Visualizer.plot2D(" Total Welfare \r\n ", "", "Generation", "Annual Welfare [CHF p.a.]",
 				Arrays.asList(bestScore, averageScore),
 				Arrays.asList("Elite Network", "Average"), 0.0, 0.0, null, // new Range(0.0E8, 4.5E8)
 				simPath+"/x1_welfare.png");
 
-		Visualizer.plot2D(" Elite Network Cost vs. Benefit \r\n ", "Generation", "Annual Welfare [CHF p.a.]",
+		Visualizer.plot2D(" Elite Network Cost vs. Benefit \r\n ", "", "Generation", "Annual Welfare [CHF p.a.]",
 				Arrays.asList(bestScore, bestTotalBenefit, bestTotalCost),
 				Arrays.asList("Total Welfare", "Benefit(+)", "Cost(-)"), 0.0, 0.0, null,
 				simPath+"/x2_costBenefit.png");
 		
-		Visualizer.plot2D(" Travel Utility Gains (Time + Comfort) \r\n ", "Generation", "Monetized Travel Benefits [CHF p.a.]",
+		Visualizer.plot2D(" Travel Utility Gains (Time + Comfort) \r\n ", "", "Generation", "Monetized Travel Benefits [CHF p.a.]",
 				Arrays.asList(bestTotalBenefit, bestTravelTimeGains, bestTravelTimeGainsPt, bestTravelTimeGainsCar, bestTravelTimeGainsOther),
 				Arrays.asList("Total Benefit", "Total Travel Utility Gains", "PT Utility Gains", "Car Utility Gains", "Walk/Bike Utility Gains"), 0.0, 0.0, null,
 				simPath+"/x3_travelUtilities.png");
 		
-		Visualizer.plot2D(" Difference in Mode Users to Reference Case w/o Metro \r\n ", "Generation", "Delta Users",
+		Visualizer.plot2D(" Difference in Mode Users to Reference Case w/o Metro \r\n ", "", "Generation", "Delta Users",
 				Arrays.asList(bestDeltaPtUsers, bestDeltaCarUsers, bestDeltaOtherUsers),
 				Arrays.asList("PT", "Car", "Walk/Bike"), 0.0, 0.0, null,
 				simPath+"/x4_modeUsers.png");
 		
-		Visualizer.plot2D(" Average Travel Disutility in Travel Time Equivalents \r\n ", "Generation", "Time Equivalent [min]",
+		Visualizer.plot2D(" Average Travel Disutility in Travel Time Equivalents \r\n ", "", "Generation", "Time Equivalent [min]",
 				Arrays.asList(bestAveragePtDisutilityEquivalentTime, bestAveragePtTime),
 				Arrays.asList("Average PT Travel Utilty Time Equivalent", "Average PT Travel Time"), 0.0, 0.0, null,
 				simPath+"/x5_travelTimeEquivalents.png");
 		
-		Visualizer.plot2D(" Difference in Average Travel Time to Reference Case w/o Metro \r\n ", "Generation", "Difference in Average Travel Time [min]",
+		Visualizer.plot2D(" Difference in Average Travel Time to Reference Case w/o Metro \r\n ", "", "Generation", "Difference in Average Travel Time [min]",
 				Arrays.asList(bestAverageDeltaPtTime, bestAverageDeltaCarTime, bestAverageDeltaOtherTime),
 				Arrays.asList("PT", "Car", "Walk/Bike"), 0.0, 0.0, null,
 				simPath+"/x6_travelTimesDelta.png");
 		
-		Visualizer.plot2D(" Average Travel Time \r\n ", "Generation", "Average Travel Time [min]",
+		Visualizer.plot2D(" Average Travel Time \r\n ", "", "Generation", "Average Travel Time [min]",
 				Arrays.asList(bestAveragePtTime, bestAverageCarTime, bestAverageOtherTime),
 				Arrays.asList("PT", "Car", "Walk/Bike"), 0.0, 0.0, null,
 				simPath+"/x7_travelTimes.png");

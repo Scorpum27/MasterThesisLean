@@ -69,8 +69,8 @@ public class VC_NetworkImpl {
 		double minStopDistance = 400.0; // original bus stop spacing
 		double maxMetroLinkDist = 1000.0;
 		boolean addFacilitiesOnAllNodes = true;
-		int nBusRoutes = 1;
-		double departureSpacing = 24*3600.0;		// this will result in NO departures
+		int nBusRoutes = 0;
+		double departureSpacing = 450.0;		// this will result in NO departures
 		double firstDeparture = 6.0*3600.0;
 		double lastDeparture = 22.5*3600.0;
 		double minTerminalDist = 1000.0; // Math.sqrt(xmax*xmax+ymax*ymax)*unitLinkLength*0.5;
@@ -128,11 +128,45 @@ public class VC_NetworkImpl {
 		popVC = rebuildPlans(network, popVC, rebuiltFacilities, popCutPercentage);
 		
 	// create pt
+		List<List<Coord>> manualKeyRoutingPoints = new ArrayList<List<Coord>>();
+		for (int p=1; p<=1; p++) {
+			manualKeyRoutingPoints.add(Arrays.asList(
+					new Coord(unitLinkLength*p, unitLinkLength*p),
+					new Coord(unitLinkLength*(xmax-p), unitLinkLength*p),
+					new Coord(unitLinkLength*(xmax-p), unitLinkLength*(ymax-p)),
+					new Coord(unitLinkLength*p, unitLinkLength*(ymax-p)),
+					new Coord(unitLinkLength*p, unitLinkLength*p)));
+		}
+		manualKeyRoutingPoints.add(Arrays.asList(
+				new Coord(unitLinkLength*10, unitLinkLength*1),
+				new Coord(unitLinkLength*0, unitLinkLength*20)));
+		manualKeyRoutingPoints.add(Arrays.asList(
+				new Coord(unitLinkLength*0, unitLinkLength*10),
+				new Coord(unitLinkLength*20, unitLinkLength*0)));
+		
+//		manualKeyRoutingPoints.add(Arrays.asList(
+//				new Coord(unitLinkLength*9, unitLinkLength*0),
+//				new Coord(unitLinkLength*11, unitLinkLength*0),
+//				new Coord(unitLinkLength*11, unitLinkLength*ymax),
+//				new Coord(unitLinkLength*9, unitLinkLength*ymax),
+//				new Coord(unitLinkLength*9, unitLinkLength*0)));
+//		manualKeyRoutingPoints.add(Arrays.asList(
+//				new Coord(unitLinkLength*0, unitLinkLength*9),
+//				new Coord(unitLinkLength*0, unitLinkLength*11),
+//				new Coord(unitLinkLength*xmax, unitLinkLength*11),
+//				new Coord(unitLinkLength*xmax, unitLinkLength*9),
+//				new Coord(unitLinkLength*0, unitLinkLength*9)));
+		
+		// ---
 //		List<List<Coord>> manualKeyRoutingPoints = Arrays.asList(
-//				 Arrays.asList(new Coord(0.0, 0.0), new Coord(unitLinkLength*xmax, unitLinkLength*ymax)),
+//				 Arrays.asList(new Coord(0.0, 0.0), new Coord(unitLinkLength*xmax, 0.0),
+//						 new Coord(unitLinkLength*xmax, unitLinkLength*ymax), new Coord(0.0, unitLinkLength*ymax),
+//						 new Coord(0.0, 0.0)),
+//				 Arrays.asList(new Coord(unitLinkLength*1, unitLinkLength*1), new Coord(unitLinkLength*(xmax-1), unitLinkLength*1),
+//						 new Coord(unitLinkLength*(xmax-1), unitLinkLength*(ymax-1)), new Coord(unitLinkLength*1, unitLinkLength*(ymax-1)),
+//						 new Coord(unitLinkLength*1, unitLinkLength*1)),
 //				 Arrays.asList(new Coord(unitLinkLength*xmax, 0.0), new Coord(0.0, unitLinkLength*ymax))
 //				);
-		List<List<Coord>> manualKeyRoutingPoints = new ArrayList<List<Coord>>();
 		List<List<Node>> keyRouteNodeSequences = createKeyNodeSequences(nBusRoutes, manualKeyRoutingPoints, network, minTerminalDist, xmax, unitLinkLength);
 		System.out.println(keyRouteNodeSequences.toString());
 		ArrayList<NetworkRoute> busRoutes = createInitialRoutes(network, keyRouteNodeSequences);
@@ -438,7 +472,7 @@ public class VC_NetworkImpl {
 //			else {
 //				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
 //			}
-			facilityLink = getRandomLink((int) (Math.round(xmax*0.00)), (int) (Math.round(xmax*0.20)), (int) (Math.round(ymax*0.40)), (int) (Math.round(ymax*0.60)), network, xmax);
+			facilityLink = getRandomLink((int) (Math.round(xmax*0.00)), (int) (Math.round(xmax*0.10)), (int) (Math.round(ymax*0.45)), (int) (Math.round(ymax*0.55)), network, xmax);
 		}
 		else if(facilityType.equals("home")) {
 			Double rD = (new Random()).nextDouble();
@@ -467,16 +501,16 @@ public class VC_NetworkImpl {
 //				facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
 //			}
 			if (rD < 0.50) {
-				facilityLink = getRandomLink((int) (Math.round(xmax*0.40)), (int) (Math.round(xmax*0.60)), (int) (Math.round(ymax*0.00)), (int) (Math.round(ymax*0.20)), network, xmax);				
+				facilityLink = getRandomLink((int) (Math.round(xmax*0.45)), (int) (Math.round(xmax*0.55)), (int) (Math.round(ymax*0.00)), (int) (Math.round(ymax*0.10)), network, xmax);				
 			}
 			else {
-				facilityLink = getRandomLink((int) (Math.round(xmax*0.40)), (int) (Math.round(xmax*0.60)), (int) (Math.round(ymax*0.80)), (int) (Math.round(ymax*1.00)), network, xmax);
+				facilityLink = getRandomLink((int) (Math.round(xmax*0.45)), (int) (Math.round(xmax*0.55)), (int) (Math.round(ymax*0.90)), (int) (Math.round(ymax*1.00)), network, xmax);
 			}
 			
 		}
 		else {
 //			facilityLink = getRandomLink(0, xmax, 0, ymax, network, xmax);
-			facilityLink = getRandomLink((int) (Math.round(xmax*0.80)), (int) (Math.round(xmax*1.00)), (int) (Math.round(ymax*0.40)), (int) (Math.round(ymax*0.60)), network, xmax);
+			facilityLink = getRandomLink((int) (Math.round(xmax*0.90)), (int) (Math.round(xmax*1.00)), (int) (Math.round(ymax*0.45)), (int) (Math.round(ymax*0.55)), network, xmax);
 		}
 		
 		return facilityLink;
@@ -585,7 +619,7 @@ public class VC_NetworkImpl {
 		TransitScheduleFactory busScheduleFactory = busSchedule.getFactory();
 			
 		// Create a New Metro Vehicle
-		VehicleType metroVehicleType = Metro_TransitScheduleImpl.createNewVehicleType("myBus", 30.0, 33.0/3.6, 40, 80);
+		VehicleType metroVehicleType = Metro_TransitScheduleImpl.createNewVehicleType("myBus", 30.0, 30.0/3.6, 5000, 5000);
 		busScenario.getTransitVehicles().addVehicleType(metroVehicleType);
 			
 		// Generate TransitLines and Schedules on NetworkRoutes --> Add to Transit Schedule
@@ -616,7 +650,7 @@ public class VC_NetworkImpl {
 			
 			List<Id<Link>> routeLinkList = new ArrayList<Id<Link>>();
 			routeLinkList.addAll(Metro_NetworkImpl.networkRouteToLinkIdList(mRoute.networkRoute));
-			double maxVehicleSpeed = 33.0/3.6;
+			double maxVehicleSpeed = 30.0/3.6;
 			double acceleration = 0.1*9.81;
 			double vMaxAccDistance = maxVehicleSpeed*maxVehicleSpeed/(2*acceleration);
 			double tAccVMax = maxVehicleSpeed/acceleration;

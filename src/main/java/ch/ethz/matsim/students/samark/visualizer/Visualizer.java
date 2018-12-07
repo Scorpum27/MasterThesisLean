@@ -31,10 +31,13 @@ import org.jfree.data.Range;
 import org.jfree.data.xy.XYDataset;
 import org.jfree.data.xy.XYSeries;
 import org.jfree.data.xy.XYSeriesCollection;
+import org.jfree.ui.HorizontalAlignment;
 import org.jfree.ui.Layer;
 import org.jfree.ui.RectangleAnchor;
 import org.jfree.ui.RectangleEdge;
+import org.jfree.ui.RectangleInsets;
 import org.jfree.ui.TextAnchor;
+import org.jfree.ui.VerticalAlignment;
 import org.matsim.api.core.v01.Coord;
 import org.matsim.core.utils.charts.XYLineChart;
 
@@ -107,13 +110,13 @@ public class Visualizer {
 		otherBenefits.put(lastIteration, cbpNew.extCostSavings + cbpNew.customVariable4);
 	}
 
-	Visualizer.plot2D(" Change in Modal Split \r\n ",		// [#maxMATSimIter=" + maxIterations + "] 
+	Visualizer.plot2D(" Change in Modal Split \r\n ", "",		// [#maxMATSimIter=" + maxIterations + "] 
 			"MATSim Iteration", "Delta Users (Metro - Ref. Case)",
 			Arrays.asList(deltaCarUsersByIteration, deltaPtUsersByIteration, deltaOtherUsersByIteration),
 			Arrays.asList("Car", "PT", "Walk/Bike"), 0.0, 0.0, null,
 			folder+"/DeltaModeUsersByIteration_.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 	
-	Visualizer.plot2D(" Change in Modal Split \r\n ",
+	Visualizer.plot2D(" Change in Modal Split \r\n ", "",
 			"MATSim Iteration", "#ModeUsers",
 			Arrays.asList(carUsersByIteration, carUsersByIterationOriginal, ptUsersByIteration, ptUsersByIterationOriginal,
 					otherUsersByIteration, otherUsersByIterationOriginal),
@@ -127,7 +130,7 @@ public class Visualizer {
 //					"travelTimeGainsWalk/Bike", "External/VehicleCostSavings"), 0.0, 0.0, null, // new Range(-2.0E8, 7.0E8), // new Range(-1.0E8, 2.5E8)
 //			"BenefitsByIteration_"+censusSize + "_maxIter" + maxIterations + ".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 	
-	Visualizer.plot2D(" Induced Benefits \r\n [Total Cost = "+"] ",
+	Visualizer.plot2D(" Induced Benefits \r\n [Total Cost = "+"] ", "",
 			"MATSim Iteration", "Annual Benefit [CHF p.a.]",
 			Arrays.asList(totalBenefit, travelTimeGains, otherBenefits),
 			Arrays.asList("Total Benefit", "Travel Gains (Time & Comfort)", "External Cost & Vehicle Savings"), 0.0, 0.0, null, // new Range(0.0E8, 4.5E8), // new Range(-1.0E8, 2.5E8)
@@ -166,22 +169,22 @@ public class Visualizer {
 //				Arrays.asList(cbpOriginalGlobal.customVariable1/cbpOriginalGlobal.otherUsers - travelTimeAverageOtherOrigConfInterval,
 //								cbpOriginalGlobal.customVariable1/cbpOriginalGlobal.otherUsers + travelTimeAverageOtherOrigConfInterval))); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 	
-	Visualizer.plot2D(" Walk/Bike Average Travel Time \r\n "
-			+ "[Metro scenario average = " + " ],  [StdDev from ref. value = " +" ]",
+	Visualizer.plot2D(" Walk/Bike Average Travel Time \r\n ",
+			"[Metro scenario average = " + " ],  [StdDev from ref. value = " +" ]",
 			"MATSim Iteration", "Average Travel Time Walk/Bike [s]",
 			Arrays.asList(travelTimeAverageOtherByIteration, travelTimeAverageOtherByIterationOriginal),
 			Arrays.asList("Metro Case", "Ref Case"), 0.0, 0.0, null,
 			folder+"/AverageOtherTravelTimeByIteration.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 	
-	Visualizer.plot2D(" Car Average Travel Time \r\n "
-			+ "[Metro scenario average = " + " ],  [StdDev from ref. value = " +" ]",
+	Visualizer.plot2D(" Car Average Travel Time \r\n ",
+			"[Metro scenario average = " + " ],  [StdDev from ref. value = " +" ]",
 			"MATSim Iteration", "Average Travel Time Car [s]",
 			Arrays.asList(travelTimeAverageCarByIteration, travelTimeAverageCarByIterationOriginal),
 			Arrays.asList("Metro Case", "Ref Case"), 0.0, 0.0, null,
 			folder+"/AverageCarTravelTimeByIteration.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 	
-	Visualizer.plot2D(" PT Average Travel Time \r\n "
-			+ "[Metro scenario average = " + " ],  [StdDev from ref. value = " +" ]",
+	Visualizer.plot2D(" PT Average Travel Time \r\n ",
+			"[Metro scenario average = " + " ],  [StdDev from ref. value = " +" ]",
 			"MATSim Iteration", "Average Travel Time PT [s]",
 			Arrays.asList(travelTimeAveragePtByIteration, travelTimeAveragePtByIterationOriginal),
 			Arrays.asList("Metro Case", "Ref Case"), 0.0, 0.0, null,
@@ -768,7 +771,7 @@ public class Visualizer {
 		chart.saveAsPng(outFileName, 800, 600);
 	}
 
-	public static void plot2D(String title, String xAxisName, String yAxisName, List<Map<Integer, Double>> inputSeries,
+	public static void plot2D(String title,  String subtitle, String xAxisName, String yAxisName, List<Map<Integer, Double>> inputSeries,
 			List<String> inputSeriesName, Double tickUnitX, Double tickUnitY, Range yRange, String outFileName)
 			throws IOException {
 
@@ -781,12 +784,16 @@ public class Visualizer {
 
 		// new version
 		JFreeChart lineChart = ChartFactory.createXYLineChart(title, xAxisName, yAxisName, null);
+		TextTitle plotTitle = lineChart.getTitle();
+		plotTitle.setFont(new Font("Arial Bold", Font.BOLD, 35));
+		lineChart.addSubtitle(new TextTitle(subtitle,
+				new Font("Arial", Font.PLAIN, 20), Color.black,
+				RectangleEdge.TOP, HorizontalAlignment.CENTER,
+				VerticalAlignment.CENTER, RectangleInsets.ZERO_INSETS));
 		LegendTitle legend = lineChart.getLegend();
 		legend.setPosition(RectangleEdge.TOP); // RectangleEdge.RIGHT
 		legend.setItemFont(new Font("Arial", Font.PLAIN, 30));
-		TextTitle plotTitle = lineChart.getTitle();
-		plotTitle.setFont(new Font("Arial Bold", Font.BOLD, 35));
-
+		
 		XYPlot plot = (XYPlot) lineChart.getPlot();
 		List<XYDataset> dataSets = new ArrayList<XYDataset>();
 		for (Integer seriesNr = 0; seriesNr < inputSeries.size(); seriesNr++) {
@@ -843,7 +850,7 @@ public class Visualizer {
 		ChartUtilities.saveChartAsPNG(file, lineChart, 1280, 960);
 	}
 	
-	public static void plot2DConfIntervals(String title, String xAxisName, String yAxisName, List<Map<Integer, Double>> inputSeries,
+	public static void plot2DConfIntervals(String title, String subtitle, String xAxisName, String yAxisName, List<Map<Integer, Double>> inputSeries,
 			List<String> inputSeriesName, Double tickUnitX, Double tickUnitY, Range yRange, String outFileName, List<List<Double>> confIntervals)
 			throws IOException {
 
@@ -861,7 +868,11 @@ public class Visualizer {
 		legend.setItemFont(new Font("Arial", Font.PLAIN, 30));
 		TextTitle plotTitle = lineChart.getTitle();
 		plotTitle.setFont(new Font("Arial Bold", Font.BOLD, 35));
-
+		lineChart.addSubtitle(new TextTitle(subtitle,
+				new Font("Arial", Font.PLAIN, 20), Color.black,
+			    RectangleEdge.TOP, HorizontalAlignment.CENTER,
+			    VerticalAlignment.CENTER, RectangleInsets.ZERO_INSETS));
+		
 		XYPlot plot = (XYPlot) lineChart.getPlot();
 		List<XYDataset> dataSets = new ArrayList<XYDataset>();
 		for (Integer seriesNr = 0; seriesNr < inputSeries.size(); seriesNr++) {
@@ -883,8 +894,14 @@ public class Visualizer {
 			final IntervalMarker confInterval = new IntervalMarker(confIntervals.get(confIntNr).get(0), confIntervals.get(confIntNr).get(1));
 			confInterval.setLabel("90th Percentile");
 			confInterval.setLabelFont(new Font("SansSerif", Font.ITALIC, 20));
-			confInterval.setLabelAnchor(RectangleAnchor.RIGHT);
-			confInterval.setLabelTextAnchor(TextAnchor.CENTER_RIGHT);
+			if (confIntNr%2==0) {
+				confInterval.setLabelAnchor(RectangleAnchor.TOP_RIGHT);
+				confInterval.setLabelTextAnchor(TextAnchor.TOP_RIGHT);				
+			}
+			else {
+				confInterval.setLabelAnchor(RectangleAnchor.BOTTOM_RIGHT);
+				confInterval.setLabelTextAnchor(TextAnchor.BOTTOM_RIGHT);				
+			}
 			confInterval.setPaint(
 					new Color(defaultColors.get(confIntNr).getRed(), defaultColors.get(confIntNr).getGreen(), defaultColors.get(confIntNr).getBlue(), 90));
 			plot.addRangeMarker(confInterval, Layer.BACKGROUND);

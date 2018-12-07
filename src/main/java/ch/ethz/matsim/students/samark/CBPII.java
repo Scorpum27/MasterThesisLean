@@ -160,7 +160,7 @@ public class CBPII{
 			List<Double> annualDeltaPtPersonDist20xx = MNetwork.makePtUsagePrognosis(annualDeltaPtPersonDist2020);		//  [m/y]	// initiate with expected annual deltaPtPersonDist with 2020 MATSim result
 			double annualDeltaCarPersonTime2020 = 250*(this.carTimeTotal-refCase.carTimeTotal);				//  [s/y], double annualDeltaCarVehicleDist2020 = annualDeltaCarPersonDist2020/occupancyRate
 			double annualDeltaPtPersonTime2020 = 250*(this.customVariable3 - refCase.customVariable3);		//  [s/y]			
-			double annualDeltaOtherPersonTime2020 = 250*((this.ptTimeTotal-refCase.ptTimeTotal));			//  [s/y]
+			double annualDeltaOtherPersonTime2020 = 250*((this.customVariable1-refCase.customVariable1));			//  [s/y]
 			List<Double> annualDeltaCarPersonTime20xx = MNetwork.makeMptUsagePrognosis(annualDeltaCarPersonTime2020);	//  [s/y]	// initiate with expected annual deltaCarPersonDist with 2020 MATSim result
 			List<Double> annualDeltaPtPersonTime20xx = MNetwork.makePtUsagePrognosis(annualDeltaPtPersonTime2020);		//  [s/y]	// initiate with expected annual deltaPtPersonDist with 2020 MATSim result		
 			List<Double> annualDeltaOtherPersonTime20xx = MNetwork.makeWalkBikeUsagePrognosis(annualDeltaOtherPersonTime2020);		//  [s/y]	// initiate with expected annual deltaOtherPersonDist with 2020 MATSim result

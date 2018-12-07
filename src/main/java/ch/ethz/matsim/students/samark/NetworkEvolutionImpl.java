@@ -65,8 +65,8 @@ public class NetworkEvolutionImpl {
 			boolean mergeMetroWithRailway, double railway2metroCatchmentArea, double metro2metroCatchmentArea,
 			double odConsiderationThreshold, boolean useOdPairsForInitialRoutes, double xOffset, double yOffset, double populationFactor,
 			String vehicleTypeName, double vehicleLength, double maxVelocity, int vehicleSeats, int vehicleStandingRoom, String defaultPtMode, 
-			boolean blocksLane, double stopTime, double maxVehicleSpeed, double tFirstDep, double tLastDep, double initialDepSpacing, double lifeTime
-			) throws IOException {
+			boolean blocksLane, double stopTime, double maxVehicleSpeed, double tFirstDep, double tLastDep, double initialDepSpacing, double lifeTime,
+			boolean shortenTooLongLegs, boolean manualODInput, String inputScenario) throws IOException {
 
 		String networkPath = "zurich_1pm/Evolution/Population/BaseInfrastructure";
 		new File(networkPath).mkdirs();
@@ -90,7 +90,7 @@ public class NetworkEvolutionImpl {
 		if ( ! (new File("zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml")).exists()) {
 			(new File("zurich_1pm/cbpParametersOriginal")).mkdirs();
 			String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml";
-			NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, 100, 80);
+			NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, 100, 75, shortenTooLongLegs);
 		}
 		
 		Map<String, CustomStop> railStops = new HashMap<String, CustomStop>();
@@ -244,9 +244,16 @@ public class NetworkEvolutionImpl {
 			Network separateRoutesNetwork = null;
 
 			if (useOdPairsForInitialRoutes==false) {
-				initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork, shortestPathStrategy,
-						terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, zurich_NetworkCenterCoord, metroCityRadius, varyInitRouteSize,
-						minInitialTerminalDistance, minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter);
+				if (manualODInput) {
+					initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesManual(inputScenario, metroNetwork, shortestPathStrategy,
+							terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, zurich_NetworkCenterCoord, metroCityRadius, varyInitRouteSize,
+							minInitialTerminalDistance, minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter);
+				}
+				else {
+					initialMetroRoutes = NetworkEvolutionImpl.createInitialRoutesRandom(metroNetwork, shortestPathStrategy,
+							terminalFacilityCandidates, allMetroStops, initialRoutesPerNetwork, zurich_NetworkCenterCoord, metroCityRadius, varyInitRouteSize,
+							minInitialTerminalDistance, minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter);					
+				}
 				// CAUTION: If NullPointerException, probably maxTerminalRadius >  metroNetworkRadius
 //				Log.write(metroNetwork...);
 				separateRoutesNetwork = NetworkOperators.networkRoutesToNetwork(initialMetroRoutes, metroNetwork,
@@ -450,7 +457,7 @@ public class NetworkEvolutionImpl {
 
 
 	public static CBPII calculateCBAStats(String plansFolder, String outputFile, int populationFactor,
-			Integer lastIteration, Integer iterationsToAverage) throws IOException {
+			Integer lastIteration, Integer iterationsToAverage, Boolean shortenTooLongLegs) throws IOException {
 		
 		// CBP stats instantiation
 		Double ptUsers = 0.0;
@@ -482,11 +489,13 @@ public class NetworkEvolutionImpl {
 					if (e instanceof Leg) {
 						Leg leg = (Leg) e;
 						// do following two conditions to avoid unreasonably high (transit_)walk times!
-						if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>35*60.0) {
-							leg.setTravelTime(35*60.0);
-						}
-						if ((leg.getMode().equals("walk") || leg.getMode().equals("bike")) && leg.getTravelTime()>60*60.0) {
-							leg.setTravelTime(60*60.0);
+						if (shortenTooLongLegs) {
+							if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>35*60.0) {
+								leg.setTravelTime(35*60.0);
+							}
+							if ((leg.getMode().equals("walk") || leg.getMode().equals("bike")) && leg.getTravelTime()>60*60.0) {
+								leg.setTravelTime(60*60.0);
+							}								
 						}
 						//
 						if (leg.getMode().contains("car")) {
@@ -510,10 +519,19 @@ public class NetworkEvolutionImpl {
 								ptDisutilityEquivalentTimeTotal += (24.13/14.43)*leg.getTravelTime();
 							}
 						}
-						else if (leg.getMode().equals("walk") || leg.getMode().equals("bike")){
-							walkBikeTimeTotal += leg.getTravelTime();
+						else if (leg.getMode().equals("walk")){
+							walkBikeTimeTotal += 1.2*(23.29*(0.141/0.067)/33.20)*leg.getTravelTime();
+							// TRC: walkDisUtil (0.141/0.67) times higher than car(23.29)
+							// describe walkDisUtil in terms of generalized term 33.20CHF/h, therefore make ratio to express as equivalent to generalized cost
+						}
+						else if (leg.getMode().equals("bike")){
+							walkBikeTimeTotal += 1.2*(23.29*(0.095/0.067)/33.20)*leg.getTravelTime();
 						}
 						personTravelTime += leg.getTravelTime();	// totalPersonTravelTime
+//						else if (leg.getMode().equals("walk") || leg.getMode().equals("bike")){
+//							walkBikeTimeTotal += leg.getTravelTime();
+//						}
+//						personTravelTime += leg.getTravelTime();	// totalPersonTravelTime
 					}
 				}
 				// travel user type bins
@@ -1615,6 +1633,66 @@ public class NetworkEvolutionImpl {
 			return networkRouteArray;
 		}
 
+		
+		public static ArrayList<NetworkRoute> createInitialRoutesManual(String inputScenario, Network newMetroNetwork, String shortestPathStrategy,
+				List<TransitStopFacility> terminalFacilities, Map<String, CustomStop> metroStops, int nRoutes, Coord zhCenterCoord,
+				double metroCityRadius, boolean varyInitRouteSize, 
+				double minTerminalDistance0, double minInitialTerminalRadiusFromCenter0, double maxInitialTerminalRadiusFromCenter0) throws IOException {
+
+			ArrayList<NetworkRoute> networkRouteArray = new ArrayList<NetworkRoute>();
+
+			// make nRoutes new routes
+			Id<Node> terminalNode1 = null;
+			Id<Node> terminalNode2 = null;
+			
+			List<List<Id<Node>>> terminalPairList = new ArrayList<List<Id<Node>>>();
+			
+			if (inputScenario.equals("VC")) {
+				terminalPairList.add(Arrays.asList(Id.createNodeId("zhStopLinkRef3132"), Id.createNodeId("zhStopLinkRef229250")));
+				terminalPairList.add(Arrays.asList(Id.createNodeId("zhStopLinkRef409408"), Id.createNodeId("zhStopLinkRef229250")));
+				terminalPairList.add(Arrays.asList(Id.createNodeId("zhStopLinkRef409408"), Id.createNodeId("zhStopLinkRef211190")));
+				terminalPairList.add(Arrays.asList(Id.createNodeId("zhStopLinkRef3132"), Id.createNodeId("zhStopLinkRef211190")));
+				terminalPairList.add(Arrays.asList(Id.createNodeId("zhStopLinkRef3132"), Id.createNodeId("zhStopLinkRef409408")));
+				terminalPairList.add(Arrays.asList(Id.createNodeId("zhStopLinkRef229250"), Id.createNodeId("zhStopLinkRef211190")));				
+			}
+			else if (inputScenario.equals("zurich")) {
+				// XXX
+			}
+			
+			
+			
+			for (List<Id<Node>> terminalPair : terminalPairList) {
+				terminalNode1 = terminalPair.get(0);
+				terminalNode2 = terminalPair.get(1);
+				// Find Dijkstra --> nodeList
+				List<Node> nodeList = null;
+				if (shortestPathStrategy.equals("Dijkstra1")) {
+					nodeList = DijkstraOwn_I.findShortestPathVirtualNetwork(newMetroNetwork, terminalNode1, terminalNode2);
+				}
+				if (shortestPathStrategy.equals("Dijkstra2")) {
+					nodeList = DemoDijkstra.calculateShortestPath(newMetroNetwork, terminalNode1, terminalNode2);
+				}
+				if (nodeList == null || nodeList.size()<3) {
+					Log.write("Oops, no shortest path available. Trying to create next networkRoute. Please lower minTerminalDistance"
+							+ " ,or increase maxNewMetroLinkDistance (and - last - increase nMostFrequentLinks if required)!");
+						continue;
+				}
+				List<Id<Link>> linkList = nodeListToNetworkLinkList(newMetroNetwork, nodeList);
+				linkList.addAll(OppositeLinkListOf(linkList)); // extend linkList with its opposite direction for PT transportation!
+				NetworkRoute networkRoute = RouteUtils.createNetworkRoute(linkList, newMetroNetwork);
+
+				Log.writeAndDisplay("The new networkRoute is: [Length="+(networkRoute.getLinkIds().size()+2)+"] - " + networkRouteToLinkIdList(networkRoute).toString());
+				networkRouteArray.add(networkRoute);
+			}
+
+			// Doing already in main file --> Not necessary to do here again:
+			// Store all new networkRoutes in a separate network file for visualization
+			// --> networkRoutesToNetwork(networkRouteArray, newMetroNetwork, fileName);
+			return networkRouteArray;
+		}
+
+		
+		
 		public static Id<Node> facility2nodeId(Network newMetroNetwork, TransitStopFacility terminalFacility1) {
 			for (Node node : newMetroNetwork.getNodes().values()) {
 				if (node.getCoord().equals(terminalFacility1.getCoord())) {

@@ -19,6 +19,13 @@ public class VisualizerCBP_Original {
 		Integer iterationsToAverage = Integer.parseInt(args[1]);
 		Integer populationFactor = Integer.parseInt(args[2]);
 		String recalculateOriginalCBPStrategy = args[3]; // "individual", "global", "individual2global"
+		Boolean shortenTooLongLegs;
+		if (args[4].equals("shorten")) {
+			shortenTooLongLegs = true;			
+		}
+		else {
+			shortenTooLongLegs = false;
+		}
 
 		(new File("zurich_1pm/cbpParametersOriginal")).mkdirs();
 
@@ -28,10 +35,10 @@ public class VisualizerCBP_Original {
 				String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal" + lastIteration + ".xml";
 				if (lastIteration < iterationsToAverage) { // then use all available (=lastIteration) for averaging
 					NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, lastIteration,
-							lastIteration);
+							lastIteration, shortenTooLongLegs);
 				} else {
 					NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, lastIteration,
-							iterationsToAverage);
+							iterationsToAverage, shortenTooLongLegs);
 				}
 			}
 		}
@@ -39,10 +46,33 @@ public class VisualizerCBP_Original {
 			String plansFolder = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS";
 			String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml";
 			NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, maxIterations,
-						iterationsToAverage);
+						iterationsToAverage, shortenTooLongLegs);
 		}
 		else if (recalculateOriginalCBPStrategy.equals("individual2global")) {
 			List<CBPII> CBPs = new ArrayList<CBPII>();
+			for (Integer i = maxIterations-iterationsToAverage+1; i<=maxIterations; i++) {
+				CBPII cbpi = XMLOps.readFromFile(CBPII.class, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal" + i + ".xml");
+				CBPs.add(cbpi);
+			}
+			CBPII cbpGlobal = CBPII.calculateAveragesX(CBPs);
+			XMLOps.writeToFile(cbpGlobal, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
+		}
+		else if (recalculateOriginalCBPStrategy.equals("individualXglobal")) {
+			// first individual
+			String plansFolder = "zurich_1pm/Zurich_1pm_SimulationOutputEnriched/ITERS";
+			for (Integer lastIteration = 1; lastIteration <= maxIterations; lastIteration++) {
+				String outputFile = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal" + lastIteration + ".xml";
+				if (lastIteration < iterationsToAverage) { // then use all available (=lastIteration) for averaging
+					NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, lastIteration,
+							lastIteration, shortenTooLongLegs);
+				} else {
+					NetworkEvolutionImpl.calculateCBAStats(plansFolder, outputFile, (int) populationFactor, lastIteration,
+							iterationsToAverage, shortenTooLongLegs);
+				}
+			}
+			// then average individuals to global value
+			List<CBPII> CBPs = new ArrayList<CBPII>();
+			iterationsToAverage = Integer.parseInt(args[5]);
 			for (Integer i = maxIterations-iterationsToAverage+1; i<=maxIterations; i++) {
 				CBPII cbpi = XMLOps.readFromFile(CBPII.class, "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal" + i + ".xml");
 				CBPs.add(cbpi);

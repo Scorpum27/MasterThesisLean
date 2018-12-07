@@ -33,6 +33,8 @@ import ch.ethz.matsim.baseline_scenario.config.CommandLine.ConfigurationExceptio
 // java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 12 6 10000 300 50 20 50 1pm none 1.0
 
 // java -Xmx85G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.virtualCity.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 16 7 20000 300 150 8 14 0.5pm none 0.5
+// java -Xmx130G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.virtualCity.VCEvolution --model-type tour --fallback-behaviour IGNORE_AGENT 16 6 8000 300 150 15 35 1pm none 10.0
+
 
 
 //java -Xmx40G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.Run_VC --model-type tour --fallback-behaviour IGNORE_AGENT
@@ -63,25 +65,26 @@ public class VCEvolution {
 		Integer populationSize = Integer.parseInt(args[4]);						// how many networks should be developed in parallel
 		String populationName = "evoNetworks";
 		Integer initialRoutesPerNetwork = Integer.parseInt(args[5]);			// DEFAULT = 5;
-		Integer maxRouteNumber = Math.max(7, initialRoutesPerNetwork+2);
+		Integer maxRouteNumber = Math.max(7, initialRoutesPerNetwork+2); // XXX Math.max(7, initialRoutesPerNetwork+2) / 2*initialRoutesPerNetwork
 		Boolean mergeMetroWithRailway = false;
 		String ptRemoveScenario = args[12];										// "tram", "bus", "rail", "subway", "funicular"
 		Boolean useFastSBahnModule = false;
 		Boolean varyInitRouteSize = false;
-		Boolean enableThreading = false;
+		Boolean enableThreading = true;
 		Integer nThreads = 16;
 		String inputPlanStrategy = "simEquil";									// "default", "simEquil", "lastPlan" 
 		Boolean recallSimulation = false;
 		int generationToRecall = 999;											// it is recommended to use the Generation before the one that failed in order
 																				// to make sure it's data is complete and ready for next clean generation
 		String inputScenario = "VC";
-		Boolean extendMetroGrid = false;	// XXX true
-		Boolean entireMetroGrid = true;		// XXX false
+		Boolean extendMetroGrid = false;	// XXX false
+		Boolean entireMetroGrid = true;		// XXX true
+		Boolean manualODInput = false;
 		String shortestPathStrategy = "Dijkstra2";									// Options: {"Dijkstra1","Dijkstra2"} -- Both work nicely.
 		String initialRouteType = "Random";											// Options: {"OD","Random"}	-- Choose method to create initial routes 																						[OD=StrongestOriginDestinationShortestPaths, Random=RandomTerminals in outer frame of 																						specified network]
 		Boolean useOdPairsForInitialRoutes = false;									// For OD also modify as follows: minTerminalRadiusFromCenter = 0.00*metroCityRadius
 		if (initialRouteType.equals("OD")) { useOdPairsForInitialRoutes = true; }
-		Integer iterationToReadOriginalNetwork = 50;								// This is the iteration for the simulation output of the original network
+		Integer iterationToReadOriginalNetwork = 100;								// This is the iteration for the simulation output of the original network
 		Double lifeTime = 40.0;
 		
 		// %% Parameters for NetworkRoutes %%
@@ -95,7 +98,7 @@ public class VCEvolution {
 		Double maxMetroRadiusFromCenter = metroCityRadius * maxMetroRadiusFactor;	// this is rather large for an inner city network but more realistic to pull inner city network 																						into outer parts to better connect inner/outer city
 		Double maxExtendedMetroRadiusFromCenter = 1.0*maxMetroRadiusFromCenter;		// DEFAULT = [1, 2.1]*maxMetroRadiusFromCenter; (2.1 for mergeMetroWithRailway=true, 1 for =false) How 																						far a metro can travel on railwayNetwork
 		Integer nMostFrequentLinks = (int) (metroCityRadius/40.0);					// DEFAULT = (int) (metroCityRadius/20.0) (or 70; will further be reduced during merging procedure for close facilities)
-		Double maxNewMetroLinkDistance = 799.0;										// keeep this high enough to not run into nullPointerExceptions in NetworkRoute2Network bc it can suddenly not find its reverse link anymore in network // DEFAULT = Math.max(0.33*metroCityRadius, 1400)
+		Double maxNewMetroLinkDistance = 799.0;		//  XXX 799.0, 1800.0						// keeep this high enough to not run into nullPointerExceptions in NetworkRoute2Network bc it can suddenly not find its reverse link anymore in network // DEFAULT = Math.max(0.33*metroCityRadius, 1400)
 
 		Double minTerminalRadiusFromCenter = 0.00*metroCityRadius; 					// DEFAULT = 0.00/0.20*metroCityRadius for OD-Pairs/RandomRoutes
 		Double maxTerminalRadiusFromCenter = maxExtendedMetroRadiusFromCenter;		// DEFAULT = maxExtendedMetroRadiusFromCenter
@@ -109,7 +112,7 @@ public class VCEvolution {
 		
 		// %% Parameters for Vehicles, StopFacilities & Departures %%
 		String vehicleTypeName = "metro";  Double maxVelocity = 75.0/3.6 /*[m/s]*/;
-		Double vehicleLength = 200.0;  int vehicleSeats = 100; Integer vehicleStandingRoom = 600;
+		Double vehicleLength = 200.0;  int vehicleSeats = 5000; Integer vehicleStandingRoom = 5000;	// DEFAULT: seats=100, stand=600
 		Double initialDepSpacing = Double.parseDouble(args[7]);	 Double tFirstDep = 6.0*60*60;  Double tLastDep = 21.5*60*60; 	// DEFAULT: initialDepSpacing = 5.0*60.0;
 		Double stopTime = 30.0; /*stopDuration [s];*/  String defaultPtMode = "metro";  boolean blocksLane = false;
 		
@@ -125,9 +128,10 @@ public class VCEvolution {
 
 		// %% Parameters Events & Plans Processing, Scores %%
 		Double averageTravelTimePerformanceGoal = 40.0;
-		Integer maxConsideredTravelTimeInSec = 240*60;
-		String censusSize = args[11]; // "1pct","1pm"
-		Integer populationFactor;	// default 1000 for 1pm scenario 
+		Integer maxConsideredTravelTimeInSec = 6*3600;
+		Boolean shortenTooLongLegs = false;
+		String censusSize = args[11]; // "1pct","1pm", ...
+		Integer populationFactor;
 		if (censusSize.equals("1pct")) { populationFactor = 100; }
 		else if (censusSize.equals("0.4pm")) {populationFactor = 2500;}
 		else if (censusSize.equals("0.5pm")) {populationFactor = 2000;}
@@ -136,7 +140,6 @@ public class VCEvolution {
 		else if (censusSize.equals("3pm")) {populationFactor = 333;}
 		else if (censusSize.equals("6pm")) {populationFactor = 167;}
 		else {populationFactor = 100; Log.writeAndDisplay(" CensusSize invalid. Aborting!"); System.exit(0);}
-		// TODO hand over to methods censusSize for to pick correct files folder for initial config, network, people's plans
 
 		// %% Parameters Evolution %%
 		Double alphaXover = 1.3;									// DEFAULT = 1.3; Sensitive param for RouletteWheel-XOverProb Interval=[1.0, 2.0].
@@ -203,7 +206,8 @@ public class VCEvolution {
 				maxNewMetroLinkDistance, minTerminalRadiusFromCenter, maxTerminalRadiusFromCenter, minInitialTerminalDistance, 
 				minInitialTerminalRadiusFromCenter, maxInitialTerminalRadiusFromCenter, varyInitRouteSize, mergeMetroWithRailway, railway2metroCatchmentArea,
 				metro2metroCatchmentArea, odConsiderationThreshold, useOdPairsForInitialRoutes, xOffset, yOffset, 1.0*populationFactor, vehicleTypeName, vehicleLength, maxVelocity, 
-				vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing, lifeTime
+				vehicleSeats, vehicleStandingRoom, defaultPtMode, blocksLane, stopTime, maxVelocity, tFirstDep, tLastDep, initialDepSpacing, lifeTime,
+				shortenTooLongLegs, manualODInput, inputScenario
 			);
 			metroLinkAttributes.putAll(XMLOps.readFromFile(metroLinkAttributes.getClass(), "zurich_1pm/Evolution/Population/BaseInfrastructure/metroLinkAttributes.xml"));
 			List<Map<String, String>> pedigreeTree = new ArrayList<Map<String, String>>();
@@ -280,7 +284,7 @@ public class VCEvolution {
 		// - PLANS PROCESSING:
 			Log.write("PLANS PROCESSING of GEN"+generationNr+"");
 			latestPopulation = NetworkEvolutionRunSim.peoplePlansProcessingM(latestPopulation, maxConsideredTravelTimeInSec,
-					lastIterationOriginal, iterationsToAverage, populationFactor, "zurich_1pm/Evolution/Population/");
+					lastIterationOriginal, iterationsToAverage, populationFactor, shortenTooLongLegs, "zurich_1pm/Evolution/Population/");
 			
 		// - TOTAL SCORE CALCULATOR & HISTORY LOGGER & SCORE CHECK: hand over score to a separate score map for sorting scores	and store most important data of each iteration	
 			Log.write("LOGGING SCORES of GEN"+generationNr+":");

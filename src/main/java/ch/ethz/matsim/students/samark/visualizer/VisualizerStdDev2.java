@@ -14,6 +14,8 @@ import ch.ethz.matsim.students.samark.*;
 
 public class VisualizerStdDev2 {
 
+//	java -Xmx10G -cp samark-0.0.1-SNAPSHOT.jar ch.ethz.matsim.students.samark.visualizer.VisualizerStdDev2 1pct 200 40 30
+	
 	public static void main(String[] args) throws IOException {
 		
 		List<CBPII> cbpList = new ArrayList<CBPII>();
@@ -26,17 +28,20 @@ public class VisualizerStdDev2 {
 		List<Double> carTime = new ArrayList<Double>();
 		List<Double> ptTime = new ArrayList<Double>();
 		List<Double> otherTime = new ArrayList<Double>();
-		Map<Integer, Double> carTimesDelta = new HashMap<Integer, Double>();
-		Map<Integer, Double> ptTimesDelta = new HashMap<Integer, Double>();
-		Map<Integer, Double> otherTimesDelta = new HashMap<Integer, Double>();
+//		Map<Integer, Double> carTimesDelta = new HashMap<Integer, Double>();
+//		Map<Integer, Double> ptTimesDelta = new HashMap<Integer, Double>();
+//		Map<Integer, Double> otherTimesDelta = new HashMap<Integer, Double>();
 
 		
 		CBPII cbpGlobal = XMLOps.readFromFile(CBPII.class,
 				"zurich_1pm/cbpParametersOriginal/cbpParametersOriginalGlobal.xml");
 
-		Integer notConsideredTransientIterNumber = 30;
-		Integer lastIterationAvailable = 1000;
-		for (Integer c=1; c<=1000; c++) {
+		String censusSize = args[0];
+		Integer lastIterationAvailable = Integer.parseInt(args[1]);
+		Integer notConsideredTransientIterNumber = Integer.parseInt(args[2]);
+		Integer devIval = Integer.parseInt(args[3]);
+		
+		for (Integer c=1; c<=lastIterationAvailable; c++) {
 			String fileName = "zurich_1pm/cbpParametersOriginal/cbpParametersOriginal"+c+".xml";
 			if ((new File(fileName).exists())) {
 				CBPII cbp = XMLOps.readFromFile(CBPII.class, fileName);
@@ -48,21 +53,21 @@ public class VisualizerStdDev2 {
 //				otherUsers.add(100 * (cbp.otherUsers/(cbp.carUsers+cbp.ptUsers+cbp.otherUsers)) / (cbpGlobal.ptUsers/(cbpGlobal.carUsers+cbpGlobal.ptUsers+cbpGlobal.otherUsers)));
 				otherUsers.add(100*cbp.otherUsers/(cbp.carUsers+cbp.ptUsers+cbp.otherUsers));
 //				carTime.add(100*cbp.averageCartime/cbpGlobal.averageCartime);
-				carTimeDelta.add(cbp.averageCartime-cbpGlobal.averageCartime);
 				carTime.add(cbp.averageCartime);
 //				ptTime.add(100*cbp.averagePtTime/cbpGlobal.averagePtTime);
-				ptTimeDelta.add(cbp.averagePtTime-cbpGlobal.averagePtTime);
 				ptTime.add(cbp.averagePtTime);
 //				otherTime.add(100*(cbp.customVariable1/cbp.otherUsers)/(cbpGlobal.customVariable1/cbp.otherUsers));
-				otherTimeDelta.add(cbp.customVariable1/cbp.otherUsers-cbpGlobal.customVariable1/cbpGlobal.otherUsers);
 				otherTime.add(cbp.customVariable1/cbp.otherUsers);
 				if (c>notConsideredTransientIterNumber) {
-//					carTimes.put(c, 100*cbp.averageCartime/cbpGlobal.averageCartime);
-					carTimesDelta.put(c, cbp.averageCartime-cbpGlobal.averageCartime);
-//					ptTimes.put(c, 100*cbp.averagePtTime/cbpGlobal.averagePtTime);
-					ptTimesDelta.put(c, cbp.averagePtTime-cbpGlobal.averagePtTime);
-//					otherTimes.put(c, 100*(cbp.customVariable1/cbp.otherUsers)/(cbpGlobal.customVariable1/cbp.otherUsers));
-					otherTimesDelta.put(c, cbp.customVariable1/cbp.otherUsers-cbpGlobal.customVariable1/cbpGlobal.otherUsers);
+					carTimeDelta.add(cbp.averageCartime-cbpGlobal.averageCartime);
+					ptTimeDelta.add(cbp.averagePtTime-cbpGlobal.averagePtTime);
+					otherTimeDelta.add(cbp.customVariable1/cbp.otherUsers-cbpGlobal.customVariable1/cbpGlobal.otherUsers);
+////					carTimes.put(c, 100*cbp.averageCartime/cbpGlobal.averageCartime);
+//					carTimesDelta.put(c, cbp.averageCartime-cbpGlobal.averageCartime);
+////					ptTimes.put(c, 100*cbp.averagePtTime/cbpGlobal.averagePtTime);
+//					ptTimesDelta.put(c, cbp.averagePtTime-cbpGlobal.averagePtTime);
+////					otherTimes.put(c, 100*(cbp.customVariable1/cbp.otherUsers)/(cbpGlobal.customVariable1/cbp.otherUsers));
+//					otherTimesDelta.put(c, cbp.customVariable1/cbp.otherUsers-cbpGlobal.customVariable1/cbpGlobal.otherUsers);
 				}
 //				System.out.println("Adding #carUsers = "+carUsers.get(c-1));
 //				System.out.println("Adding #ptUsers = "+ptUsers.get(c-1));
@@ -110,7 +115,7 @@ public class VisualizerStdDev2 {
 		Double globalOtherTimeAverage = mean(otherTime.subList(notConsideredTransientIterNumber+1, otherTime.size()));
 		
 		
-		for (Integer s=notConsideredTransientIterNumber+2; s<=1000; s++) {
+		for (Integer s=notConsideredTransientIterNumber+2; s<=lastIterationAvailable; s++) {
 //			System.out.println("s = "+s);
 			if (s > lastIterationAvailable) {
 				break;
@@ -123,8 +128,8 @@ public class VisualizerStdDev2 {
 //			System.out.println("StdDev = "+sampleStandardDeviation(carUsersCut));
 			carUserAverageDevs.put(s, averageDeviation(carUsersCut, globalCarShareAverage));
 //			System.out.println("StdDevAverage = "+averageDeviation(carUsersCut, globalCarShareAverage));
-			if (s>=notConsideredTransientIterNumber+30) {
-				carUserStdDevs30.put(s, sampleStandardDeviation(carUsersCut.subList(carUsersCut.size()-30, carUsersCut.size())));
+			if (s>=notConsideredTransientIterNumber+devIval) {
+				carUserStdDevs30.put(s, sampleStandardDeviation(carUsersCut.subList(carUsersCut.size()-devIval, carUsersCut.size())));
 //				System.out.println("StdDev30 = "+sampleStandardDeviation(carUsersCut.subList(carUsersCut.size()-30, carUsersCut.size())));
 			}
 			
@@ -133,8 +138,8 @@ public class VisualizerStdDev2 {
 			ptUsersCut.addAll(ptUsers.subList(notConsideredTransientIterNumber, s));
 			ptUserStdDevs.put(s, sampleStandardDeviation(ptUsersCut));
 			ptUserAverageDevs.put(s, averageDeviation(ptUsersCut, globalPtShareAverage));
-			if (s>=notConsideredTransientIterNumber+30) {
-				ptUserStdDevs30.put(s, sampleStandardDeviation(carUsersCut.subList(carUsersCut.size()-30, carUsersCut.size())));
+			if (s>=notConsideredTransientIterNumber+devIval) {
+				ptUserStdDevs30.put(s, sampleStandardDeviation(carUsersCut.subList(carUsersCut.size()-devIval, carUsersCut.size())));
 			}
 			
 			List<Double> otherUsersCut = new ArrayList<Double>();
@@ -142,8 +147,8 @@ public class VisualizerStdDev2 {
 			otherUsersCut.addAll(otherUsers.subList(notConsideredTransientIterNumber, s));
 			otherUserStdDevs.put(s, sampleStandardDeviation(otherUsersCut));
 			otherUserAverageDevs.put(s, averageDeviation(otherUsersCut, globalOtherShareAverage));
-			if (s>=notConsideredTransientIterNumber+30) {
-				otherUserStdDevs30.put(s, sampleStandardDeviation(otherUsersCut.subList(otherUsersCut.size()-30, otherUsersCut.size())));
+			if (s>=notConsideredTransientIterNumber+devIval) {
+				otherUserStdDevs30.put(s, sampleStandardDeviation(otherUsersCut.subList(otherUsersCut.size()-devIval, otherUsersCut.size())));
 			}
 			
 			List<Double> carTimeCut = new ArrayList<Double>();
@@ -151,8 +156,8 @@ public class VisualizerStdDev2 {
 			carTimeCut.addAll(carTime.subList(notConsideredTransientIterNumber, s));
 			carTimeStdDevs.put(s, sampleStandardDeviation(carTimeCut));
 			carTimeAverageDevs.put(s, averageDeviation(carTimeCut, globalCarTimeAverage));
-			if (s>=notConsideredTransientIterNumber+30) {
-				carTimeStdDevs30.put(s, sampleStandardDeviation(carTimeCut.subList(carTimeCut.size()-30, carTimeCut.size())));
+			if (s>=notConsideredTransientIterNumber+devIval) {
+				carTimeStdDevs30.put(s, sampleStandardDeviation(carTimeCut.subList(carTimeCut.size()-devIval, carTimeCut.size())));
 			}
 			
 			List<Double> ptTimeCut = new ArrayList<Double>();
@@ -160,8 +165,8 @@ public class VisualizerStdDev2 {
 			ptTimeCut.addAll(ptTime.subList(notConsideredTransientIterNumber, s));
 			ptTimeStdDevs.put(s, sampleStandardDeviation(ptTimeCut));
 			ptTimeAverageDevs.put(s, averageDeviation(ptTimeCut, globalPtTimeAverage));
-			if (s>=notConsideredTransientIterNumber+30) {
-				ptTimeStdDevs30.put(s, sampleStandardDeviation(ptTimeCut.subList(ptTimeCut.size()-30, ptTimeCut.size())));
+			if (s>=notConsideredTransientIterNumber+devIval) {
+				ptTimeStdDevs30.put(s, sampleStandardDeviation(ptTimeCut.subList(ptTimeCut.size()-devIval, ptTimeCut.size())));
 			}
 			
 			List<Double> otherTimeCut = new ArrayList<Double>();
@@ -169,8 +174,8 @@ public class VisualizerStdDev2 {
 			otherTimeCut.addAll(otherTime.subList(notConsideredTransientIterNumber, s));
 			otherTimeStdDevs.put(s, sampleStandardDeviation(otherTimeCut));
 			otherTimeAverageDevs.put(s, averageDeviation(otherTimeCut, globalOtherTimeAverage));
-			if (s>=notConsideredTransientIterNumber+30) {
-				otherTimeStdDevs30.put(s, sampleStandardDeviation(otherTimeCut.subList(otherTimeCut.size()-30, otherTimeCut.size())));
+			if (s>=notConsideredTransientIterNumber+devIval) {
+				otherTimeStdDevs30.put(s, sampleStandardDeviation(otherTimeCut.subList(otherTimeCut.size()-devIval, otherTimeCut.size())));
 			}
 		}
 		
@@ -197,8 +202,6 @@ public class VisualizerStdDev2 {
 		Log.writeSameLine("zurich_1pm/cbpParametersOriginal/Percentiles_"+percentilePercentage+".txt",
 				percentileIntervalCar+","+percentileIntervalPt+","+percentileIntervalOther);
 		
-		
-		String censusSize = args[0];
 //		Visualizer.plot2D(" Standard Deviation of Transportation Mode Share After Iter.30 (Zurich "+censusSize+" Scenario) \r\n "
 //				+ "[ref. CAR mode share = "+(new DecimalFormat("##.00")).format(100*cbpGlobal.carUsers/(cbpGlobal.carUsers+cbpGlobal.ptUsers+cbpGlobal.otherUsers))+" %];"
 //						+ "   [ref. PT mode share = "+(new DecimalFormat("##.00")).format(100*cbpGlobal.ptUsers/(cbpGlobal.carUsers+cbpGlobal.ptUsers+cbpGlobal.otherUsers))+" %]"
@@ -214,41 +217,57 @@ public class VisualizerStdDev2 {
 //			}
 //		}
 		
-		Visualizer.plot2D(" Stability of Car Mode Share |  after Iter.30 (Zurich "+censusSize+") \r\n "
-				+ "[Average CAR share = "+(new DecimalFormat("##.00")).format(100*cbpGlobal.carUsers/(cbpGlobal.carUsers+cbpGlobal.ptUsers+cbpGlobal.otherUsers))+" %] \r\n",
+		int nr = notConsideredTransientIterNumber;
+		
+		Visualizer.plot2D(" Stability of Car Mode Share After Iter. "+nr+" (Zurich "+censusSize+") \r\n ",
+				"[Average CAR share = "+(new DecimalFormat("##.00")).format(100*cbpGlobal.carUsers/(cbpGlobal.carUsers+cbpGlobal.ptUsers+cbpGlobal.otherUsers))+" %] \r\n",
 				"Last MATSim Iteration Considered", "Deviation in Mode Share [%]",
 				Arrays.asList(carUserStdDevs, carUserStdDevs30, carUserAverageDevs),
 				Arrays.asList("Standard Deviation (all up to this iter)", "Standard Deviation (last 30 iters)", "Mean deviation from global average (all up to this iter)"), 0.0, 0.0, null,
 				"StdDev_ModeShareCarX_"+censusSize+".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2D(" Stability of Car Mode Share |  after Iter.30 (Zurich "+censusSize+") \r\n "
-				+ "[Average PT share = "+(new DecimalFormat("##.00")).format(100*cbpGlobal.ptUsers/(cbpGlobal.carUsers+cbpGlobal.ptUsers+cbpGlobal.otherUsers))+" %] \r\n",
+		Visualizer.plot2D(" Stability of PT Mode Share After Iter. "+nr+" (Zurich "+censusSize+") \r\n ",
+				"[Average PT share = "+(new DecimalFormat("##.00")).format(100*cbpGlobal.ptUsers/(cbpGlobal.carUsers+cbpGlobal.ptUsers+cbpGlobal.otherUsers))+" %] \r\n",
 				"Last MATSim Iteration Considered", "Deviation in Mode Share PT [%]",
 				Arrays.asList(ptUserStdDevs, ptUserStdDevs30, ptUserAverageDevs),
 				Arrays.asList("Standard Deviation (all up to this iter)", "Standard Deviation (last 30 iters)", "Mean deviation from global average (all up to this iter)"), 0.0, 0.0, null,
 				"StdDev_ModeSharePTX_"+censusSize+".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+
+		Visualizer.plot2D(" Stability of \"Other\" Mode Share After Iter. "+nr+" (Zurich "+censusSize+") \r\n ",
+				"[Average \"Other\" share = "+(new DecimalFormat("##.00")).format(100*cbpGlobal.otherUsers/(cbpGlobal.carUsers+cbpGlobal.ptUsers+cbpGlobal.otherUsers))+" %] \r\n",
+				"Last MATSim Iteration Considered", "Deviation in Mode Share \"Other\" [%]",
+				Arrays.asList(otherUserStdDevs, otherUserStdDevs30, otherUserAverageDevs),
+				Arrays.asList("Standard Deviation (all up to this iter)", "Standard Deviation (last 30 iters)", "Mean deviation from global average (all up to this iter)"), 0.0, 0.0, null,
+				"StdDev_ModeShareOTHERX_"+censusSize+".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2D(" Stability of Average Travel Time CAR | after Iter.30 (Zurich "+censusSize+") \r\n "
-				+ "[Average CAR travel time = "+(new DecimalFormat("##.00")).format(cbpGlobal.averageCartime)+" s] \r\n",
+		Visualizer.plot2D(" Stability of Average CAR Travel Time After Iter "+nr+" (Zurich "+censusSize+") \r\n ",
+				"[Average CAR travel time = "+(new DecimalFormat("##.00")).format(cbpGlobal.averageCartime)+" s] \r\n",
 				"Last MATSim Iteration Considered", "Average Travel Time Dev. CAR [s]",
 				Arrays.asList(carTimeStdDevs, carTimeStdDevs30, carTimeAverageDevs),
 				Arrays.asList("Standard Deviation (all up to this iter)", "Standard Deviation (last 30 iters)", "Mean deviation from global average (all up to this iter)"), 0.0, 0.0, null,
 				"StdDev_TravelTimesCarX_"+censusSize+".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2D(" Stability of Average Travel Time PT | after Iter.30 (Zurich "+censusSize+") \r\n "
-				+ "[Average PT travel time = "+(new DecimalFormat("##.00")).format(cbpGlobal.averagePtTime)+" s] \r\n",
+		Visualizer.plot2D(" Stability of Average PT Travel Time After Iter. "+nr+" (Zurich "+censusSize+") \r\n ",
+				"[Average PT travel time = "+(new DecimalFormat("##.00")).format(cbpGlobal.averagePtTime)+" s] \r\n",
 				"Last MATSim Iteration Considered", "Average Travel Time Dev. PT [s]",
 				Arrays.asList(ptTimeStdDevs, ptTimeStdDevs30, ptTimeAverageDevs),
 				Arrays.asList("StdDev. (all up to this iter)", "StdDev. (last 30 iters)", "MeanDev. from global average (all up to this iter)"), 0.0, 0.0, null,
 				"StdDev_TravelTimesPtX_"+censusSize+".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
+
+		Visualizer.plot2D(" Stability of Average \"Other\" Travel Time After Iter. "+nr+" (Zurich "+censusSize+") \r\n ",
+				"[Average \"Other\" travel time = "+(new DecimalFormat("##.00")).format(cbpGlobal.customVariable1/cbpGlobal.otherUsers)+" s] \r\n",
+				"Last MATSim Iteration Considered", "Average Travel Time Dev. \"Other\" [s]",
+				Arrays.asList(otherTimeStdDevs, otherTimeStdDevs30, otherTimeAverageDevs),
+				Arrays.asList("StdDev. (all up to this iter)", "StdDev. (last 30 iters)", "MeanDev. from global average (all up to this iter)"), 0.0, 0.0, null,
+				"StdDev_TravelTimesOtherX_"+censusSize+".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2D(" Average Travel Time Deviations | after Iter.30 (Zurich "+censusSize+") \r\n ",
+		Visualizer.plot2D(" Average Travel Time Deviations After Iter. "+nr+" (Zurich "+censusSize+") \r\n ", "",
 				"Last MATSim Iteration Considered", "Average Travel Time Deviation [s]",
 				Arrays.asList(carTimeMap, ptTimeMap, otherTimeMap),
 				Arrays.asList("CAR", "PT", "Other"), 0.0, 0.0, null,
 				"Dev_TravelTimes_CAR_PT_Other_X_"+censusSize+".png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
 		
-		Visualizer.plot2D(" Mode Share Deviations | after Iter.30 (Zurich "+censusSize+") \r\n ",
+		Visualizer.plot2D(" Mode Share Deviations After Iter. "+nr+" (Zurich "+censusSize+") \r\n ",  "",
 				"Last MATSim Iteration Considered", "Mode Share Deviation [%]",
 				Arrays.asList(carUserMap, ptUserMap, otherUserMap),
 				Arrays.asList("CAR", "PT", "Other"), 0.0, 0.0, null,

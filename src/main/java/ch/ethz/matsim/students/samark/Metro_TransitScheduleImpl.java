@@ -375,7 +375,7 @@ public class Metro_TransitScheduleImpl {
 		tsw.writeFile("zurich_1pm/Evolution/Population/"+NetworkId+"/MergedScheduleModified.xml");
 	}
 	
-	public static TransitSchedule cloneTransitSchedule(TransitSchedule o, String ptRemoveScenario) {
+	public static TransitSchedule cloneTransitSchedule(TransitSchedule o, String ptRemoveScenario) throws IOException {
 		TransitSchedule copy = ScenarioUtils.loadScenario(ConfigUtils.createConfig()).getTransitSchedule();
 		for (TransitStopFacility tsf : o.getFacilities().values()) {
 			copy.addStopFacility(cloneTransitStopFacility(tsf, o.getFactory()));
@@ -394,7 +394,7 @@ public class Metro_TransitScheduleImpl {
 		return copy;
 	}
 
-	public static TransitLine cloneTransitLine(TransitLine o, TransitScheduleFactory tsf, String ptRemoveScenario) {
+	public static TransitLine cloneTransitLine(TransitLine o, TransitScheduleFactory tsf, String ptRemoveScenario) throws IOException {
 		TransitLine copy = tsf.createTransitLine(o.getId());
 		copy.setName(o.getName());
 		for (Id<TransitRoute> tr : o.getRoutes().keySet()) {
@@ -429,6 +429,28 @@ public class Metro_TransitScheduleImpl {
 					}
 					copy.addRoute(TRR);				
 				}
+			}
+			else if (ptRemoveScenario.equals("quarter")){
+				if (TR.getTransportMode().equals("rail") || TR.getTransportMode().equals("bus")) {
+				Integer counter = 0;
+				for (Departure d : TR.getDepartures().values()){				
+					counter++;
+					if (counter%4 == 1) {			// every 4th: if (counter%4 == 1) {
+						TRR.addDeparture(d);
+					}
+					else {
+						continue;
+					}
+				}
+				copy.addRoute(TRR);
+				}
+				else {
+					copy.addRoute(TRR);
+				}
+			}
+			else {
+				Log.write("Not a valid TS modification strategy. Please check. Aborting...");
+				System.exit(0);
 			}
 		// EXTEND RAIL SCHEDULE TO 15MIN FREQUENCY
 //			if (TR.getTransportMode().equals("rail")) {

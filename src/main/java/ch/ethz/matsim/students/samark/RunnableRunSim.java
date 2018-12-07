@@ -95,22 +95,20 @@ public class RunnableRunSim implements Runnable {
 		String inputNetworkFile = "Evolution/Population/BaseInfrastructure/GlobalNetwork.xml";
 		// See old versions BEFORE 06.09.2018 for how to load specific mergedNetworks OD/Random instead of Global Network with all links
 		modConfig.getModules().get("network").addParam("inputNetworkFile", inputNetworkFile);
-		if (this.useFastSBahnModule) {
-			try {
-				Metro_TransitScheduleImpl.TS_ModificationModule(this.mNetwork.networkID, ptRemoveScenario);
-				Metro_TransitScheduleImpl.SpeedSBahnModule(this.mNetwork, "MergedScheduleModified.xml", "MergedScheduleSpeedSBahn.xml");
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
+
+		
+		try {
+			if (this.useFastSBahnModule) {
+					Metro_TransitScheduleImpl.TS_ModificationModule(this.mNetwork.networkID, ptRemoveScenario);
+					Metro_TransitScheduleImpl.SpeedSBahnModule(this.mNetwork, "MergedScheduleModified.xml", "MergedScheduleSpeedSBahn.xml");
+					modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+this.mNetwork.networkID+"/MergedScheduleSpeedSBahn.xml");			
 			}
-			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+this.mNetwork.networkID+"/MergedScheduleSpeedSBahn.xml");			
-		}
-		else {
-			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+this.mNetwork.networkID+"/MergedSchedule.xml");
-//			Metro_TransitScheduleImpl.TS_ModificationModule(mNetwork.networkID);
-//			modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+mNetwork.networkID+"/MergedScheduleModified.xml");			
-		}
-		modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+this.mNetwork.networkID+"/MergedVehicles.xml");
+			else {
+				Metro_TransitScheduleImpl.TS_ModificationModule(this.mNetwork.networkID, ptRemoveScenario);
+				modConfig.getModules().get("transit").addParam("transitScheduleFile","Evolution/Population/"+this.mNetwork.networkID+"/MergedScheduleModified.xml");			
+			}
+			modConfig.getModules().get("transit").addParam("vehiclesFile","Evolution/Population/"+this.mNetwork.networkID+"/MergedVehicles.xml");
+		} catch (IOException e) { e.printStackTrace(); }
 //		modConfig.getModules().get("qsim").addParam("flowCapacityFactor", "10000");
 //		modConfig.getModules().get("global").addParam("numberOfThreads","1");
 //		modConfig.getModules().get("parallelEventHandling").addParam("numberOfThreads","1");

@@ -28,6 +28,7 @@ import ch.ethz.matsim.baseline_scenario.transit.routing.DefaultEnrichedTransitRo
 import ch.ethz.matsim.baseline_scenario.zurich.ZurichModule;
 import ch.ethz.matsim.papers.mode_choice_paper.CustomModeChoiceModule;
 import ch.ethz.matsim.papers.mode_choice_paper.utils.LongPlanFilter;
+import ch.ethz.matsim.students.samark.visualizer.VisualizerCBP_Original;
 import ch.sbb.matsim.routing.pt.raptor.SwissRailRaptorModule;
 
 public class Run_ZurichScenarioEnriched {
@@ -117,6 +118,7 @@ static public void main(String[] args) throws ConfigurationException, IOExceptio
 		controler.addOverridingModule(new CustomModeChoiceModule(cmd, bestResponse));
 		controler.run();
 		
+//		VisualizerCBP_Original.main(new String[]{"100","1","333","individualXglobal","none","75"});
 	}
 
 //	Basic ZH Scenario (not enriched)

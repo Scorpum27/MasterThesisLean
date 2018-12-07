@@ -302,7 +302,7 @@ public class MNetwork implements Serializable{
 			List<Double> annualDeltaPtPersonDist20xx = makePtUsagePrognosis(annualDeltaPtPersonDist2020);		//  [m/y]	// initiate with expected annual deltaPtPersonDist with 2020 MATSim result
 			double annualDeltaCarPersonTime2020 = 250*(newCase.carTimeTotal-refCase.carTimeTotal);				//  [s/y], double annualDeltaCarVehicleDist2020 = annualDeltaCarPersonDist2020/occupancyRate
 			double annualDeltaPtPersonTime2020 = 250*(newCase.customVariable3 - refCase.customVariable3);		//  [s/y]			
-			double annualDeltaOtherPersonTime2020 = 250*((newCase.ptTimeTotal-refCase.ptTimeTotal));			//  [s/y]
+			double annualDeltaOtherPersonTime2020 = 250*((newCase.customVariable1 - refCase.customVariable1));			//  [s/y]
 			List<Double> annualDeltaCarPersonTime20xx = makeMptUsagePrognosis(annualDeltaCarPersonTime2020);	//  [s/y]	// initiate with expected annual deltaCarPersonDist with 2020 MATSim result
 			List<Double> annualDeltaPtPersonTime20xx = makePtUsagePrognosis(annualDeltaPtPersonTime2020);		//  [s/y]	// initiate with expected annual deltaPtPersonDist with 2020 MATSim result		
 			List<Double> annualDeltaOtherPersonTime20xx = makeWalkBikeUsagePrognosis(annualDeltaOtherPersonTime2020);		//  [s/y]	// initiate with expected annual deltaOtherPersonDist with 2020 MATSim result

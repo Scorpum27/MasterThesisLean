@@ -27,26 +27,29 @@ public class EvoOpsCrossover {
 
 		if (inputScenario.equals("zurich")) {
 			// ZH scenario
-			if (currentGEN >= 27) {
-				pCrossOver = 0.07;
-			}
-			if (currentGEN >= 44) {
-				pCrossOver = 0.04;
+			if (currentGEN >= 70) {
+				pCrossOver *= (0.02/0.11);
+			}	
+			else if (currentGEN >= 50) {
+				pCrossOver *= (0.04/0.11);
 			}			
+			else if (currentGEN >= 30) {
+				pCrossOver *= (0.07/0.11);
+			}
 		}
 		else if(inputScenario.equals("VC")) {
 			// VC scenario
-			if (currentGEN >= 50) {
-				pCrossOver = 0.05;
-			}
-			if (currentGEN >= 75) {
-				pCrossOver = 0.04;
-			}
-			if (currentGEN >= 100) {
-				pCrossOver = 0.03;
-			}
 			if (currentGEN >= 125) {
-				pCrossOver = 0.02;
+				pCrossOver *= (0.02/0.06);
+			}
+			else if (currentGEN >= 100) {
+				pCrossOver *= (0.03/0.06);
+			}
+			else if (currentGEN >= 75) {
+				pCrossOver *= (0.04/0.06);
+			}
+			else if (currentGEN >= 50) {
+				pCrossOver *= (0.05/0.06);
 			}
 		}
 

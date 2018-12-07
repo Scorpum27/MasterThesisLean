@@ -299,11 +299,11 @@ public class NetworkEvolutionRunSim {
 			linesOccup.add(totalMetroPersonDist);
 			linesNames.add("Total");
 			
-			Visualizer.plot2D(" Metro Person Travel Distance \r\n ",
+			Visualizer.plot2D(" Metro Person Travel Distance \r\n ", "",
 					"MATSim Iteration", "Annual Metro Person Travel Distance [km/a]",
 					linesOccup, linesNames, 0.0, 0.0, null, // new Range(-2.0E8, 7.0E8), // new Range(-1.0E8, 2.5E8)
 					"MetroOccupancies.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
-			Visualizer.plot2D(" Metro Users \r\n ",
+			Visualizer.plot2D(" Metro Users \r\n ", "",
 					"MATSim Iteration", "Metro Users",
 					Arrays.asList(totalMetroUsers), Arrays.asList("Total"), 0.0, 0.0, null, // new Range(-2.0E8, 7.0E8), // new Range(-1.0E8, 2.5E8)
 					"MetroUsers.png"); // rangeAxis.setRange(-21.0E1, // 1.5E1)
@@ -314,7 +314,7 @@ public class NetworkEvolutionRunSim {
 	
 	
 	public static MNetworkPop peoplePlansProcessingM(MNetworkPop networkPopulation, int maxTravelTimeInSec,
-			int lastIteration, int iterationsToAverage, int populationFactor, String networkPath) throws IOException {
+			int lastIteration, int iterationsToAverage, int populationFactor, boolean shortenTooLongLegs, String networkPath) throws IOException {
 		
 		// PROCESSING
 		// - TravelTimes (exclude unrealistic (transit_)walk legs)
@@ -365,11 +365,13 @@ public class NetworkEvolutionRunSim {
 						if (element instanceof Leg) {
 							Leg leg = (Leg) element;
 							// do following two conditions to avoid unreasonably high (transit_)walk times!
-							if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>35*60.0) {
-								leg.setTravelTime(35*60.0);
-							}
-							if ((leg.getMode().equals("walk") || leg.getMode().equals("bike")) && leg.getTravelTime()>60*60.0) {
-								leg.setTravelTime(60*60.0);
+							if (shortenTooLongLegs) {
+								if (leg.getMode().equals("transit_walk") && leg.getTravelTime()>35*60.0) {
+									leg.setTravelTime(35*60.0);
+								}
+								if ((leg.getMode().equals("walk") || leg.getMode().equals("bike")) && leg.getTravelTime()>60*60.0) {
+									leg.setTravelTime(60*60.0);
+								}								
 							}
 							//
 							if (leg.getMode().contains("car")) {
@@ -394,12 +396,12 @@ public class NetworkEvolutionRunSim {
 								}
 							}
 							else if (leg.getMode().equals("walk")){
-								walkBikeTimeTotal += (23.29*(0.141/0.67)/33.20)*leg.getTravelTime();
+								walkBikeTimeTotal += 1.2*(23.29*(0.141/0.067)/33.20)*leg.getTravelTime();
 								// TRC: walkDisUtil (0.141/0.67) times higher than car(23.29)
 								// describe walkDisUtil in terms of generalized term 33.20CHF/h, therefore make ratio to express as equivalent to generalized cost
 							}
 							else if (leg.getMode().equals("bike")){
-								walkBikeTimeTotal += (23.29*(0.095/0.67)/33.20)*leg.getTravelTime();
+								walkBikeTimeTotal += 1.2*(23.29*(0.095/0.067)/33.20)*leg.getTravelTime();
 							}
 							personTravelTime += leg.getTravelTime();	// totalPersonTravelTime
 						}

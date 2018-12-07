@@ -36,41 +36,41 @@ public class EvoOpsMutator {
 		if (inputScenario.equals("zurich")) {
 			// ZH scenario
 			if (currentGEN >= 25) {
-				pMutation = 0.33;
-				pBigChange = 0.20;
+				pMutation *= 0.825;
+				pBigChange *= (2.0/3.0);
 				pSmallChange = 1-pBigChange;
 			}
 			if (currentGEN >= 37) {
-				pMutation = 0.26;
-				pBigChange = 0.14;
+				pMutation *= 0.65;
+				pBigChange *= (1.0/2.0);
 				pSmallChange = 1-pBigChange;
 			}
 			if (currentGEN >= 45) {
-				pMutation = 0.18;
-				pBigChange = 0.10;
+				pMutation *= 0.45;
+				pBigChange *= (1.0/3.0);
 				pSmallChange = 1-pBigChange;
 			}
 		}
 		else if(inputScenario.equals("VC")) {
 			// VC scenario
 			if (currentGEN >= 35) {
-				pMutation = 0.35;
-				pBigChange = 0.25;
+				pMutation *= 0.70;
+				pBigChange *= 0.84;
 				pSmallChange = 1-pBigChange;
 			}
 			if (currentGEN >= 55) {
-				pMutation = 0.32;
-				pBigChange = 0.17;
+				pMutation *= 0.64;
+				pBigChange *= 0.57;
 				pSmallChange = 1-pBigChange;
 			}
 			if (currentGEN >= 75) {
-				pMutation = 0.20;
-				pBigChange = 0.08;
+				pMutation *= 0.40;
+				pBigChange *= 0.27;
 				pSmallChange = 1-pBigChange;
 			}
 			if (currentGEN >= 90) {
-				pMutation = 0.20;
-				pBigChange = 0.00;
+				pMutation *= 0.20;
+				pBigChange *= 0.13;
 				pSmallChange = 1-pBigChange;
 			}
 		}
@@ -286,8 +286,8 @@ public class EvoOpsMutator {
 			Map<Id<Link>, CustomMetroLinkAttributes> metroLinkAttributes, Double routeDisutilityLimit) throws IOException {
 
 		// if profitable higher chance of extending route, and vice versa
-		if ((mRoute.utilityBalance > routeDisutilityLimit && (new Random()).nextDouble()<0.67)
-				|| (mRoute.utilityBalance < routeDisutilityLimit && (new Random()).nextDouble()<0.33)) { // extend route
+		if ((mRoute.utilityBalance > routeDisutilityLimit && (new Random()).nextDouble()<0.80)
+				|| (mRoute.utilityBalance < routeDisutilityLimit && (new Random()).nextDouble()<0.20)) { // extend route
 			
 			extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);
 			
@@ -297,7 +297,7 @@ public class EvoOpsMutator {
 				mrouteIter.remove();
 				return false;
 			}
-			else if ((new Random()).nextDouble()<0.5) {
+			else if ((new Random()).nextDouble()<0.3) {
 				extendRoute(mrouteIter, linkListMutate, globalNetwork, maxCrossingAngle, mRoute, metroLinkAttributes);				
 			}
 		}
